@@ -1,0 +1,45 @@
+<!-- =========== Copyright | Vikash Kumar | vikashplus@gmail.com ==========================
+    Model       :: MPL
+    Mujoco      :: Advanced physics simulation engine
+        Source      : www.roboti.us
+        Version     : 2.00
+        Released    : 1Oct"18
+    Author      :: Vikash Kumar
+        Contacts    : vikashplus@gmail.com
+        Last edits  : 25Dec"19
+
+Copyright 2018 Vikash Kumar: Licensed under Apache License, Version 2.0 (the "License")
+
+You may not use this file except in compliance with the License. You may obtain a copy of
+the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law
+or agreed to in writing, software distributed under the License is distributed on an "AS IS"
+BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+for the specific language governing permissions and limitations under the License.
+============================================================================================= -->
+
+<mujocoinclude>
+
+    <default>
+        <default class="MPL_hand">
+            <geom condim="6" contype="2" conaffinity="1"  rgba=".9 .9 .9 1" type="mesh" material="matmetal"/>
+            <site type="sphere" size="0.005" group="0"/>
+            <joint damping="6" limited="true"/>
+            <position kp="10" ctrllimited="true"/>
+        </default>
+    </default>
+
+    <asset>
+        <mesh file="meshes/mplR/wrist_rot_link-cvx.stl" name="wrist_rot_linkR"/>
+        <mesh file="meshes/mplR/wrist_dev_link-cvx.stl" name="wrist_dev_linkR"/>
+        <mesh file="meshes/mplR/wrist_fe_link-cvx.stl" name="wrist_fe_linkR"/>
+        <mesh file="meshes/mplR/palm_link-cvx.stl" name="palm_linkR"/>
+    </asset>
+
+    <actuator>
+        <position class="MPL_hand" name="Rwrist_rot" joint="Rwrist_rot" ctrlrange="-1.483 1.483"/>
+        <position class="MPL_hand" name="Rwrist_dev" joint="Rwrist_dev" ctrlrange="-0.524 0.524"/>
+        <position class="MPL_hand" name="Rwrist_fe" joint="Rwrist_fe" ctrlrange="-1 1"/>
+        <position class="MPL_hand" name="Rfingers" joint="Rfingers" ctrlrange="0 1.57"/>
+    </actuator>
+
+</mujocoinclude>

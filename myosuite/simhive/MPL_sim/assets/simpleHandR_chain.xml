@@ -1,0 +1,45 @@
+<!-- =========== Copyright | Vikash Kumar | vikashplus@gmail.com ==========================
+    Model       :: MPL
+    Mujoco      :: Advanced physics simulation engine
+        Source      : www.roboti.us
+        Version     : 2.00
+        Released    : 1Oct"18
+    Author      :: Vikash Kumar
+        Contacts    : vikashplus@gmail.com
+        Last edits  : 25Dec"19
+    
+Copyright 2018 Vikash Kumar: Licensed under Apache License, Version 2.0 (the "License")
+
+You may not use this file except in compliance with the License. You may obtain a copy of 
+the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law
+or agreed to in writing, software distributed under the License is distributed on an "AS IS"
+BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+for the specific language governing permissions and limitations under the License.
+============================================================================================= -->
+
+<mujocoinclude>
+    <body name="Rwrist_rot_link" pos="-3.3683e-05 -0.18893 0" childclass="MPL_hand">
+        <joint axis="0 1 0" name="Rwrist_rot" range="-1.483 1.483"/>
+        <geom mesh="wrist_rot_linkR"/>
+        <body name="Rwrist_dev_link" pos="3.3683e-05 -0.044145 -5.6365e-05">
+            <joint axis="0 0 -1" name="Rwrist_dev" range="-0.524 0.524"/>
+            <geom mesh="wrist_dev_linkR"/>
+            <body name="Rwrist_fe_link" pos="0.0001872 -0.03 0">
+                <joint axis="1 0 0" name="Rwrist_fe" range="-1 1"/>
+                <geom mesh="wrist_fe_linkR"/>
+                <body name="Rpalm_link" pos="-0.000185 -0.08 -0.04" quat="0.707105 0 0 -0.707108">
+                    <geom mesh="palm_linkR"/>
+                    <site name="Rgrasp"/>
+                    
+                    <body name="Rfingers">
+                        <joint axis="0 1 0" name="Rfingers" pos="0 0 0.041012" range="0 1.57"/>
+                        <geom type="capsule" size=".008 .045" pos="0.042 0.035675 0.041012" euler="0 1.57 0"/>
+                        <geom type="capsule" size=".009 .045" pos="0.052 0.012996 0.045446" euler="0 1.57 0"/>
+                        <geom type="capsule" size=".008 .045" pos="0.042 -0.0096828 0.041512" euler="0 1.57 0"/>
+                        <geom type="capsule" size=".007 .037" pos="0.022 -0.030436 0.034361" euler="0 1.57 0"/>
+                    </body>
+                </body>
+            </body>
+        </body> 
+    </body>
+</mujocoinclude>
