@@ -51,11 +51,11 @@ class TrainAnalyzer:
 
         with open(os.path.join(log_dir, "session_config.json"), 'r') as f:
             config_dict = json.load(f)
-        config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
+        config = DictionableDataclass.create(TrainSessionConfigBase, config_dict)
 
-        if config.env_params.env_id == 'myoLeg18-v0':
+        if config.env_params.env_id == 'myoAssistLeg-v0':
             config = DictionableDataclass.create(TrainSessionConfigBase, config_dict)
-        elif config.env_params.env_id in ['myoLeg18Imitation-v0', 'myoLeg18ImitationDephy-v0']:
+        elif config.env_params.env_id in ['myoAssistLegImitation-v0', 'myoAssistLegImitationExo-v0']:
             # print("Imitation train session config")
             config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
             # print("\nAll fields in RewardWeights:")
@@ -64,8 +64,8 @@ class TrainAnalyzer:
 
         config.env_params.min_target_velocity = 0.7
         config.env_params.max_target_velocity = 2.0
-        from myosuite.envs.myoassist.myo_leg_18_base import MyoLeg18Base
-        velocity_mode = MyoLeg18Base.VelocityMode.SINUSOIDAL
+        from myosuite.envs.myoassist.myoassist_leg_base import MyoAssistLegBase
+        velocity_mode = MyoAssistLegBase.VelocityMode.SINUSOIDAL
         target_velocity_period = 5
 
         gait_data_name = f"{log_handler.session_name}_gait_evaluated_data.json"

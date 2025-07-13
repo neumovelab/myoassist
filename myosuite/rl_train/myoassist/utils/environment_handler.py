@@ -82,16 +82,16 @@ class EnvironmentHandler:
 
     def get_config_type_from_session_id(session_id):
         # from myosuite.envs.myoassist import myo_leg_18_reward_per_step
-        from myosuite.envs.myoassist import myo_leg_18_imitation_dephy
+        from myosuite.envs.myoassist import myoassist_leg_imitation_exo
         from myosuite.rl_train.myoassist.utils.config import TrainSessionConfigBase
         from myosuite.rl_train.myoassist.utils.config_imitation import ImitationTrainSessionConfig
         # Create appropriate config based on env_id
-        if session_id == 'myoLeg18-v0':
+        if session_id == 'myoAssistLeg-v0':
             return TrainSessionConfigBase
-        elif session_id in ['myoLeg18Imitation-v0']:
+        elif session_id in ['myoAssistLegImitation-v0']:
             return ImitationTrainSessionConfig
-        elif session_id == 'myoLeg18ImitationDephy-v0':
-            return myo_leg_18_imitation_dephy.DephyImitationTrainSessionConfig
+        elif session_id == 'myoAssistLegImitationExo-v0':
+            return myoassist_leg_imitation_exo.ExoImitationTrainSessionConfig
         raise ValueError(f"Invalid session id: {session_id}")
         
 
@@ -108,10 +108,10 @@ class EnvironmentHandler:
     def get_callback(config, train_log_handler):
         from myosuite.rl_train.myoassist.utils.config_imitation import ImitationTrainSessionConfig
         
-        from myosuite.envs.myoassist import myo_leg_18_imitation
+        from myosuite.envs.myoassist import myoassist_leg_imitation
         from myosuite.rl_train.myoassist.utils import learning_callback
         if isinstance(config, ImitationTrainSessionConfig):
-            custom_callback = myo_leg_18_imitation.ImitationCustomLearningCallback(
+            custom_callback = myoassist_leg_imitation.ImitationCustomLearningCallback(
                 log_rollout_freq=config.logger_params.logging_frequency,
                 evaluate_freq=config.logger_params.evaluate_frequency,
                 log_handler=train_log_handler,

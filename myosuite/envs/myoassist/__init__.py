@@ -37,25 +37,20 @@ def register_env_myoassist(id, entry_point, max_episode_steps, kwargs):
 
 # curr_dir = os.path.dirname(os.path.abspath(__file__))
 
-register_env_myoassist(id='myoLeg18Imitation-v0',
-        entry_point='myosuite.envs.myoassist.myo_leg_18_imitation:MyoLeg18Imitation',
-        max_episode_steps=1000,
-        kwargs={},
-    )
 
-register_env_myoassist(id='myoLeg18-v0',
-        entry_point='myosuite.envs.myoassist.myo_leg_18_base:MyoLeg18Base',
-        max_episode_steps=1000,
-        kwargs={},
-    )
 
-register_env_myoassist(id='myoLeg18Guided-v0',
-        entry_point='myosuite.envs.myoassist.myo_leg_18_guided:MyoLeg18Guided',
+register_env_myoassist(id='myoAssistLeg-v0',
+        entry_point='myosuite.envs.myoassist.myoassist_leg_base:MyoAssistLegBase',
         max_episode_steps=1000,
         kwargs={},
     )
-register_env_myoassist(id='myoLeg18ImitationDephy-v0',
-        entry_point='myosuite.envs.myoassist.myo_leg_18_imitation_dephy:myoLeg18ImitationDephy',
+register_env_myoassist(id='myoAssistLegImitation-v0',
+        entry_point='myosuite.envs.myoassist.myoassist_leg_imitation:MyoAssistLegImitation',
+        max_episode_steps=1000,
+        kwargs={},
+    )
+register_env_myoassist(id='myoAssistLegImitationExo-v0',
+        entry_point='myosuite.envs.myoassist.myoassist_leg_imitation_exo:MyoAssistLegImitationExo',
         max_episode_steps=1000,
         kwargs={},
     )

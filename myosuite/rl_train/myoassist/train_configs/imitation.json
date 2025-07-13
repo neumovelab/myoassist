@@ -4,7 +4,7 @@
         "evaluate_frequency": 16
     },
     "env_params": {
-        "env_id": "myoLeg18Imitation-v0",
+        "env_id": "myoAssistLegImitation-v0",
         "num_envs": 32,
         "seed": 1234,
         "safe_height": 0.7,

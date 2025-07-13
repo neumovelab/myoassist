@@ -13,7 +13,7 @@ from myosuite.rl_train.myoassist.utils.config import TrainSessionConfigBase
 import matplotlib.pyplot as plt
 import cv2
 import skvideo.io
-from  myosuite.envs.myoassist.myo_leg_18_base import MyoLeg18Base
+from  myosuite.envs.myoassist.myoassist_leg_base import MyoAssistLegBase
 from myosuite.rl_train.myoassist.analyzer.gait_data import GaitData
 from myosuite.rl_train.myoassist.analyzer.gait_analyze import GaitAnalyzer
 class GaitEvaluatorBase:
@@ -49,7 +49,7 @@ class GaitEvaluatorBase:
         
     def evaluate(self, result_dir:str, file_name:str, *,
                  max_timestep:int=600,
-                 velocity_mode:MyoLeg18Base.VelocityMode,
+                 velocity_mode:MyoAssistLegBase.VelocityMode,
                  target_velocity_period:float,
                  ):
         print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
@@ -58,7 +58,7 @@ class GaitEvaluatorBase:
 
         self.env.mujoco_render_frames = False
 
-        env_myoassist: MyoLeg18Base = self.env.unwrapped
+        env_myoassist: MyoAssistLegBase = self.env.unwrapped
         env_myoassist.set_target_velocity_mode_manually(velocity_mode,
                                                         0,
                                                         self.session_config.env_params.min_target_velocity,
@@ -296,7 +296,7 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
         super().initialize_env()
     def evaluate(self, result_dir:str, file_name:str, *,
                  max_timestep:int=600,
-                 velocity_mode:MyoLeg18Base.VelocityMode,
+                 velocity_mode:MyoAssistLegBase.VelocityMode,
                  target_velocity_period:float,
                  ):
         print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
@@ -308,7 +308,7 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
         self.env.mujoco_render_frames = False
 
         # Set velocity mode
-        env_myoassist: MyoLeg18Base = self.env.unwrapped
+        env_myoassist: MyoAssistLegBase = self.env.unwrapped
         env_myoassist.set_target_velocity_mode_manually(velocity_mode,
                                                         0,
                                                         self.session_config.env_params.min_target_velocity,

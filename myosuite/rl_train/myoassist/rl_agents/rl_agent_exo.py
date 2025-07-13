@@ -18,7 +18,7 @@ import gymnasium as gym
 
 from myosuite.rl_train.myoassist.utils.data_types import DictionableDataclass
 import myosuite.rl_train.myoassist.utils.config as myoassist_config
-import myosuite.envs.myoassist.myo_leg_18_imitation_dephy as myoassist_env
+import myosuite.envs.myoassist.myoassist_leg_imitation_exo as myoassist_env
 from myosuite.rl_train.myoassist.rl_agents.network_index_handler import NetworkIndexHandler
 import torch
 torch.autograd.set_detect_anomaly(True)

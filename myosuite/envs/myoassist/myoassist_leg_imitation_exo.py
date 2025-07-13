@@ -1,9 +1,9 @@
 import collections
 import numpy as np
 from dataclasses import dataclass, field
-from myosuite.envs.myoassist.myo_leg_18_imitation import MyoLeg18Imitation
-from myosuite.envs.myoassist.myo_leg_18_imitation import ImitationTrainSessionConfig
-from myosuite.envs.myoassist.myo_leg_18_imitation import ImitationCustomLearningCallback
+from myosuite.envs.myoassist.myoassist_leg_imitation import MyoAssistLegImitation
+from myosuite.envs.myoassist.myoassist_leg_imitation import ImitationTrainSessionConfig
+from myosuite.envs.myoassist.myoassist_leg_imitation import ImitationCustomLearningCallback
 
 
 from myosuite.rl_train.myoassist.utils.config import TrainSessionConfigBase
@@ -13,7 +13,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 from myosuite.rl_train.myoassist.utils.learning_callback import BaseCustomLearningCallback
 ################################################################
 @dataclass
-class DephyImitationTrainSessionConfig(ImitationTrainSessionConfig):
+class ExoImitationTrainSessionConfig(ImitationTrainSessionConfig):
     @dataclass
     class CustomPolicyParams(ImitationTrainSessionConfig.PolicyParams.CustomPolicyParams):
         human_observation_indices: list[int] = field(default_factory=list[int])
@@ -61,7 +61,7 @@ class DephyImitationTrainSessionConfig(ImitationTrainSessionConfig):
 
 
 
-class myoLeg18ImitationDephy(MyoLeg18Imitation):
+class MyoAssistLegImitationExo(MyoAssistLegImitation):
     # override
     def step(self, a, **kwargs):
         next_obs, reward, terminated, truncated, info = super().step(a, **kwargs)

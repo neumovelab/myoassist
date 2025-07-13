@@ -1,6 +1,6 @@
 import collections
 import numpy as np
-from myosuite.envs.myoassist.myo_leg_18_base import MyoLeg18Base
+from myosuite.envs.myoassist.myoassist_leg_base import MyoAssistLegBase
 from myosuite.rl_train.myoassist.utils.config import TrainSessionConfigBase
 from myosuite.rl_train.myoassist.utils.data_types import DictionableDataclass
 from myosuite.rl_train.myoassist.utils.handlers import train_log_handler
@@ -103,7 +103,7 @@ class ImitationCustomLearningCallback(BaseCustomLearningCallback):
 
 
 
-class MyoLeg18Imitation(MyoLeg18Base):
+class MyoAssistLegImitation(MyoAssistLegBase):
     
     DEFAULT_OBS_KEYS = ['qpos',
                         'qvel',

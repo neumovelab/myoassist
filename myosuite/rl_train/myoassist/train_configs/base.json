@@ -3,7 +3,7 @@
         "logging_frequency": 8
     },
     "env_params": {
-        "env_id": "myoLeg18-v0",
+        "env_id": "myoAssistLeg-v0",
         "num_envs": 32,
         "seed": 1234,
         "safe_height": 0.7,
