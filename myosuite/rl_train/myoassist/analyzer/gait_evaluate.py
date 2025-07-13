@@ -252,6 +252,12 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
         super().__init__(train_log_handler, session_config)
     def load_reference_data(self):
         print("===============REFERENCE DATA LOADING================")
+        # Check if reference_data_path is provided
+        if not self.session_config.env_params.reference_data_path:
+            print("Warning: No reference data path provided. Skipping reference data loading.")
+            self.ref_data_dict = None
+            return
+
         if self.session_config.env_params.reference_data_path.endswith(".npz"):
             ref_data_npz = np.load(self.session_config.env_params.reference_data_path, allow_pickle=True)
             # keys = ref_data_npz.files
@@ -261,25 +267,32 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
             with open(self.session_config.env_params.reference_data_path, 'r') as f:
                 ref_data_dict = json.load(f)
         else:
-            raise ValueError("Unsupported file format. Please use either .npz or .json.")
-        ref_data_dict["resampled_series_data"] = {}
-        for key in ref_data_dict["series_data"].keys():
-            original_data_length = len(ref_data_dict["series_data"][key])
-            original_sample_rate = ref_data_dict["metadata"]["sample_rate"]
-            original_x = np.linspace(0, original_data_length - 1, original_data_length)
+            print(f"Warning: Unsupported file format for {self.session_config.env_params.reference_data_path}. Please use either .npz or .json.")
+            self.ref_data_dict = None
+            return
 
-            new_sample_rate = self.session_config.env_params.control_framerate
-            new_length = int(original_data_length * new_sample_rate / original_sample_rate)
-            new_x = np.linspace(0, original_data_length - 1, new_length)
-            ref_data_dict["series_data"][key] = np.interp(new_x, original_x, ref_data_dict["series_data"][key])
-            # print(f"{key=} {original_data_length=} -> {new_length=} {len(ref_data_dict['series_data'][key])=}")
-            ref_data_dict["metadata"]["resampled_data_length"] = new_length
-            ref_data_dict["metadata"]["resampled_sample_rate"] = new_sample_rate
+        # Only process resampling if we have valid reference data
+        if ref_data_dict and "series_data" in ref_data_dict:
+            ref_data_dict["resampled_series_data"] = {}
+            for key in ref_data_dict["series_data"].keys():
+                original_data_length = len(ref_data_dict["series_data"][key])
+                original_sample_rate = ref_data_dict["metadata"]["sample_rate"]
+                original_x = np.linspace(0, original_data_length - 1, original_data_length)
+
+                new_sample_rate = self.session_config.env_params.control_framerate
+                new_length = int(original_data_length * new_sample_rate / original_sample_rate)
+                new_x = np.linspace(0, original_data_length - 1, new_length)
+                ref_data_dict["series_data"][key] = np.interp(new_x, original_x, ref_data_dict["series_data"][key])
+                # print(f"{key=} {original_data_length=} -> {new_length=} {len(ref_data_dict['series_data'][key])=}")
+                ref_data_dict["metadata"]["resampled_data_length"] = new_length
+                ref_data_dict["metadata"]["resampled_sample_rate"] = new_sample_rate
 
         self.ref_data_dict = ref_data_dict
         print("===============REFERENCE DATA LOADING DONE================")
     def initialize_env(self):
-        self.session_config.env_params.reference_data = self.ref_data_dict
+        # Only set reference_data if we have valid reference data
+        if self.ref_data_dict is not None:
+            self.session_config.env_params.reference_data = self.ref_data_dict
         super().initialize_env()
     def evaluate(self, result_dir:str, file_name:str, *,
                  max_timestep:int=600,
@@ -427,7 +440,7 @@ class GaitEvaluatorReflex(GaitEvaluatorBase):
         gait_data.save_json_data(gait_data_path)
         gait_data_read = GaitData()
         gait_data_read.read_json_data(gait_data_path)
-        print("==============================READ DATA==================================")
-        gait_data_read.print_brief_data()
-        print("==============================READ DATA==================================")
+        # print("==============================READ DATA==================================")
+        # gait_data_read.print_brief_data()
+        # print("==============================READ DATA==================================")
         return gait_data_path

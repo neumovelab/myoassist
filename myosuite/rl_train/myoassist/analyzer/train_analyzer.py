@@ -3,7 +3,7 @@ import os
 import json
 from myosuite.rl_train.myoassist.utils.data_types import DictionableDataclass
 from myosuite.rl_train.myoassist.analyzer.train_log_analyzer import TrainLogAnalyzer
-# from package.config import TrainSessionConfigBase
+from myosuite.rl_train.myoassist.utils.config import TrainSessionConfigBase
 from myosuite.rl_train.myoassist.utils.config_imitation import ImitationTrainSessionConfig
 from myosuite.rl_train.myoassist.utils.data_types import DictionableDataclass
 
@@ -54,7 +54,7 @@ class TrainAnalyzer:
         config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
 
         if config.env_params.env_id == 'myoLeg18-v0':
-            config = DictionableDataclass.create(config.TrainSessionConfigBase, config_dict)
+            config = DictionableDataclass.create(TrainSessionConfigBase, config_dict)
         elif config.env_params.env_id in ['myoLeg18Imitation-v0', 'myoLeg18ImitationDephy-v0']:
             # print("Imitation train session config")
             config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
@@ -95,10 +95,20 @@ class TrainAnalyzer:
         
         gait_data = GaitData()
         gait_data.read_json_data(gait_data_path)
-        with open(os.path.join("myosuite/simhive/myoassist_sim/reference_data_segmented/02-constspeed_reduced_humanoid_segmented.json"), 'r') as f:
-            segmented_ref_data = json.load(f)
         
-        exception_report_list = self.analyze(gait_data, segmented_ref_data, analyze_result_dir, show_plot)
+        # Only load reference data and perform analysis for imitation learning environments
+        if config.env_params.env_id in ['myoLeg18Imitation-v0', 'myoLeg18ImitationDephy-v0']:
+            try:
+                with open(os.path.join("myosuite/simhive/myoassist_sim/reference_data_segmented/02-constspeed_reduced_humanoid_segmented.json"), 'r') as f:
+                    segmented_ref_data = json.load(f)
+                exception_report_list = self.analyze(gait_data, segmented_ref_data, analyze_result_dir, show_plot)
+            except FileNotFoundError:
+                print("Warning: Reference data file not found. Skipping gait analysis.")
+                exception_report_list = []
+        else:
+            # For base environments, skip reference data analysis
+            print("Base environment detected. Skipping reference data analysis.")
+            exception_report_list = []
 
         train_analyzer_report["exceptions"].extend(exception_report_list)
 

@@ -49,10 +49,24 @@ class BaseCustomLearningCallback(BaseCallback):
         self.current_episode_rewards += self.locals["rewards"]
         for idx, done in enumerate(self.locals["dones"]):
             self.current_episode_length_counts[idx] += 1
-            for key in self.locals["infos"][idx]["rwd_dict"].keys():
-                if key not in self.current_reward_dict_sum[idx].keys():
-                    self.current_reward_dict_sum[idx][key] = 0
-                self.current_reward_dict_sum[idx][key] += self.locals["infos"][idx]["rwd_dict"][key]
+
+            # ------------------------------------------------------------------
+            # Safeguard: 'info' may be None or may not contain 'rwd_dict'.
+            # In such cases we skip per-key reward accumulation instead of
+            # triggering a `TypeError: 'NoneType' object is not subscriptable`.
+            # ------------------------------------------------------------------
+            info_dict = None
+            try:
+                info_dict = self.locals["infos"][idx]
+            except (IndexError, KeyError):
+                # Defensive: infos array shape mismatch → just ignore for now
+                info_dict = None
+
+            if info_dict and isinstance(info_dict, dict) and "rwd_dict" in info_dict:
+                for key, val in info_dict["rwd_dict"].items():
+                    if key not in self.current_reward_dict_sum[idx]:
+                        self.current_reward_dict_sum[idx][key] = 0
+                    self.current_reward_dict_sum[idx][key] += val
             if done:
                 self.rewards_sum[idx] += self.current_episode_rewards[idx]
                 self.episode_counts[idx] += 1
@@ -60,11 +74,13 @@ class BaseCustomLearningCallback(BaseCallback):
                 self.episode_length_counts[idx] += self.current_episode_length_counts[idx]
                 self.current_episode_length_counts[idx] = 0
 
-                for key in self.current_reward_dict_sum[idx].keys():
-                    if key not in self.episode_reward_dict_sum[idx].keys():
+                # Aggregate episode-level reward dictionary safely
+                for key, val in self.current_reward_dict_sum[idx].items():
+                    if key not in self.episode_reward_dict_sum[idx]:
                         self.episode_reward_dict_sum[idx][key] = 0
-                    self.episode_reward_dict_sum[idx][key] += self.current_reward_dict_sum[idx][key]
-            
+                    self.episode_reward_dict_sum[idx][key] += val
+
+             
         return True
     def _on_rollout_start(self) -> None:
         super()._on_rollout_start()

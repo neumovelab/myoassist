@@ -38,6 +38,7 @@ class TrainSessionConfigBase:
         custom_max_episode_steps: int = 500
         model_path: str = None
         prev_trained_policy_path: str = None
+        reference_data_path: str = ""
 
         enable_lumbar_joint: bool = False
         lumbar_joint_fixed_angle: float = 0.0

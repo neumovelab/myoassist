@@ -27,8 +27,14 @@ class TrainLogAnalyzer:
         modified_log_datas = self._train_log_handler.log_datas[start_index:]
         # Extract time steps and average reward dictionary per episode
         time_steps = [log_data.num_timesteps for log_data in modified_log_datas]
+        
+        # Defensive check: ensure we have valid data and keys
+        if not modified_log_datas or not modified_log_datas[0].average_reward_dict_per_episode:
+            print("Warning: No valid reward dictionary data found. Skipping reward dict plot.")
+            return
+
         reward_dict_keys = modified_log_datas[0].average_reward_dict_per_episode.keys()
-        print(f"{reward_dict_keys=}")
+        # print(f"{reward_dict_keys=}")
 
         # Debug: Print reward_dict_keys to understand what keys are available
         # print(f"DEBUG: reward_dict_keys = {list(reward_dict_keys)}")
@@ -42,35 +48,60 @@ class TrainLogAnalyzer:
         original_total_reward = [log_data.average_reward_per_episode for log_data in modified_log_datas]
         
         # Prepare data for each key in the average_reward_dict_per_episode, excluding 'sparse', 'solved', 'done', 'dense'
-        reward_dict_data = {key: [log_data.average_reward_dict_per_episode[key] for log_data in modified_log_datas] 
-                            for key in reward_dict_keys if key not in ['sparse', 'solved', 'done', 'dense']}
-        print(f"{reward_dict_data=}")
+        # Add defensive check for missing keys
+        excluded_keys = ['sparse', 'solved', 'done', 'dense']
+        valid_keys = [key for key in reward_dict_keys if key not in excluded_keys]
+        
+        if not valid_keys:
+            print("Warning: No valid reward keys found after filtering. Skipping reward dict plot.")
+            return
+
+        reward_dict_data = {}
+        for key in valid_keys:
+            try:
+                reward_dict_data[key] = [log_data.average_reward_dict_per_episode.get(key, 0.0) for log_data in modified_log_datas]
+            except (KeyError, AttributeError) as e:
+                # print(f"Warning: Error accessing key '{key}' in reward dict: {e}. Skipping this key.")
+                continue
+
+        # print(f"{reward_dict_data=}")
         
         # If mult_weights is True, multiply each reward by its corresponding weight
         if mult_weights:
             reward_weights = {}
-            for key in reward_dict_keys:
-                if key not in ['sparse', 'solved', 'done', 'dense']:
+            for key in valid_keys:
+                if key in reward_dict_data:  # Only process keys that exist in reward_dict_data
                     # Check if the reward weight is a dictionary
-                    if isinstance(modified_log_datas[0].reward_weights[key], dict):
-                        # Sum all values in the dictionary for each timestep
-                        reward_weights[key] = [sum(weight_dict.values()) for weight_dict in 
-                                               (log_data.reward_weights[key] for log_data in modified_log_datas)]
-                    else:
-                        # Directly use the weight if it's not a dictionary
-                        reward_weights[key] = [log_data.reward_weights[key] for log_data in modified_log_datas]
+                    try:
+                        weight_value = modified_log_datas[0].reward_weights.get(key, 1.0)
+                        if isinstance(weight_value, dict):
+                            # Sum all values in the dictionary for each timestep
+                            reward_weights[key] = [sum(weight_dict.values()) for weight_dict in 
+                                                   (log_data.reward_weights.get(key, {}).values() for log_data in modified_log_datas)]
+                        else:
+                            # Directly use the weight if it's not a dictionary
+                            reward_weights[key] = [log_data.reward_weights.get(key, 1.0) for log_data in modified_log_datas]
+                    except (KeyError, AttributeError) as e:
+                        # print(f"Warning: Error accessing weight for key '{key}': {e}. Using default weight 1.0.")
+                        reward_weights[key] = [1.0] * len(modified_log_datas)
             
             # Multiply each reward by its corresponding weight
-            reward_dict_data = {key: [value * weight for value, weight in zip(values, reward_weights[key])] 
-                                for key, values in reward_dict_data.items()}
+            for key in list(reward_dict_data.keys()):
+                if key in reward_weights:
+                    reward_dict_data[key] = [value * weight for value, weight in zip(reward_dict_data[key], reward_weights[key])]
         
+        # Final check: ensure we still have data to plot
+        if not reward_dict_data:
+            print("Warning: No reward data available for plotting. Skipping reward dict plot.")
+            return
+
         # Separate data into positive and negative
         positive_data = {k: v for k, v in reward_dict_data.items() if all(x >= 0 for x in v)}
         negative_data = {k: v for k, v in reward_dict_data.items() if any(x < 0 for x in v)}
         
         # Calculate the total reward for each timestep to determine proportions
         total_rewards = [sum(rewards) for rewards in zip(*reward_dict_data.values())]
-        print(f"{reward_dict_data=}")
+        # print(f"{reward_dict_data=}")
         reward_error = np.array(original_total_reward) - np.array(total_rewards)
         # Print the max, min, and mean of reward_error
         print(f"Max reward error: {np.max(reward_error)}")

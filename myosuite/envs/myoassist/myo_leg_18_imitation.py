@@ -114,11 +114,13 @@ class MyoLeg18Imitation(MyoLeg18Base):
     def _setup(self,*,
             env_params:ImitationTrainSessionConfig.EnvParams,
             reference_data:dict|None = None,
+            loop_reference_data:bool = False,
             **kwargs,
         ):
         self._flag_random_ref_index = env_params.flag_random_ref_index
         self._out_of_trajectory_threshold = env_params.out_of_trajectory_threshold
         self.reference_data_keys = env_params.reference_data_keys
+        self._loop_reference_data = loop_reference_data
         self._reward_keys_and_weights:ImitationTrainSessionConfig.EnvParams.RewardWeights = env_params.reward_keys_and_weights
         self.setup_reference_data(data=reference_data)
         
@@ -258,8 +260,12 @@ class MyoLeg18Imitation(MyoLeg18Base):
         if self._imitation_index < self._reference_data_length:
             is_out_of_index = False
         else:
-            is_out_of_index = True
-            self._imitation_index = self._reference_data_length - 1
+            if self._loop_reference_data:
+                self._imitation_index = 0
+                is_out_of_index = False
+            else:
+                is_out_of_index = True
+                self._imitation_index = self._reference_data_length - 1
         
         next_obs, reward, terminated, truncated, info = super().step(a, **kwargs)
         if is_out_of_index:
@@ -270,7 +276,7 @@ class MyoLeg18Imitation(MyoLeg18Base):
             q_diff_nparray:np.ndarray = self._get_qpos_diff_nparray()
             is_out_of_trajectory = np.any(np.abs(q_diff_nparray) >self._out_of_trajectory_threshold)
         
-        return (next_obs, reward, terminated, truncated or is_out_of_trajectory, info)
+        return (next_obs, reward, terminated or is_out_of_trajectory, truncated, info)
         
     
     def setup_reference_data(self, data:dict|None):

@@ -43,7 +43,7 @@ register_env_myoassist(id='myoLeg18Imitation-v0',
         kwargs={},
     )
 
-register_env_myoassist(id='myoLeg18Base-v0',
+register_env_myoassist(id='myoLeg18-v0',
         entry_point='myosuite.envs.myoassist.myo_leg_18_base:MyoLeg18Base',
         max_episode_steps=1000,
         kwargs={},
