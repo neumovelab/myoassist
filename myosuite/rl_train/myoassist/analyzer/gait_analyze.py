@@ -580,7 +580,7 @@ class GaitAnalyzer:
             plt.show()
     def plot_contact_data(self, *,
                     result_dir,
-                    geom_pairs:list[tuple[str, str]] = [("calcn_l_geom_1", "ground-plane"), ("calcn_r_geom_1", "ground-plane")],
+                    geom_pairs:list[tuple[str, str]] = [("calcn_l_geom_1", "terrain"), ("calcn_r_geom_1", "terrain")],
                     ):
         plot_data = {
             geom_name1:self.gait_data.get_contact_data(geom_name1=geom_name1, geom_name2=geom_name2)

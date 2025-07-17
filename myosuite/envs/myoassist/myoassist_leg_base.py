@@ -6,7 +6,7 @@ from myosuite.rl_train.myoassist.utils.config import TrainSessionConfigBase
 from myosuite.rl_train.myoassist.utils.data_types import DictionableDataclass
 import collections
 import mujoco
-
+from myosuite.envs.myoassist.env_utils.hfield_manager import HfieldManager
 from enum import Enum
 import random
 import numpy as np
@@ -129,6 +129,9 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._reset_reward_per_step()
         self._reset_properties_per_step()
 
+        
+
+
 
         super()._setup(obs_keys=self.DEFAULT_OBS_KEYS,
                 weighted_reward_keys=self.rwd_keys_wt,
@@ -151,8 +154,11 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self.sim.model.geom_rgba[geom_1_indices, 3] = 0
 
         # move heightfield down if not used
-        self.sim.model.geom_rgba[self.sim.model.geom_name2id('terrain')][-1] = 0.0
-        self.sim.model.geom_pos[self.sim.model.geom_name2id('terrain')] = np.array([0, 0, -10])
+        # self.sim.model.geom_rgba[self.sim.model.geom_name2id('terrain')][-1] = 0.0
+        # self.sim.model.geom_pos[self.sim.model.geom_name2id('terrain')] = np.array([0, 0, -10])
+
+        self._hfield_manager = HfieldManager(self.sim, "terrain", self.np_random)
+        self._hfield_manager.set_hfield()
 
         #bipass the bug(?)
         for _ in range(30):
