@@ -9,15 +9,18 @@ class HfieldManager:
         self.np_random = np_random
 
     def set_hfield(self, type:str="dev"):
-        if type == "random":
+        if type == "flat":
+            pass
+        elif type == "random":
             self._create_random_hfield()
         elif type == "sinusoidal":
             self._create_sinusoidal_hfield()
-        elif type == "complex_sinusoidal":
-            self._create_complex_sinusoidal_hfield()
+        elif type == "harmonic_sinusoidal":
+            self._create_harmonic_sinusoidal_hfield()
         elif type == "uphill":
             self._create_slope_hfield(0.3)
         elif type == "downhill":
+            raise NotImplementedError("Downhill terrain is not implemented yet")
             self._create_slope_hfield(-0.3)# not working yet
         elif type == "dev":
             self._create_slope_hfield(0.3)
@@ -106,7 +109,7 @@ class HfieldManager:
 
         self._hfield.data[:] = self._make_safe_zone(hfield_data)
 
-    def _create_complex_sinusoidal_hfield(self):
+    def _create_harmonic_sinusoidal_hfield(self):
 
         row_period = 20
         col_period = 20

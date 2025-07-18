@@ -157,8 +157,9 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         # self.sim.model.geom_rgba[self.sim.model.geom_name2id('terrain')][-1] = 0.0
         # self.sim.model.geom_pos[self.sim.model.geom_name2id('terrain')] = np.array([0, 0, -10])
 
+        self._terrain_type = env_params.terrain_type
         self._hfield_manager = HfieldManager(self.sim, "terrain", self.np_random)
-        self._hfield_manager.set_hfield()
+        self._hfield_manager.set_hfield(self._terrain_type)
 
         #bipass the bug(?)
         for _ in range(30):

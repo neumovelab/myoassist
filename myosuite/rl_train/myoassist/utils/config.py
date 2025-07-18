@@ -43,6 +43,9 @@ class TrainSessionConfigBase:
         enable_lumbar_joint: bool = False
         lumbar_joint_fixed_angle: float = 0.0
         lumbar_joint_damping_value: float = 0.05
+
+        # terrain type: flat, random, sinusoidal, harmonic_sinusoidal, uphill, downhill, dev
+        terrain_type: str = "flat"
         
     env_params: EnvParams = field(default_factory=EnvParams)
     
