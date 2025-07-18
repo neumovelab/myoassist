@@ -34,6 +34,7 @@ def package_files(directory):
     return paths
 
 mjc_models_files = package_files('myosuite')
+myoassist_rl_files = package_files('myoassist_rl')
 
 
 if __name__ == "__main__":
@@ -53,7 +54,7 @@ if __name__ == "__main__":
             "Topic :: Scientific/Engineering :: Artificial Intelligence ",
             "Operating System :: OS Independent",
         ],
-        package_data={'': mjc_models_files+['../myosuite_init.py']},
+        package_data={'': mjc_models_files + myoassist_rl_files + ['../myosuite_init.py']},
         packages=find_packages(exclude=("myosuite.agents")),
         python_requires=">=3.8",
         install_requires=fetch_requirements(),

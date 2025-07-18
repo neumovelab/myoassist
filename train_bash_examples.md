@@ -1,21 +1,21 @@
 # MyoAssist
 ## Pure RL
 ```bash
-.venv\Scripts\python.exe myosuite/rl_train/myoassist/train_myo_leg_18_ppo.py --config_file_path myosuite/rl_train/myoassist/train_configs/base.json
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/base.json
 ```
 ## Imitation Learning
 ```bash
-.venv\Scripts\python.exe myosuite/rl_train/myoassist/train_myo_leg_18_ppo.py --config_file_path myosuite/rl_train/myoassist/train_configs/imitation.json
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation.json
 ```
 ### Imitation Learning with Dephy
 
 - separated net
 ```bash
-.venv\Scripts\python.exe myosuite/rl_train/myoassist/train_myo_leg_18_ppo.py --config_file_path myosuite/rl_train/myoassist/train_configs/imitation_dephy_separated_net.json
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_dephy_separated_net.json
 ```
 - uni net
 ```bash
-.venv\Scripts\python.exe myosuite/rl_train/myoassist/train_myo_leg_18_ppo.py --config_file_path myosuite/rl_train/myoassist/train_configs/imitation_dephy_uni_net.json
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_dephy_uni_net.json
 ```
 
 ## Train with pre-trained policy
