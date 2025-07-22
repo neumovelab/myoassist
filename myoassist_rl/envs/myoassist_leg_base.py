@@ -84,31 +84,45 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._enable_lumbar_joint = env_params.enable_lumbar_joint
         self._lumbar_joint_fixed_angle = env_params.lumbar_joint_fixed_angle
         self._lumbar_joint_damping_value = env_params.lumbar_joint_damping_value
-        lumbar_joint_id = self.sim.model.joint("lumbar_extension").id
-        if not self._enable_lumbar_joint:
-            self.sim.data.joint("lumbar_extension").qpos[0] = self._lumbar_joint_fixed_angle
-            self.sim.model.jnt_range[lumbar_joint_id] = [self._lumbar_joint_fixed_angle,
-                                                         self._lumbar_joint_fixed_angle + 1e-6]
+        # Safely check whether the joint named "lumbar_extension" exists in the model.
+        try:
+            lumbar_joint_id = self.sim.model.joint("lumbar_extension").id  # Raises if joint is absent
+            has_lumbar_extension = True
+        except (KeyError, ValueError, TypeError):
+            has_lumbar_extension = False
 
+        if not self._enable_lumbar_joint:
             if 'lumbar_extension' in self.OBS_JOINTS_POS_KEYS:
                 self.OBS_JOINTS_POS_KEYS.remove('lumbar_extension')
             if 'lumbar_extension' in self.OBS_JOINTS_VEL_KEYS:
                 self.OBS_JOINTS_VEL_KEYS.remove('lumbar_extension')
-        dof_adr = self.sim.model.jnt_dofadr[lumbar_joint_id]
-        joint_type = self.sim.model.jnt_type[lumbar_joint_id]
-        dof_count = 0 # TODO: use dof_count later
-        if joint_type == mujoco.mjtJoint.mjJNT_FREE:
-            dof_count = 6
-        elif joint_type == mujoco.mjtJoint.mjJNT_BALL:
-            dof_count = 3
-        elif joint_type == mujoco.mjtJoint.mjJNT_HINGE:
-            dof_count = 1
-        elif joint_type == mujoco.mjtJoint.mjJNT_SLIDE:
-            dof_count = 1
-        self.sim.model.dof_damping[dof_adr] = self._lumbar_joint_damping_value
+            if has_lumbar_extension:
+                # Fix the lumbar joint to a constant position and (optionally) remove it from observations
+                self.sim.data.joint("lumbar_extension").qpos[0] = self._lumbar_joint_fixed_angle
+                self.sim.model.jnt_range[lumbar_joint_id] = [
+                    self._lumbar_joint_fixed_angle,
+                    self._lumbar_joint_fixed_angle + 1e-6,
+                ]
 
 
-        #phys: 1000hz
+                # Adjust damping (whether the joint is fixed or not)
+                dof_adr = self.sim.model.jnt_dofadr[lumbar_joint_id]
+                joint_type = self.sim.model.jnt_type[lumbar_joint_id]
+                if joint_type == mujoco.mjtJoint.mjJNT_FREE:
+                    dof_count = 6
+                elif joint_type == mujoco.mjtJoint.mjJNT_BALL:
+                    dof_count = 3
+                elif joint_type == mujoco.mjtJoint.mjJNT_HINGE:
+                    dof_count = 1
+                elif joint_type == mujoco.mjtJoint.mjJNT_SLIDE:
+                    dof_count = 1
+                else:
+                    dof_count = 0  # Currently unused
+
+                self.sim.model.dof_damping[dof_adr] = self._lumbar_joint_damping_value
+         
+         
+         #phys: 1000hz
         # control 50hz : 50 * 20 = 1000hz
         # ref 50hz: 500hz 10skip: 20 * 500 / 1000
 
