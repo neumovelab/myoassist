@@ -28,7 +28,7 @@
             "hip_rotation_l", "hip_rotation_r",
             "knee_angle_l", "knee_angle_r",
             "pelvis_tilt", "pelvis_list", "pelvis_rotation",
-            "pelvis_tz"
+            "pelvis_ty"
         ],
         "observation_joint_vel_keys": [
             "ankle_angle_l", "ankle_angle_r",

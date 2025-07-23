@@ -7,20 +7,18 @@
 ```bash
 .venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation.json
 ```
-### Imitation Learning with Dephy
+## Tutorial Exo
+### 22 muscle 2D
+```
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_tutorial_22_separated_net.json
+```
 
-- separated net
-```bash
-.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_dephy_separated_net.json
+### 26 muscle 3D
 ```
-    - TUTORIAL
-    ```
-    .venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_tutorial_separated_net.json
-    ```
-- uni net
-```bash
-.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_dephy_uni_net.json
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_tutorial_26_separated_net.json
 ```
+
+
 
 ## Train with pre-trained policy
 ```bash
@@ -41,4 +39,9 @@ reset value network
 ## disable Lumbar joint
 ```bash
 --no-config.env_params.enable_lumbar_joint
+```
+
+## Evaluate
+```bash
+--flag_realtime_evaluate
 ```
