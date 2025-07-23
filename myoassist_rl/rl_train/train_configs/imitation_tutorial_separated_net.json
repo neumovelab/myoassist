@@ -4,7 +4,7 @@
     },
     "env_params": {
         "env_id": "myoAssistLegImitationExo-v0",
-        "num_envs": 32,
+        "num_envs": 16,
         "seed": 1234,
         "safe_height": 0.7,
         "out_of_trajectory_threshold": 0.6,
@@ -20,6 +20,25 @@
         "enable_lumbar_joint": false,
         "lumbar_joint_fixed_angle": -0.317,
         "lumbar_joint_damping_value": 0.05,
+
+        "observation_joint_pos_keys": [
+            "ankle_angle_l", "ankle_angle_r",
+            "hip_flexion_l", "hip_flexion_r",
+            "hip_adduction_l", "hip_adduction_r",
+            "hip_rotation_l", "hip_rotation_r",
+            "knee_angle_l", "knee_angle_r",
+            "pelvis_tilt", "pelvis_list", "pelvis_rotation",
+            "pelvis_tz"
+        ],
+        "observation_joint_vel_keys": [
+            "ankle_angle_l", "ankle_angle_r",
+            "hip_flexion_l", "hip_flexion_r",
+            "hip_adduction_l", "hip_adduction_r",
+            "hip_rotation_l", "hip_rotation_r",
+            "knee_angle_l", "knee_angle_r",
+            "pelvis_tilt", "pelvis_list", "pelvis_rotation",
+            "pelvis_tx", "pelvis_ty", "pelvis_tz"
+        ],
 
         "terrain_type": "flat",
         
@@ -70,7 +89,7 @@
     },
     "ppo_params": {
         "learning_rate": 0.0001,
-        "n_steps": 256,
+        "n_steps": 512,
         "batch_size": 8192,
         "n_epochs": 30,
         "gamma": 0.99,
@@ -100,22 +119,22 @@
                         [
                             {
                                 "type":"range",
-                                "range":[0,8],
-                                "comment":"8 qpos without lumbar_extension"
+                                "range":[0,14],
+                                "comment":"14 qpos (exclude pelvis_tx, pelvis_ty)"
                             },
                             {
                                 "type":"range",
-                                "range":[8,17],
-                                "comment":"9 qvel without lumbar_extension"
+                                "range":[14, 30],
+                                "comment":"16 qvel"
                             },
                             {
                                 "type":"range",
-                                "range":[17,43],
+                                "range":[30,56],
                                 "comment":"26 muscle activation"
                             },
                             {
                                 "type":"range",
-                                "range":[43,44],
+                                "range":[56,57],
                                 "comment":"target velocity"
                             }
                         ],
@@ -125,7 +144,7 @@
                                 "type":"range_mapping",
                                 "range_net":[0,26],
                                 "range_action":[0,26],
-                                "comment":"26 muscle activation without lumbar_extension(index: 29), exo"
+                                "comment":"26 muscle activation without exo"
                             }
                         ]
                 },
@@ -135,22 +154,22 @@
                         [
                             {
                                 "type":"range",
-                                "range":[0,8],
-                                "comment":"8 qpos without lumbar_extension"
+                                "range":[0,14],
+                                "comment":"14 qpos (exclude pelvis_tx, pelvis_ty)"
                             },
                             {
                                 "type":"range",
-                                "range":[8,17],
-                                "comment":"9 qvel without lumbar_extension"
+                                "range":[14, 30],
+                                "comment":"16 qvel"
                             },
                             {
                                 "type":"range",
-                                "range":[17,43],
+                                "range":[30,56],
                                 "comment":"26 muscle activation"
                             },
                             {
                                 "type":"range",
-                                "range":[43,44],
+                                "range":[56,57],
                                 "comment":"target velocity"
                             }
                         ],
@@ -170,22 +189,22 @@
                     [
                         {
                             "type":"range",
-                            "range":[0,8],
-                            "comment":"8 qpos without lumbar_extension"
+                            "range":[0,14],
+                            "comment":"14 qpos (exclude pelvis_tx, pelvis_ty)"
                         },
                         {
                             "type":"range",
-                            "range":[8,17],
-                            "comment":"9 qvel without lumbar_extension"
+                            "range":[14, 30],
+                            "comment":"16 qvel"
                         },
                         {
                             "type":"range",
-                            "range":[17,43],
+                            "range":[30,56],
                             "comment":"26 muscle activation"
                         },
                         {
                             "type":"range",
-                            "range":[43,44],
+                            "range":[56,57],
                             "comment":"target velocity"
                         }
                     ]

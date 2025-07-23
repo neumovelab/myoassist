@@ -29,20 +29,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
                         'target_velocity',
                         ]
     
-    OBS_JOINTS_POS_KEYS = ['ankle_angle_l', 'ankle_angle_r',
-                           'hip_flexion_l', 'hip_flexion_r',
-                           'knee_angle_l', 'knee_angle_r',
-                           'pelvis_tilt', 
-                        #    'pelvis_tx', 
-                           'pelvis_ty',
-                           'lumbar_extension']
-    OBS_JOINTS_VEL_KEYS = ['ankle_angle_l', 'ankle_angle_r',
-                           'hip_flexion_l', 'hip_flexion_r',
-                           'knee_angle_l', 'knee_angle_r',
-                           'pelvis_tilt', 
-                           'pelvis_tx', 
-                           'pelvis_ty',
-                           'lumbar_extension']
+    observation_joint_pos_keys = None
+    observation_joint_vel_keys = None
     def __init__(self, model_path, obsd_model_path=None, seed=None, **kwargs):
 
         print(f"=================environment seed: {seed}=====================")
@@ -84,6 +72,12 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._enable_lumbar_joint = env_params.enable_lumbar_joint
         self._lumbar_joint_fixed_angle = env_params.lumbar_joint_fixed_angle
         self._lumbar_joint_damping_value = env_params.lumbar_joint_damping_value
+
+        self.observation_joint_pos_keys = env_params.observation_joint_pos_keys
+        self.observation_joint_vel_keys = env_params.observation_joint_vel_keys
+        print(f"DEBUG:: {self.observation_joint_pos_keys=}")
+        print(f"DEBUG:: {self.observation_joint_vel_keys=}")
+
         # Safely check whether the joint named "lumbar_extension" exists in the model.
         try:
             lumbar_joint_id = self.sim.model.joint("lumbar_extension").id  # Raises if joint is absent
@@ -92,10 +86,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             has_lumbar_extension = False
 
         if not self._enable_lumbar_joint:
-            if 'lumbar_extension' in self.OBS_JOINTS_POS_KEYS:
-                self.OBS_JOINTS_POS_KEYS.remove('lumbar_extension')
-            if 'lumbar_extension' in self.OBS_JOINTS_VEL_KEYS:
-                self.OBS_JOINTS_VEL_KEYS.remove('lumbar_extension')
+            if 'lumbar_extension' in self.observation_joint_pos_keys:
+                self.observation_joint_pos_keys.remove('lumbar_extension')
+            if 'lumbar_extension' in self.observation_joint_vel_keys:
+                self.observation_joint_vel_keys.remove('lumbar_extension')
             if has_lumbar_extension:
                 # Fix the lumbar joint to a constant position and (optionally) remove it from observations
                 self.sim.data.joint("lumbar_extension").qpos[0] = self._lumbar_joint_fixed_angle
@@ -120,9 +114,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
                     dof_count = 0  # Currently unused
 
                 self.sim.model.dof_damping[dof_adr] = self._lumbar_joint_damping_value
-         
-         
-         #phys: 1000hz
+
+        
+        
+        #phys: 1000hz
         # control 50hz : 50 * 20 = 1000hz
         # ref 50hz: 500hz 10skip: 20 * 500 / 1000
 
@@ -174,8 +169,12 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._terrain_type = env_params.terrain_type
         self._hfield_manager = HfieldManager(self.sim, "terrain", self.np_random)
         self._hfield_manager.set_hfield(self._terrain_type)
+        
 
-        #bipass the bug(?)
+        observation, _reward, done, *_, _info = self.step(np.zeros(self.sim.model.nu))
+        print(f"DEBUG:: obs: {len(observation)=}")
+        print(f"DEBUG:: action: {self.sim.model.nu=}")
+        # if qpos set to all zero, joint looks weird, 30 steps will make it normal
         for _ in range(30):
             super().step(a=np.zeros(self.sim.model.nu))
     def _follow_key_qpos(self, key:int):
@@ -188,10 +187,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         obs_dict['time'] = np.array([sim.data.time]) # they use time separately like t, obs = self.obsdict2obsvec(self.obs_dict, self.obs_keys)
 
         qpos = []
-        for key in self.OBS_JOINTS_POS_KEYS:
+        for key in self.observation_joint_pos_keys:
             qpos.append(sim.data.joint(f"{key}").qpos[0].copy())
         qvel = []
-        for key in self.OBS_JOINTS_VEL_KEYS:
+        for key in self.observation_joint_vel_keys:
             qvel.append(sim.data.joint(f"{key}").qvel[0].copy())
         obs_dict['qpos'] = np.array(qpos) # 7 + 1 elements
         obs_dict['qvel'] = np.array(qvel) # 7 + 2 elements

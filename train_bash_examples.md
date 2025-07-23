@@ -13,6 +13,10 @@
 ```bash
 .venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_dephy_separated_net.json
 ```
+    - TUTORIAL
+    ```
+    .venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_tutorial_separated_net.json
+    ```
 - uni net
 ```bash
 .venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_dephy_uni_net.json
