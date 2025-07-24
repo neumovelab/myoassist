@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')  # Set non-interactive backend
+# matplotlib.use('Agg')  # Set non-interactive backend
 import matplotlib.pyplot as plt
 from myoassist_rl.rl_train.analyzer.gait_data import GaitData
 import os
