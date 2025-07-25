@@ -39,6 +39,9 @@
             "pelvis_tilt", "pelvis_list", "pelvis_rotation",
             "pelvis_tx", "pelvis_ty", "pelvis_tz"
         ],
+        "observation_joint_sensor_keys": [
+            "r_foot", "l_foot", "r_toes", "l_toes"
+        ],
 
         "terrain_type": "flat",
         

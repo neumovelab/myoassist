@@ -105,11 +105,12 @@ class ImitationCustomLearningCallback(BaseCustomLearningCallback):
 
 class MyoAssistLegImitation(MyoAssistLegBase):
     
-    DEFAULT_OBS_KEYS = ['qpos',
-                        'qvel',
-                        'act',
-                        'target_velocity',
-                        ]
+    # automatically inherit from MyoAssistLegBase
+    # DEFAULT_OBS_KEYS = ['qpos',
+    #                     'qvel',
+    #                     'act',
+    #                     'target_velocity',
+    #                     ]
 
     def _setup(self,*,
             env_params:ImitationTrainSessionConfig.EnvParams,

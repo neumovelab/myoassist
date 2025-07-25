@@ -37,11 +37,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
     DEFAULT_OBS_KEYS = ['qpos',
                         'qvel',
                         'act',
+                        'sensor',
                         'target_velocity',
                         ]
     
-    observation_joint_pos_keys = None
-    observation_joint_vel_keys = None
     def __init__(self, model_path, obsd_model_path=None, seed=None, **kwargs):
 
         print(f"=================environment seed: {seed}=====================")
@@ -86,8 +85,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
 
         self.observation_joint_pos_keys = env_params.observation_joint_pos_keys
         self.observation_joint_vel_keys = env_params.observation_joint_vel_keys
-        print(f"DEBUG:: {self.observation_joint_pos_keys=}")
-        print(f"DEBUG:: {self.observation_joint_vel_keys=}")
+        self.observation_joint_sensor_keys = env_params.observation_joint_sensor_keys
 
         # Safely check whether the joint named "lumbar_extension" exists in the model.
         try:
@@ -208,6 +206,14 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         if sim.model.na>0:
             # BaseV0 Add the key like this: obs_keys.append("act")
             obs_dict['act'] = sim.data.act[:].copy() # 22 elements
+        obs_dict['sensor'] = []
+        for key in self.observation_joint_sensor_keys:
+            sensor_data = sim.data.sensor(f"{key}").data.copy()
+            if "foot" in key or "toes" in key:
+                model_mass = np.sum(self.sim.model.body_mass)
+                sensor_data = sensor_data / (model_mass * 9.81)
+            obs_dict['sensor'].extend(sensor_data)
+        obs_dict['sensor'] = np.array(obs_dict['sensor'])
 
         obs_dict['target_velocity'] = np.array([self._target_velocity])
 

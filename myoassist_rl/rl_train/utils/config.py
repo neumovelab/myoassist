@@ -48,6 +48,7 @@ class TrainSessionConfigBase:
 
         observation_joint_pos_keys: list[str] = field(default_factory=list)
         observation_joint_vel_keys: list[str] = field(default_factory=list)
+        observation_joint_sensor_keys: list[str] = field(default_factory=list)
 
         # terrain type: flat, random, sinusoidal, harmonic_sinusoidal, uphill, downhill, dev
         terrain_type: str = "flat"

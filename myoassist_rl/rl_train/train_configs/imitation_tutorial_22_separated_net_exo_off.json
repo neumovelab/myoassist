@@ -35,6 +35,9 @@
             "pelvis_tilt",
             "pelvis_tx", "pelvis_ty"
         ],
+        "observation_joint_sensor_keys": [
+            "r_foot", "l_foot", "r_toes", "l_toes"
+        ],
 
         "terrain_type": "flat",
         
@@ -135,7 +138,12 @@
                             },
                             {
                                 "type":"range",
-                                "range":[39,40],
+                                "range":[39,43],
+                                "comment":"4 foot force"
+                            },
+                            {
+                                "type":"range",
+                                "range":[43,44],
                                 "comment":"target velocity"
                             }
                         ],
@@ -194,33 +202,38 @@
                 "common_critic": 
                 {
                     "observation":
-                    [
-                        {
-                            "type":"range",
-                            "range":[0,8],
-                            "comment":"8 qpos without lumbar_extension"
-                        },
-                        {
-                            "type":"range",
-                            "range":[8,17],
-                            "comment":"9 qvel without lumbar_extension"
-                        },
-                        {
-                            "type":"range",
-                            "range":[17,28],
-                            "comment":"11 left muscle activation"
-                        },
-                        {
-                            "type":"range",
-                            "range":[28,39],
-                            "comment":"11 right muscle activation"
-                        },
-                        {
-                            "type":"range",
-                            "range":[39,40],
-                            "comment":"target velocity"
-                        }
-                    ]
+                        [
+                            {
+                                "type":"range",
+                                "range":[0,8],
+                                "comment":"8 qpos without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[8,17],
+                                "comment":"9 qvel without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[17,28],
+                                "comment":"11 left muscle activation"
+                            },
+                            {
+                                "type":"range",
+                                "range":[28,39],
+                                "comment":"11 right muscle activation"
+                            },
+                            {
+                                "type":"range",
+                                "range":[39,43],
+                                "comment":"4 foot force"
+                            },
+                            {
+                                "type":"range",
+                                "range":[43,44],
+                                "comment":"target velocity"
+                            }
+                        ]
                 }
             },
             "log_std_init": 0.0
