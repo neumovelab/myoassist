@@ -14,6 +14,10 @@ You can find a step-by-step tutorial in the following Jupyter notebook:
 [train bash examples](../train_bash_examples.md)
 
 ## Configuration
+
+
+
+
 - `policy_params.custom_policy_params`
     --
     
@@ -35,6 +39,7 @@ You can find a step-by-step tutorial in the following Jupyter notebook:
 
     - `.net_indexing_info`
         --
+        ![](images/net_indexing_info.png)
         - `.human_actor`
         - `.exo_actor`
         - `.common_critic`
@@ -105,9 +110,30 @@ You can find a step-by-step tutorial in the following Jupyter notebook:
     ```
     `constant` override the `range_mapping` because it is placed later than `range_mapping`
 - `env_params`
-    - `observation_joint_pos_keys`: list of qpos for observation
-    - `observation_joint_vel_keys`: list of qvel for observation
-    - `reward_keys_and_weights`: reward weights
+    - `env_id`: (str) Environment ID to specify which environment to use.
+    - `num_envs`: (int) Number of parallel environments for training.
+    - `seed`: (int) Random seed for reproducibility.
+    - `safe_height`: (float) Minimum pelvis height to consider the agent safe.
+    - `out_of_trajectory_threshold`: (float) Threshold for deviation from reference trajectory.
+    - `flag_random_ref_index`: (bool) Whether to randomly select the starting index in the reference trajectory.
+    - `control_framerate`: (int) Control frequency (Hz) for the agent's actions.
+    - `physics_sim_framerate`: (int) Physics simulation frequency (Hz).
+    - `min_target_velocity`: (float) Minimum target velocity for the agent.
+    - `max_target_velocity`: (float) Maximum target velocity for the agent.
+    - `min_target_velocity_period`: (int) Minimum period (in steps) for which the target velocity is held constant.
+    - `max_target_velocity_period`: (int) Maximum period (in steps) for which the target velocity is held constant.
+    - `enable_lumbar_joint`: (bool) Whether to enable the lumbar joint in the model.
+    - `lumbar_joint_fixed_angle`: (float) Fixed angle for the lumbar joint if it is disabled.
+    - `lumbar_joint_damping_value`: (float) Damping value for the lumbar joint.
+    - `observation_joint_pos_keys`: (list of str) List of joint position (qpos) keys to include in the observation.
+    - `observation_joint_vel_keys`: (list of str) List of joint velocity (qvel) keys to include in the observation.
+    - `terrain_type`: (str) Type of terrain in the environment (e.g., "flat").
+    - `reward_keys_and_weights`: (dict) Dictionary specifying the reward components and their corresponding weights.
+    - `custom_max_episode_steps`: (int) Maximum number of steps per episode.
+    - `model_path`: (str) Path to the MuJoCo model XML file.
+    - `reference_data_path`: (str) Path to the reference gait data file (e.g., .npz).
+    - `reference_data_keys`: (list of str) Keys from the reference data to use for imitation.
+    - `prev_trained_policy_path`: (str or null) Path to a previously trained policy for transfer learning or initialization.
 
 
 
@@ -116,6 +142,8 @@ You can find a step-by-step tutorial in the following Jupyter notebook:
 ## Imitation Learning
 
 ## Transfer learning
+
+- [pretrained models](../pretrained_models/)
 
 # Code Structure
 - [models](../myosuite/simhive/myoassist_sim/)
