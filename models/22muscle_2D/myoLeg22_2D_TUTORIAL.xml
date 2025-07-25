@@ -212,7 +212,7 @@
                             <site name="r_toe_btm" type="sphere" pos="0.17 -0.003 -0.01" size="0.01" group="3" rgba="0 1 0 0.4" euler="0 0 0.1"/>
                             
                             <body name="toes_r" pos="0.1788 -0.002 0.00108">
-                                <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.2166" pos="0.0346 0.006 0.0" quat="0.707107 0 0 0.707107"/>
+                                <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.2166" pos="0.0346 0.006 -0.0175" quat="0.707107 0 0 0.707107"/>
                                 <joint axis="0 0 1" name="mtp_angle_r" damping= "0.5" pos="0 0 0" range="-0.523599 0.523599"/>
                                 <site name="edl_r-P5" pos="0.0003 0.0047 0.0153"/>
                                 <site name="edl_r-P6" pos="0.0443 -0.0004 0.025"/>
@@ -329,7 +329,7 @@
                             <site name="l_toe_btm" type="sphere" pos="0.17 -0.003 0.01" size="0.01" group="3" rgba="0 1 0 0.4"/>
 
                             <body name="toes_l" pos="0.1788 -0.002 -0.00108">
-                                <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.2166" pos="0.0346 0.006 0.0" quat="0 0.707107 0 0.707107"/>
+                                <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.2166" pos="0.0346 0.006 -0.0175" quat="0 0.707107 0 0.707107"/>
                                 <joint axis="0 0 1" name="mtp_angle_l" damping= "0.5" pos="0 0 0" range="-0.0145 0.2"/>
                                 <geom mesh="toes_l_geom_1_l_bofoot" name="toes_l_geom_1" rgba="1 1 1 1" type="mesh"/>
 								<site name="l_toes_touch" type="box" pos="0.0 -0.002 0.01" size=".05 .025 .075" euler="0 1.5 0" class="myo_leg_touch"/>
@@ -577,14 +577,6 @@
     </sensor>
 	
     <tendon>
-        <spatial name="abd_r_tendon">
-            <site site="abd_r_glut_med2_r-P1"/>
-            <site site="abd_r_glut_med2_r-P2"/>
-        </spatial>
-        <spatial name="add_r_tendon">
-            <site site="add_r_add_mag1_r-P1"/>
-            <site site="add_r_add_mag1_r-P2"/>
-        </spatial>
         <spatial name="hamstrings_r_tendon">
             <site site="hamstrings_r_semimem_r-P1"/>
             <site site="hamstrings_r_semimem_r-P2"/>
@@ -632,14 +624,6 @@
             <site site="tib_ant_r_tib_ant_r-P1"/>
             <site site="tib_ant_r_tib_ant_r-P2"/>
             <site site="tib_ant_r_tib_ant_r-P3"/>
-        </spatial>
-        <spatial name="abd_l_tendon">
-            <site site="abd_l_glut_med2_l-P1"/>
-            <site site="abd_l_glut_med2_l-P2"/>
-        </spatial>
-        <spatial name="add_l_tendon">
-            <site site="add_l_add_mag1_l-P1"/>
-            <site site="add_l_add_mag1_l-P2"/>
         </spatial>
         <spatial name="hamstrings_l_tendon">
             <site site="hamstrings_l_semimem_l-P1"/>
@@ -730,8 +714,6 @@
     </tendon>
 
     <actuator>
-        <general biasprm="0.169813 1.23281 4323.26 1 0 1.8 10 0.672684 1.4 0" class="muscle" gainprm="0.169813 1.23281 4323.26 1 0 1.8 10 0.672684 1.4 0" lengthrange="0.053712 0.169892" name="abd_r" tendon="abd_r_tendon"/>
-        <general biasprm="0.160259 1.33948 3871.82 1 0 1.8 10 1.31477 1.4 0" class="muscle" gainprm="0.160259 1.33948 3871.82 1 0 1.8 10 1.31477 1.4 0" lengthrange="0.0502179 0.203072" name="add_r" tendon="add_r_tendon"/>
         <general biasprm="0.105801 1.56953 3948.49 1 0 1.8 10 1.35553 1.4 0" class="muscle" gainprm="0.105801 1.56953 3948.49 1 0 1.8 10 1.35553 1.4 0" lengthrange="0.321987 0.509548" name="hamstrings_r" tendon="hamstrings_r_tendon"/>
         <general biasprm="0.677513 1.24807 509.424 1 0 1.8 10 0.93595 1.4 0" class="muscle" gainprm="0.677513 1.24807 509.424 1 0 1.8 10 0.93595 1.4 0" lengthrange="0.191264 0.249268" name="bifemsh_r" tendon="bifemsh_r_tendon"/>
         <general biasprm="0.620259 1.40474 553.241 1 0.319949 3.12081 10 1.35486 1.4 0" class="muscle" gainprm="0.620259 1.40474 818.778 1 0.319949 3.12081 10 1.35486 1.4 0" lengthrange="0.411859 0.466224" name="edl_r" tendon="edl_r_tendon"/>
@@ -744,8 +726,6 @@
         <general biasprm="0.123627 1.18435 6090 1 0 1.8 10 1.44603 1.4 0" class="muscle" gainprm="0.123627 1.18435 6090 1 0 1.8 10 1.44603 1.4 0" lengthrange="0.228134 0.326673" name="soleus_r" tendon="soleus_r_tendon"/>
         <general biasprm="0.34957 1.29783 2042.4 1 0 1.8 10 0.972121 1.4 0" class="muscle" gainprm="0.34957 1.29783 2042.4 1 0 1.8 10 0.972121 1.4 0" lengthrange="0.259564 0.352614" name="tibant_r" tendon="tib_ant_r_tendon"/>
 		
-        <general biasprm="0.169813 1.23281 4323.26 1 0 1.8 10 0.672684 1.4 0" class="muscle" gainprm="0.169813 1.23281 4323.26 1 0 1.8 10 0.672684 1.4 0" lengthrange="0.053712 0.169892" name="abd_l" tendon="abd_l_tendon"/>
-        <general biasprm="0.160259 1.33948 3871.82 1 0 1.8 10 1.31477 1.4 0" class="muscle" gainprm="0.160259 1.33948 3871.82 1 0 1.8 10 1.31477 1.4 0" lengthrange="0.0502179 0.203072" name="add_l" tendon="add_l_tendon"/>
         <general biasprm="0.105801 1.56953 3948.49 1 0 1.8 10 1.35553 1.4 0" class="muscle" gainprm="0.105801 1.56953 3948.49 1 0 1.8 10 1.35553 1.4 0" lengthrange="0.321987 0.509548" name="hamstrings_l" tendon="hamstrings_l_tendon"/>
         <general biasprm="0.677513 1.24807 509.424 1 0 1.8 10 0.93595 1.4 0" class="muscle" gainprm="0.677513 1.24807 509.424 1 0 1.8 10 0.93595 1.4 0" lengthrange="0.191264 0.249268" name="bifemsh_l" tendon="bifemsh_l_tendon"/>
         <general biasprm="0.620259 1.40474 553.241 1 0.319949 3.12081 10 1.35486 1.4 0" class="muscle" gainprm="0.620259 1.40474 818.778 1 0.319949 3.12081 10 1.35486 1.4 0" lengthrange="0.411859 0.466224" name="edl_l" tendon="edl_l_tendon"/>

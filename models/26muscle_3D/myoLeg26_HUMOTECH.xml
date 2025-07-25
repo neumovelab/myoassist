@@ -13,7 +13,7 @@
 		7. Removed non-saggittal plane joints
 	-->
 
-   <!-- Modifications: Calder Robbins (robbins.cal@northeastern.edu)
+    <!-- Modifications: Calder Robbins (robbins.cal@northeastern.edu)
     1. Added toes to the model, including the mtp joints.
     2. Added Extensor Digitorum Longus (EDL) and Flexor Digitorum Longus (FDL) muscles to both legs.
     3. Added non-actuated arms to the model.
@@ -123,7 +123,7 @@
         <camera name="view" pos="-1.5 -5 1.8" euler="+1.37 -0.1 0" mode="fixed"/>
 		<camera name="slope_view" pos="0 -4.0 0.8" euler="1.3 0.0 0.0" mode="trackcom"/>
 		<camera name="slope_front_view" pos="3 0 1.25" xyaxes="0 1 0 -1 0 2" mode="trackcom"/>
-		
+
 		<site name="pelvis_target" size="0.02" pos="0 0 .92" group="4"/>
         <body name="pelvis" pos="0 0 0" quat="0.707035 0.707179 0 0">
 			<site name="pelvis" size="0.02" group="4"/>

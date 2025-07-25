@@ -110,7 +110,7 @@
         <camera name="view" pos="-1.5 -5 1.8" euler="+1.37 -0.1 0" mode="fixed"/>
 		<camera name="slope_view" pos="0 -4.0 0.8" euler="1.3 0.0 0.0" mode="trackcom"/>
 		<camera name="slope_front_view" pos="3 0 1.25" xyaxes="0 1 0 -1 0 2" mode="trackcom"/>
-		
+
 		<site name="pelvis_target" size="0.02" pos="0 0 .92" group="4"/>
         <body name="pelvis" pos="0 0 0" quat="0.707035 0.707179 0 0">
 			<site name="pelvis" size="0.02" group="4"/>
@@ -336,7 +336,7 @@
                             <site name="l_toe_btm" type="sphere" pos="0.17 -0.003 0.01" size="0.01" group="3" rgba="0 1 0 0.4"/>
 
                             <body name="toes_l" pos="0.1788 -0.002 -0.00108">
-                                <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.2166" pos="0.0346 0.006 0.0" quat="0 0.707107 0 0.707107"/>
+                                <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.2166" pos="0.0346 0.006 -0.0175" quat="0 0.707107 0 0.707107"/>
                                 <joint axis="0 0 1" name="mtp_angle_l" damping= "0.5" pos="0 0 0" range="-0.0145 0.2"/>
                                 <geom mesh="toes_l_geom_1_l_bofoot" name="toes_l_geom_1" rgba="1 1 1 1" type="mesh"/>
 								<site name="l_toes_touch" type="box" pos="0.0 -0.002 0.01" size=".05 .025 .075" euler="0 1.5 0" class="myo_leg_touch"/>

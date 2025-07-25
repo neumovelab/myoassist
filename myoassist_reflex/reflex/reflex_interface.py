@@ -496,7 +496,8 @@ class myoLeg_reflex(object):
             self.SENSOR_DATA[s_leg]['F_SOL'] = -1*( temp_mus_force[self.muscles_dict[s_leg]['SOL']] / (self.muscle_Fmax[s_leg]['SOL']) )
             self.SENSOR_DATA[s_leg]['F_GAS'] = -1*( temp_mus_force[self.muscles_dict[s_leg]['GAS']] / (self.muscle_Fmax[s_leg]['GAS']) )
             self.SENSOR_DATA[s_leg]['F_HAM'] = -1*( temp_mus_force[self.muscles_dict[s_leg]['HAM']] / (self.muscle_Fmax[s_leg]['HAM']) )
-            self.SENSOR_DATA[s_leg]['F_HAB'] = -1*( temp_mus_force[self.muscles_dict[s_leg]['HAB']] / (self.muscle_Fmax[s_leg]['HAB']) )
+            if self.mode == '3D':
+                self.SENSOR_DATA[s_leg]['F_HAB'] = -1*( temp_mus_force[self.muscles_dict[s_leg]['HAB']] / (self.muscle_Fmax[s_leg]['HAB']) )
             self.SENSOR_DATA[s_leg]['F_FDL'] = -1*( temp_mus_force[self.muscles_dict[s_leg]['FDL']] / (self.muscle_Fmax[s_leg]['FDL']) )
 
         # return sensor_data
@@ -1021,20 +1022,20 @@ class myoLeg_reflex(object):
         hfl_l_lbl = ['iliopsoas_l']
 
         # ----- Hip Abductors (piriformis, satorius and tensor fasciae latae) -----
-        hab_r = [self.env.sim.model.actuator('abd_r').id]
+        if self.mode == '3D':
+            hab_r = [self.env.sim.model.actuator('abd_r').id]
+            hab_l = [self.env.sim.model.actuator('abd_l').id]
 
-        hab_l = [self.env.sim.model.actuator('abd_l').id]
-
-        hab_r_lbl = ['abd_r']
-        hab_l_lbl = ['abd_l']
+            hab_r_lbl = ['abd_r']
+            hab_l_lbl = ['abd_l']
 
         # ----- Hip Adductors (adductor [brevis, longus, magnus], gracilis) -----
-        had_r = [self.env.sim.model.actuator('add_r').id]
+        if self.mode == '3D':
+            had_r = [self.env.sim.model.actuator('add_r').id]
+            had_l = [self.env.sim.model.actuator('add_l').id]
 
-        had_l = [self.env.sim.model.actuator('add_l').id]
-
-        had_r_lbl = ['add_r']
-        had_l_lbl = ['add_l']
+            had_r_lbl = ['add_r']
+            had_l_lbl = ['add_l']
 
         # ----- rectus femoris -----
         rf_r = [self.env.sim.model.actuator('rectfem_r').id]
@@ -1078,8 +1079,9 @@ class myoLeg_reflex(object):
 
         # ----- Consolidating into a single dict -----
         self.muscles_dict['r_leg'] = {}
-        self.muscles_dict['r_leg']['HAB'] = hab_r
-        self.muscles_dict['r_leg']['HAD'] = had_r
+        if self.mode == '3D':
+            self.muscles_dict['r_leg']['HAB'] = hab_r
+            self.muscles_dict['r_leg']['HAD'] = had_r
         self.muscles_dict['r_leg']['GLU'] = glu_r
         self.muscles_dict['r_leg']['HAM'] = ham_r
         self.muscles_dict['r_leg']['BFSH'] = bfsh_r
@@ -1093,8 +1095,9 @@ class myoLeg_reflex(object):
         self.muscles_dict['r_leg']['EDL'] = edl_r
 
         self.muscles_dict['l_leg'] = {}
-        self.muscles_dict['l_leg']['HAB'] = hab_l
-        self.muscles_dict['l_leg']['HAD'] = had_l
+        if self.mode == '3D':
+            self.muscles_dict['l_leg']['HAB'] = hab_l
+            self.muscles_dict['l_leg']['HAD'] = had_l
         self.muscles_dict['l_leg']['GLU'] = glu_l
         self.muscles_dict['l_leg']['HAM'] = ham_l
         self.muscles_dict['l_leg']['BFSH'] = bfsh_l
@@ -1109,8 +1112,9 @@ class myoLeg_reflex(object):
 
         # Muscle labels
         self.muscle_labels['r_leg'] = {}
-        self.muscle_labels['r_leg']['HAB'] = hab_r_lbl
-        self.muscle_labels['r_leg']['HAD'] = had_r_lbl
+        if self.mode == '3D':
+            self.muscle_labels['r_leg']['HAB'] = hab_r_lbl
+            self.muscle_labels['r_leg']['HAD'] = had_r_lbl
         self.muscle_labels['r_leg']['GLU'] = glu_r_lbl
         self.muscle_labels['r_leg']['HAM'] = ham_r_lbl
         self.muscle_labels['r_leg']['BFSH'] = bfsh_r_lbl
@@ -1124,8 +1128,9 @@ class myoLeg_reflex(object):
         self.muscle_labels['r_leg']['EDL'] = edl_r_lbl
 
         self.muscle_labels['l_leg'] = {}
-        self.muscle_labels['l_leg']['HAB'] = hab_l_lbl
-        self.muscle_labels['l_leg']['HAD'] = had_l_lbl
+        if self.mode == '3D':
+            self.muscle_labels['l_leg']['HAB'] = hab_l_lbl
+            self.muscle_labels['l_leg']['HAD'] = had_l_lbl
         self.muscle_labels['l_leg']['GLU'] = glu_l_lbl
         self.muscle_labels['l_leg']['HAM'] = ham_l_lbl
         self.muscle_labels['l_leg']['BFSH'] = bfsh_l_lbl
