@@ -13,8 +13,19 @@ from ..utils.npoint_torque import calculate_npoint_torques
 # Global variable to store input args
 input_args = None
 
-def getBounds_11mus(mode: str) -> List[List[float]]:
-    """Get bounds for optimization parameters for 11-muscle model.
+def get_bounds(musc_model: str, control_mode: str) -> List[List[float]]:
+    """Get bounds for optimization parameters for a given muscle model and control mode."""
+    if musc_model == '22' or musc_model == '26':
+        return getBounds_22_26_mus(control_mode)
+    elif musc_model == '80':
+        return getBounds_80mus(control_mode)
+    elif musc_model == 'leg_11':
+        return getBounds_22_26_mus(control_mode) # Backwards compatibility
+    else:
+        raise ValueError(f"No bounds defined for muscle model: {musc_model}")
+
+def getBounds_22_26_mus(mode: str) -> List[List[float]]:
+    """Get bounds for optimization parameters for 22/26-muscle models.
     
     Args:
         mode: Control mode ('2D' or '3D')
@@ -120,6 +131,37 @@ def getBounds_11mus(mode: str) -> List[List[float]]:
                 for _ in range(n_points):
                     bound_vect.append([0, 1])
             
+                # Normalised timing parameters (0-1)
+                for _ in range(n_points):
+                    bound_vect.append([0, 1])
+
+        # Convert to start and end bounds
+        bound_start = [i[0] for i in bound_vect]
+        bound_end = [i[1] for i in bound_vect]
+
+        return [bound_start, bound_end]
+    elif mode == '3D':
+        # Add bounds for 3D movement
+        bound_vect.extend([
+            [-np.inf, np.inf], # hip_adduction_r
+            [-np.inf, np.inf], # hip_adduction_l
+            [-np.inf, np.inf], # hip_rotation_r
+            [-np.inf, np.inf], # hip_rotation_l
+            [-4, 4],           # pelvis_list
+            [-4, 4],           # pelvis_rotation
+        ])
+        
+        if input_args.ExoOn:
+            if input_args.use_4param_spline:
+                # Legacy spline uses four normalised timing parameters
+                for _ in range(4):
+                    bound_vect.append([0, 1])
+            else:
+                # n-point spline – append n torque amplitudes followed by n timing
+                n_points = input_args.n_points
+                # Normalised torque amplitudes (0-1)
+                for _ in range(n_points):
+                    bound_vect.append([0, 1])
                 # Normalised timing parameters (0-1)
                 for _ in range(n_points):
                     bound_vect.append([0, 1])

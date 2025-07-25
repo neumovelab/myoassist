@@ -8,6 +8,9 @@ the performance of the neuromuscular reflex controller.
 import os
 import numpy as np
 from typing import Dict, List, Union, Any, Optional, Tuple
+import warnings
+
+warnings.filterwarnings('ignore', category=UserWarning, module='gymnasium.core')
 
 from .evaluate_cost import evaluateCost
 import sys
@@ -52,7 +55,7 @@ def func_Walk_FitCost(
         Union[float, Dict[str, Any]]: Cost value or dictionary of cost components
     """
     # Initialize environment based on model type
-    if env_dict['leg_model'] == 'leg_80':
+    if env_dict['leg_model'] in ['80']:
         from reflex import ReflexInterface_11mus_80mus
 
         Myo_env = ReflexInterface_11mus_80mus.MyoLegReflex(
@@ -65,7 +68,7 @@ def func_Walk_FitCost(
             slope_deg=env_dict['slope_deg'], 
             delayed=env_dict['delayed']
         )
-    elif env_dict['leg_model'] == 'leg_11':
+    elif env_dict['leg_model'] in ['22', '26']:
 
         Myo_env = myoLeg_reflex(
             init_pose=env_dict['init_pose'], 
@@ -81,7 +84,8 @@ def func_Walk_FitCost(
             fixed_exo=env_dict['fixed_exo'], 
             max_torque=env_dict['max_torque'],
             model=env_dict['model'],
-            model_path=env_dict['model_path']
+            model_path=env_dict['model_path'],
+            leg_model=env_dict['leg_model']
         )
     else:
         raise ValueError(f"Unsupported leg model: {env_dict['leg_model']}")

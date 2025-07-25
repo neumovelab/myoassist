@@ -21,71 +21,44 @@ def initParser() -> argparse.Namespace:
 
     # Model configuration
     model_group = parser.add_argument_group("Model Configuration")
-    model_group.add_argument("--musc_model", 
-                           help="(String) The muscle model to use. Currently supports only [leg_80, leg_11] "
-                                "for 80 muscles and 11 muscles leg model respectively")
-    model_group.add_argument("--delayed", type=int, 
-                           help="(int) Delayed mode, 1 to activate")
-    model_group.add_argument("--reflex_mode", required=False, 
-                           help="(String) Unified or Individual [uni, ind]. Used only for 80 mus reflex model")
-    model_group.add_argument("--move_dim", type=int, 
-                           help="(int) Whether the model operates in 2D or 3D")
+    model_group.add_argument("--musc_model", type=str,
+                           help="(String) The muscle model to use. Options: [22, 26, 80]")
     model_group.add_argument("--model", type=str, default="default", 
-                           choices=["baseline", "dephy", "hmedi", "humotech"], 
+                           choices=["baseline", "dephy", "hmedi", "humotech", "osl", "tutorial"],
                            help="Type of model to use for simulation")
     model_group.add_argument("--model_path", type=str, default=None, 
                            help="Optional: Custom path to model XML file. Only used if model_type is 'custom'")
-
-    # Exoskeleton configuration
-    exo_group = parser.add_argument_group("Exoskeleton Configuration")
-    exo_group.add_argument("--ExoOn", type=int, 
-                         help="(int) 1 for Exo on, 0 otherwise")
-    exo_group.add_argument("--use_4param_spline", action="store_true", 
-                         help="Flag to use legacy 4-point spline controller")
-    exo_group.add_argument("--fixed_exo", action="store_true", 
-                         help="Keep exoskeleton parameters fixed at initial values during optimization")
-    exo_group.add_argument("--n_points", type=int, default=4, required=False, 
-                         help="(int) Number of points in exo torque spline (min 2, ignored if use_4param_spline is True)")
-    exo_group.add_argument("--max_torque", type=float, default=10.0, required=False,
-                         help="(float) Maximum torque allowed in the exoskeleton controller")
-
-    # Optimization configuration
-    optim_group = parser.add_argument_group("Optimization Configuration")
-    optim_group.add_argument("--optim_mode", 
-                           help="(String) Optimization to be done. Currently supports only "
-                                "[evaluate, single, multispeed, multislope]")
-    optim_group.add_argument("--optim_params", type=float, nargs='+', 
-                           help="(float) List of target velocities or slopes")
-    optim_group.add_argument("--popsize", type=int, 
-                           help="(int) Population size for CMA-ES")
-    optim_group.add_argument("--maxiter", type=int, 
-                           help="(int) Max iteration to run")
-    optim_group.add_argument("--threads", type=int, 
-                           help="(int) Number of threads for CMA-ES")
-    optim_group.add_argument("--sigma_gain", type=int, 
-                           help="(int) Multipliers for initial sigma value of 0.01")
 
     # Simulation parameters
     sim_group = parser.add_argument_group("Simulation Parameters")
     sim_group.add_argument("--sim_time", type=int, 
                          help="(int) Max simulation time (in seconds)")
-    sim_group.add_argument("--num_strides", type=int, 
-                         help="(int) Number of minimum strides to calculate cost")
-    sim_group.add_argument("--tgt_vel", type=float, 
-                         help="(float) Target velocity to optimize for")
-    sim_group.add_argument("--tgt_slope", type=float, 
-                         help="(float) Target slope (in degrees) to optimize for")
     sim_group.add_argument("--pose_key", required=False, 
                          help="(String) Initial keypose of model")
-    sim_group.add_argument("--tgt_sym_th", type=float, 
-                         help="(float) Threshold difference for symmetry")
-    sim_group.add_argument("--tgt_grf_th", type=float, 
-                         help="(float) Threshold for normalized GRF")
-    
-    # Cost function configuration
-    cost_group = parser.add_argument_group("Cost Function Configuration")
-    cost_group.add_argument("--trunk_err_type", 
-                          help="(String) type of trunk error, from ['ref_diff','zero_diff','vel_square']")
+    sim_group.add_argument("--num_strides", type=int, 
+                         help="(int) Number of minimum strides to calculate cost")
+    sim_group.add_argument("--delayed", type=int, 
+                         help="(int) Delayed mode, 1 to activate")
+
+    # Optimization targets
+    optim_group = parser.add_argument_group("Optimization Targets")
+    optim_group.add_argument("--optim_mode", 
+                           help="(String) Optimization to be done. Currently supports only "
+                                "[evaluate, single, multispeed, multislope]")
+    optim_group.add_argument("--reflex_mode", required=False, 
+                           help="(String) Unified or Individual [uni, ind]. Used only for 80 mus reflex model")
+    optim_group.add_argument("--tgt_vel", type=float, 
+                           help="(float) Target velocity to optimize for")
+    optim_group.add_argument("--tgt_slope", type=float, 
+                           help="(float) Target slope (in degrees) to optimize for")
+    optim_group.add_argument("--trunk_err_type", 
+                           help="(String) type of trunk error, from ['ref_diff','zero_diff','vel_square']")
+    optim_group.add_argument("--tgt_sym_th", type=float, 
+                           help="(float) Threshold difference for symmetry")
+    optim_group.add_argument("--tgt_grf_th", type=float, 
+                           help="(float) Threshold for normalized GRF")
+    optim_group.add_argument("--optim_params", type=float, nargs='+', 
+                           help="(float) List of target velocities or slopes")
 
     # Cost function types (mutually exclusive)
     group.add_argument("-eff", "--effort", action="store_true", 
@@ -110,6 +83,30 @@ def initParser() -> argparse.Namespace:
                      help="Velocity Muscle profile")
     group.add_argument("-vel_musc_grf", "--vel_musc_grf", action="store_true", 
                      help="Vel Musc Profile GRF")
+
+    # Exoskeleton configuration
+    exo_group = parser.add_argument_group("Exoskeleton Configuration")
+    exo_group.add_argument("--ExoOn", type=int, 
+                         help="(int) 1 for Exo on, 0 otherwise")
+    exo_group.add_argument("--use_4param_spline", action="store_true", 
+                         help="Flag to use legacy 4-point spline controller")
+    exo_group.add_argument("--fixed_exo", action="store_true", 
+                         help="Keep exoskeleton parameters fixed at initial values during optimization")
+    exo_group.add_argument("--n_points", type=int, default=4, required=False, 
+                         help="(int) Number of points in exo torque spline (min 2, ignored if use_4param_spline is True)")
+    exo_group.add_argument("--max_torque", type=float, default=10.0, required=False,
+                         help="(float) Maximum torque allowed in the exoskeleton controller")
+
+    # CMA-ES parameters
+    cmaes_group = parser.add_argument_group("CMA-ES Parameters")
+    cmaes_group.add_argument("--popsize", type=int, 
+                           help="(int) Population size for CMA-ES")
+    cmaes_group.add_argument("--maxiter", type=int, 
+                           help="(int) Max iteration to run")
+    cmaes_group.add_argument("--threads", type=int, 
+                           help="(int) Number of threads for CMA-ES")
+    cmaes_group.add_argument("--sigma_gain", type=int, 
+                           help="(int) Multipliers for initial sigma value of 0.01")
 
     # Output and misc options
     output_group = parser.add_argument_group("Output and Misc Options")
@@ -175,9 +172,14 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Dictionary with environment configuration
     """
-    # Set control mode based on move_dim
-    flag_ctrl_mode = '2D' if args.move_dim == 2 else '3D'
-    
+    # Set control mode based on musc_model
+    if args.musc_model in ['22']:
+        flag_ctrl_mode = '2D'
+    elif args.musc_model in ['26', '80']:
+        flag_ctrl_mode = '3D'
+    else:
+        flag_ctrl_mode = '2D'
+
     # Set delayed mode
     delayed = True if args.delayed == 1 else False
     
