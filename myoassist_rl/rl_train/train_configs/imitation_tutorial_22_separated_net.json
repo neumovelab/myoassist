@@ -108,7 +108,7 @@
         "custom_policy_params": {
             "net_arch": {
                         "human_actor": [64, 64],
-                        "exo_actor": [32, 8],
+                        "exo_actor": [8, 8],
                         "common_critic": [64, 64]
                     },
             "net_indexing_info": {
@@ -176,11 +176,6 @@
                                 "type":"range",
                                 "range":[8,10],
                                 "comment":"2 angkle angular in 9 qvel without lumbar_extension"
-                            },
-                            {
-                                "type":"range",
-                                "range":[39,40],
-                                "comment":"target velocity"
                             }
                         ],
                     "action":
