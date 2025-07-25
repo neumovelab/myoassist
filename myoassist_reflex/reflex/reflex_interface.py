@@ -8,8 +8,11 @@ Journal of physiology, 2015.
 
 from __future__ import division # '/' always means non-truncating division
 import numpy as np
-from .reflex_ctrl import MyoLocoCtrl
+import warnings
 
+warnings.filterwarnings('ignore', category=UserWarning, module='gymnasium.core')
+
+from .reflex_ctrl import MyoLocoCtrl
 from myosuite.utils import gym
 
 import numpy as np
@@ -74,7 +77,7 @@ class myoLeg_reflex(object):
                  init_pose='walk_left', control_params=np.ones(56,), 
                  slope_deg=0, delayed=True, exo_bool=True,
                  n_points=4, use_4param_spline=False, fixed_exo=False, 
-                 max_torque=10.0, model="default", model_path=None):
+                 max_torque=10.0, model="default", model_path=None, leg_model=None):
                 
         self.dt = dt
         self.exo_bool = exo_bool
@@ -83,6 +86,7 @@ class myoLeg_reflex(object):
         self.fixed_exo = fixed_exo
         self.max_torque = max_torque
         self.model = model
+        self.leg_model = leg_model
         
         # Initialize spline_params to 0 by default when exo is disabled
         spline_params = 0
@@ -133,7 +137,8 @@ class myoLeg_reflex(object):
 
         self.init_pose = init_pose
         
-        if self.mode == '2D':
+        # Determine movement dimension from muscle model
+        if mode == '2D':
             mvt_dim = 2
             # Model selection logic
             if model == "baseline":

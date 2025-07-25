@@ -31,9 +31,14 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
     else:
         # For 11-muscle model, unified is not applicable
         isUnified = False
-    
-    # Set control mode based on dimensions
-    flag_ctrl_mode = '2D' if args.move_dim == 2 else '3D'
+
+    # Set control mode based on muscle model
+    if args.musc_model in ['22']:
+        flag_ctrl_mode = '2D'
+    elif args.musc_model in ['26', '80']:
+        flag_ctrl_mode = '3D'
+    else:
+        raise ValueError(f"Invalid muscle model: {args.musc_model}")
     
     # Set up exoskeleton flag
     exo_bool = (args.ExoOn == 1)

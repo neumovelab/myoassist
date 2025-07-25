@@ -19,11 +19,7 @@ from scipy.interpolate import PchipInterpolator # For npoint spline bootstrapped
 
 # Imports
 from myoassist_reflex.optimization.tracker import OptimizationTracker
-from myoassist_reflex.optimization.bounds import (
-    getBounds_11mus,
-    getBounds_80mus,
-    getBounds_expanded_80mus
-)
+from myoassist_reflex.optimization.bounds import get_bounds
 from myoassist_reflex.optimization.plotting import create_combined_plot
 from myoassist_reflex.config import initParser, get_optimization_type, create_environment_dict
 from myoassist_reflex.cost_functions.walk_cost import func_Walk_FitCost
@@ -84,8 +80,16 @@ def main():
 
     convert = str(input_args.tgt_vel).replace('.', '_')
     suffix = optim_type
-    flag_ctrl_mode = '2D' if input_args.move_dim == 2 else '3D'
-    trial_name = f"myorfl_{suffix}_{flag_ctrl_mode}_{convert}_{datetime.now().strftime('%Y%b%d_%H%M')}_{input_args.runSuffix}"
+    
+    # Set control mode based on muscle model
+    if input_args.musc_model in ['22']:
+        control_mode = '2D'
+    elif input_args.musc_model in ['26', '80']:
+        control_mode = '3D'
+    else:
+        control_mode = '2D'
+        
+    trial_name = f"myorfl_{suffix}_{control_mode}_{convert}_{datetime.now().strftime('%Y%b%d_%H%M')}_{input_args.runSuffix}"
 
     # Create outcmaes directory within save_path
     outcmaes_dir = os.path.join(save_path, 'outcmaes')
@@ -98,40 +102,10 @@ def main():
     env_dict = create_environment_dict(input_args)
     
     # Determine parameter bounds based on muscle model
-    if input_args.musc_model == 'leg_80':
-        if input_args.reflex_mode == 'uni':
-            if input_args.move_dim == 2:
-                param_num = 238
-                bound_start, bound_end = getBounds_80mus(flag_ctrl_mode)
-            elif input_args.move_dim == 3:
-                param_num = 275
-                bound_start, bound_end = getBounds_80mus(flag_ctrl_mode)
-        elif input_args.reflex_mode == 'ind':
-            if input_args.move_dim == 2:
-                param_num = 293
-                bound_start, bound_end = getBounds_expanded_80mus(flag_ctrl_mode)
-            elif input_args.move_dim == 3:
-                param_num = 391
-                bound_start, bound_end = getBounds_expanded_80mus(flag_ctrl_mode)
+    bound_start, bound_end = get_bounds(input_args.musc_model, control_mode)
     
-    elif input_args.musc_model == 'leg_11':
-        if input_args.move_dim == 2:
-            param_num = 77  # Base parameters for 2D
-            if input_args.ExoOn:
-                if input_args.use_4param_spline:
-                    param_num += 4  # Add 4-parameter spline parameters
-                else:
-                    param_num += input_args.n_points * 2  # Add n-point spline parameters
-        elif input_args.move_dim == 3:
-            param_num = 97  # Base parameters for 3D
-            if input_args.ExoOn:
-                if input_args.use_4param_spline:
-                    param_num += 4
-                else:
-                    param_num += input_args.n_points * 2
-                    
-        # Get bounds for 22-muscle model (11 muscles/leg)
-        bound_start, bound_end = getBounds_11mus(flag_ctrl_mode)
+    # Set param_num based on the length of the bounds
+    param_num = len(bound_start)
     
     # Initialize parameters
     if input_args.param_path is not None:
@@ -141,8 +115,8 @@ def main():
         loaded_params = np.loadtxt(os.path.join(input_args.param_path, files_txt[0]))
         
         # Check if we need to add exo parameters
-        if input_args.musc_model == 'leg_11' and input_args.ExoOn:
-            base_params = 77 if input_args.move_dim == 2 else 97
+        if input_args.musc_model in ['22', '26'] and input_args.ExoOn:
+            base_params = 77 if control_mode == '2D' else 97
             
             # Case 1: Loaded params are human-only, need to add fresh exo params
             if len(loaded_params) == base_params:
@@ -229,7 +203,7 @@ def main():
         params_0 = np.ones(param_num,)
         
         # Set initial values for exoskeleton parameters if enabled
-        if input_args.musc_model == 'leg_11' and input_args.ExoOn:
+        if input_args.musc_model in ['22', '26'] and input_args.ExoOn:
             if input_args.use_4param_spline:
                 # Set initial timing parameters (based on Poggesnsee & Collins 2021; DOI: 10.1126/scirobotics.abf1078)
                 params_0[-4] = 0.5  # peak_torque
@@ -250,7 +224,7 @@ def main():
                 if params_0[i] > bound_end[i]:
                     params_0[i] = bound_end[i]
         
-        if input_args.musc_model == 'leg_11' and input_args.ExoOn:
+        if input_args.musc_model in ['22', '26'] and input_args.ExoOn:
             if input_args.use_4param_spline:
                 params_0[-4] = 0.5  # peak_torque
                 params_0[-3] = 0.467  # rise_time
