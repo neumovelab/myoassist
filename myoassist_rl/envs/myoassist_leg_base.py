@@ -184,7 +184,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
 
         observation, _reward, done, *_, _info = self.step(np.zeros(self.sim.model.nu))
         print(f"DEBUG:: obs: {len(observation)=}")
-        print(f"DEBUG:: action: {self.sim.model.nu=}")
+        print(f"DEBUG:: nu: {self.sim.model.nu=}")
         # if qpos set to all zero, joint looks weird, 30 steps will make it normal
         for _ in range(30):
             super().step(a=np.zeros(self.sim.model.nu))
@@ -301,7 +301,6 @@ class MyoAssistLegBase(env_base.MujocoEnv):
     
     def step(self, a, **kwargs):
         self._modulate_target_velocity()
-        print(f"DEBUG:: action: {a=}")
         next_obs, reward, terminated, truncated, info = super().step(a, **kwargs)
         self._step_count_per_episode += 1
         is_over_time_limit = self._step_count_per_episode >= self.CUSTOM_MAX_EPISODE_STEPS

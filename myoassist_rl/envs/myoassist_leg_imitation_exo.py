@@ -16,14 +16,7 @@ from myoassist_rl.rl_train.utils.learning_callback import BaseCustomLearningCall
 # TODO: Move to myoassist_rl.rl_train.utils.config_imitation_exo.py
 @dataclass
 class ExoImitationTrainSessionConfig(ImitationTrainSessionConfig):
-    # @dataclass
-    # class CustomPolicyParams(ImitationTrainSessionConfig.PolicyParams.CustomPolicyParams):
-    #     human_observation_indices: list[int] = field(default_factory=list[int])
-    #     exo_observation_indices: list[int] = field(default_factory=list[int])
-    #     human_action_size: int = 0
-    #     exo_action_size: int = 0
-    #     enable_exo: bool = True
-    # custom_policy_params: CustomPolicyParams = field(default_factory=CustomPolicyParams)
+
     @dataclass
     class PolicyParams(ImitationTrainSessionConfig.PolicyParams):
         '''
@@ -58,13 +51,12 @@ class ExoImitationTrainSessionConfig(ImitationTrainSessionConfig):
             exo_observation_indices: list[int] = field(default_factory=list[int])
             human_action_size: int = 0
             exo_action_size: int = 0
-            enable_exo: bool = True
         custom_policy_params: CustomPolicyParams = field(default_factory=CustomPolicyParams)
     policy_params: PolicyParams = field(default_factory=PolicyParams)
-    @dataclass
-    class EnvParams(ImitationTrainSessionConfig.EnvParams):
-        enable_exo: bool = True
-    env_params: EnvParams = field(default_factory=EnvParams)
+    # @dataclass
+    # class EnvParams(ImitationTrainSessionConfig.EnvParams):
+    #     pass
+    # env_params: EnvParams = field(default_factory=EnvParams)
 ##############################################################################
 
 

@@ -17,8 +17,6 @@
         "min_target_velocity_period": 2,
         "max_target_velocity_period": 10,
 
-        "enable_exo": false,
-
         "enable_lumbar_joint": false,
         "lumbar_joint_fixed_angle": -0.317,
         "lumbar_joint_damping_value": 0.05,
@@ -105,7 +103,6 @@
     },
     "policy_params": {
         "custom_policy_params": {
-            "enable_exo": false,
             "net_arch": {
                         "human_actor": [64, 64],
                         "exo_actor": [32, 8],

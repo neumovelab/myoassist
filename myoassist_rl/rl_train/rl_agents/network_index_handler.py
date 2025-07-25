@@ -49,7 +49,6 @@ class NetworkIndexHandler:
             for net_indexing_info in self.net_indexing_info[network_name]["action"]:
                 
                 if net_indexing_info["type"] == "constant":
-                    print(f'masking: {net_indexing_info=}')
                     start_inclusive_action, end_exclusive_action = net_indexing_info["range_action"]
                     action[:,start_inclusive_action:end_exclusive_action] = net_indexing_info["default_value"]
         return action

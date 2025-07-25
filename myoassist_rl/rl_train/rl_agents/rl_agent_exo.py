@@ -32,16 +32,14 @@ class CustomNetworkHumanExo(BasePPOCustomNetwork):
                     custom_policy_params: myoassist_leg_imitation_exo.ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams,
                 ):
         super().__init__(observation_space, action_space, custom_policy_params)
-        self.enable_exo = custom_policy_params.enable_exo
-        print(f"enable_exo: {self.enable_exo=}")
+
 
     def forward_actor(self, obs: th.Tensor) -> th.Tensor:
         human_obs = self.network_index_handler.map_observation_to_network(obs, "human_actor")
         exo_obs = self.network_index_handler.map_observation_to_network(obs, "exo_actor")
         human_action = self.human_policy_net(human_obs)
         exo_action = self.exo_policy_net(exo_obs)
-        # if not self.enable_exo:
-        #     exo_action = th.zeros_like(exo_action)
+
         network_output_dict = {"human_actor": human_action, "exo_actor": exo_action}
         return self.network_index_handler.map_network_to_action(network_output_dict)
 
@@ -151,8 +149,7 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
         exo_obs = self.policy_network.network_index_handler.map_observation_to_network(obs, "exo_actor")
         human_action = self.policy_network.human_policy_net(human_obs)
         exo_action = self.policy_network.exo_policy_net(exo_obs)
-        # if not self.enable_exo:
-        #     exo_action = th.zeros_like(exo_action)
+
         network_output_dict = {"human_actor": human_action, "exo_actor": exo_action}
         actions = self.policy_network.network_index_handler.mask_default_value(network_output_dict, actions)
 

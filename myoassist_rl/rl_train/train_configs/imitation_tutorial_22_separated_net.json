@@ -21,8 +21,6 @@
         "lumbar_joint_fixed_angle": -0.317,
         "lumbar_joint_damping_value": 0.05,
 
-        "enable_exo": true,
-
         "observation_joint_pos_keys": [
             "ankle_angle_l", "ankle_angle_r",
             "hip_flexion_l", "hip_flexion_r",
@@ -105,7 +103,6 @@
     },
     "policy_params": {
         "custom_policy_params": {
-            "enable_exo": true,
             "net_arch": {
                         "human_actor": [64, 64],
                         "exo_actor": [32, 8],
