@@ -25,6 +25,10 @@ class NetworkIndexHandler:
                 human_action_num += end_exclusive_action - start_inclusive_action
             elif net_indexing_info["type"] == "index_mapping":# specifying index of action
                 human_action_num += len(net_indexing_info["index"])
+            elif net_indexing_info["type"] == "constant":
+                # For constant type, no network output is needed
+                # The constant value will be applied directly to the action
+                pass
         return human_action_num
     
     def map_observation_to_network(self, observation: th.Tensor, net_name: str):

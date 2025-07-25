@@ -125,45 +125,33 @@
                             },
                             {
                                 "type":"range",
-                                "range":[19,30],
+                                "range":[17,28],
                                 "comment":"11 left muscle activation"
                             },
                             {
                                 "type":"range",
-                                "range":[32,43],
+                                "range":[28,39],
                                 "comment":"11 right muscle activation"
                             },
                             {
                                 "type":"range",
-                                "range":[43,44],
+                                "range":[39,40],
                                 "comment":"target velocity"
                             }
                         ],
                     "action":
                         [
                             {
-                                "type":"constant",
-                                "range_action":[0,2],
-                                "default_value":-1.0,
-                                "comment":"abd,add r"
+                                "type":"range_mapping",
+                                "range_net":[0,11],
+                                "range_action":[0,11],
+                                "comment":"r 11 muscle activation without exo"
                             },
                             {
                                 "type":"range_mapping",
-                                "range_net":[0,11],
-                                "range_action":[2,13],
-                                "comment":"r 11 muscle activation without exo; 0:2 are for abd,add"
-                            },
-                            {
-                                "type":"constant",
-                                "range_action":[13,15],
-                                "default_value":-1.0,
-                                "comment":"abd,add l"
-                            },
-                            {
-                                "type":"range_mapping",
-                                "range_net":[0,11],
-                                "range_action":[15,26],
-                                "comment":"l 11 muscle activation without exo; 0:2 are for abd,add"
+                                "range_net":[11,22],
+                                "range_action":[11,22],
+                                "comment":"l 11 muscle activation without exo"
                             }
                         ]
                 },
@@ -173,27 +161,17 @@
                         [
                             {
                                 "type":"range",
-                                "range":[0,8],
-                                "comment":"8 qpos without lumbar_extension"
+                                "range":[0,2],
+                                "comment":"2 ankle angle in 8 qpos without lumbar_extension"
                             },
                             {
                                 "type":"range",
-                                "range":[8,17],
-                                "comment":"9 qvel without lumbar_extension"
+                                "range":[8,10],
+                                "comment":"2 angkle angular in 9 qvel without lumbar_extension"
                             },
                             {
                                 "type":"range",
-                                "range":[19,30],
-                                "comment":"11 left muscle activation"
-                            },
-                            {
-                                "type":"range",
-                                "range":[32,43],
-                                "comment":"11 right muscle activation"
-                            },
-                            {
-                                "type":"range",
-                                "range":[43,44],
+                                "range":[39,40],
                                 "comment":"target velocity"
                             }
                         ],
@@ -202,11 +180,10 @@
                             {
                                 "type":"range_mapping",
                                 "range_net":[0,2],
-                                "range_action":[26,28],
+                                "range_action":[22,24],
                                 "comment":"2 for exo L, R"
                             }
-                        ],
-                    "default_value":1.0
+                        ]
                 },
                 "common_critic": 
                 {
@@ -224,17 +201,17 @@
                         },
                         {
                             "type":"range",
-                            "range":[19,30],
+                            "range":[17,28],
                             "comment":"11 left muscle activation"
                         },
                         {
                             "type":"range",
-                            "range":[32,43],
+                            "range":[28,39],
                             "comment":"11 right muscle activation"
                         },
                         {
                             "type":"range",
-                            "range":[43,44],
+                            "range":[39,40],
                             "comment":"target velocity"
                         }
                     ]
