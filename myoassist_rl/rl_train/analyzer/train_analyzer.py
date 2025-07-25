@@ -16,6 +16,7 @@ from myoassist_rl.rl_train.analyzer.gait_analyze import GaitAnalyzer
 from myoassist_rl.rl_train.analyzer.gait_evaluate import GaitData
 from myoassist_rl.rl_train.utils.handlers.train_checkpoint_data_imitation import ImitationTrainCheckpointData
 from enum import Enum
+import numpy as np
 
 class TrainAnalyzer:
     class SequenceElement(Enum):
@@ -99,8 +100,8 @@ class TrainAnalyzer:
         # Only load reference data and perform analysis for imitation learning environments
         if config.env_params.env_id in ['myoLeg18Imitation-v0', 'myoLeg18ImitationDephy-v0']:
             try:
-                with open(os.path.join("myosuite/simhive/myoassist_sim/reference_data_segmented/02-constspeed_reduced_humanoid_segmented.json"), 'r') as f:
-                    segmented_ref_data = json.load(f)
+                segmented_ref_data = np.load("reference_data/segmented.npz", allow_pickle=True)
+                segmented_ref_data = {key: segmented_ref_data[key] for key in segmented_ref_data.files}
                 exception_report_list = self.analyze(gait_data, segmented_ref_data, analyze_result_dir, show_plot)
             except FileNotFoundError:
                 print("Warning: Reference data file not found. Skipping gait analysis.")

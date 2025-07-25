@@ -33,7 +33,7 @@
             "foot_force_penalize": 0.5
         },
         "custom_max_episode_steps": 1000,
-        "model_path": "myosuite/simhive/myoassist_sim/gait14dof22musc_cvt3_Right_Toeless_2D.xml"
+        "model_path": "models/22muscle_2D/gait14dof22musc_cvt3_Right_Toeless_2D.xml"
     },
     "ppo_params": {
         "learning_rate": 0.0001,

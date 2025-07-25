@@ -47,9 +47,9 @@ Once your `.stl` files are ready, you declare them in the `<asset>` section of y
 <asset>
     ...
     <!-- Exoskeleton -->
-    <mesh file="mesh/Tutorial/shin_cuff_r.stl" name="shin_cuff_r"/>
-    <mesh file="mesh/Tutorial/actuator_r.stl" name="actuator_r"/>
-    <mesh file="mesh/Tutorial/foot_attachment_r.stl" name="foot_attachment_r"/>
+    <mesh file="../mesh/Tutorial/shin_cuff_r.stl" name="shin_cuff_r"/>
+    <mesh file="../mesh/Tutorial/actuator_r.stl" name="actuator_r"/>
+    <mesh file="../mesh/Tutorial/foot_attachment_r.stl" name="foot_attachment_r"/>
     ...
 </asset>
 ```
@@ -60,8 +60,8 @@ For device components that appear identically more than once, a mesh import can 
 <asset>
     ...
     <!-- Exoskeleton -->
-    <mesh file="mesh/Tutorial/shin_cuff.stl" name="shin_cuff_r"/>
-    <mesh file="mesh/Tutorial/shin_cuff.stl" name="shin_cuff_l"/>
+    <mesh file="../mesh/Tutorial/shin_cuff.stl" name="shin_cuff_r"/>
+    <mesh file="../mesh/Tutorial/shin_cuff.stl" name="shin_cuff_l"/>
 </asset>
 ```
 

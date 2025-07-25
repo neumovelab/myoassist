@@ -52,58 +52,58 @@
         <texture builtin="gradient" height="1536" rgb1="1 1 1" rgb2="1 1 1" type="skybox" width="256"/>
         
         <!-- Human -->
-        <mesh file="mesh/sacrum.stl" name="pelvis_geom_1_sacrum"/>
-        <mesh file="mesh/r_pelvis.stl" name="pelvis_geom_2_pelvis"/>
-        <mesh file="mesh/l_pelvis.stl" name="pelvis_geom_3_l_pelvis"/>
-        <mesh file="mesh/r_femur.stl" name="femur_r_geom_1_femur"/>
-        <mesh file="mesh/r_tibia.stl" name="tibia_r_geom_1_tibia"/>
-        <mesh file="mesh/r_fibula.stl" name="tibia_r_geom_2_fibula"/>
-        <mesh file="mesh/r_talus.stl" name="talus_r_geom_1_talus"/>
-        <mesh file="mesh/r_foot.stl" name="calcn_r_geom_1_foot"/>
-        <mesh file="mesh/r_bofoot.stl" name="toes_r_geom_1_bofoot"/>
-        <mesh file="mesh/l_femur.stl" name="femur_l_geom_1_l_femur"/>
-        <mesh file="mesh/l_tibia.stl" name="tibia_l_geom_1_l_tibia"/>
-        <mesh file="mesh/l_fibula.stl" name="tibia_l_geom_2_l_fibula"/>
-        <mesh file="mesh/l_talus.stl" name="talus_l_geom_1_l_talus"/>
-        <mesh file="mesh/l_foot.stl" name="calcn_l_geom_1_l_foot"/>
-        <mesh file="mesh/l_bofoot.stl" name="toes_l_geom_1_l_bofoot"/>
-        <mesh file="mesh/hat_spine.stl" name="torso_geom_1_hat_spine"/>
-        <mesh file="mesh/hat_jaw.stl" name="torso_geom_2_hat_jaw"/>
-        <mesh file="mesh/hat_skull.stl" name="torso_geom_3_hat_skull"/>
-        <mesh file="mesh/hat_ribs.stl" name="torso_geom_4_hat_ribs"/>
+        <mesh file="../mesh/sacrum.stl" name="pelvis_geom_1_sacrum"/>
+        <mesh file="../mesh/r_pelvis.stl" name="pelvis_geom_2_pelvis"/>
+        <mesh file="../mesh/l_pelvis.stl" name="pelvis_geom_3_l_pelvis"/>
+        <mesh file="../mesh/r_femur.stl" name="femur_r_geom_1_femur"/>
+        <mesh file="../mesh/r_tibia.stl" name="tibia_r_geom_1_tibia"/>
+        <mesh file="../mesh/r_fibula.stl" name="tibia_r_geom_2_fibula"/>
+        <mesh file="../mesh/r_talus.stl" name="talus_r_geom_1_talus"/>
+        <mesh file="../mesh/r_foot.stl" name="calcn_r_geom_1_foot"/>
+        <mesh file="../mesh/r_bofoot.stl" name="toes_r_geom_1_bofoot"/>
+        <mesh file="../mesh/l_femur.stl" name="femur_l_geom_1_l_femur"/>
+        <mesh file="../mesh/l_tibia.stl" name="tibia_l_geom_1_l_tibia"/>
+        <mesh file="../mesh/l_fibula.stl" name="tibia_l_geom_2_l_fibula"/>
+        <mesh file="../mesh/l_talus.stl" name="talus_l_geom_1_l_talus"/>
+        <mesh file="../mesh/l_foot.stl" name="calcn_l_geom_1_l_foot"/>
+        <mesh file="../mesh/l_bofoot.stl" name="toes_l_geom_1_l_bofoot"/>
+        <mesh file="../mesh/hat_spine.stl" name="torso_geom_1_hat_spine"/>
+        <mesh file="../mesh/hat_jaw.stl" name="torso_geom_2_hat_jaw"/>
+        <mesh file="../mesh/hat_skull.stl" name="torso_geom_3_hat_skull"/>
+        <mesh file="../mesh/hat_ribs.stl" name="torso_geom_4_hat_ribs"/>
 
-        <mesh file="mesh/r_clavicle.stl" name="r_clavicle"/>
-        <mesh file="mesh/r_scapula.stl" name="r_scapula"/>
-        <mesh file="mesh/r_humerus.stl" name="r_humerus"/>
-        <mesh file="mesh/r_forearm.stl" name="r_forearm"/>
-        <mesh file="mesh/r_hand.stl" name="r_hand"/>
+        <mesh file="../mesh/r_clavicle.stl" name="r_clavicle"/>
+        <mesh file="../mesh/r_scapula.stl" name="r_scapula"/>
+        <mesh file="../mesh/r_humerus.stl" name="r_humerus"/>
+        <mesh file="../mesh/r_forearm.stl" name="r_forearm"/>
+        <mesh file="../mesh/r_hand.stl" name="r_hand"/>
         
-        <mesh file="mesh/l_clavicle.stl" name="l_clavicle"/>
-        <mesh file="mesh/l_scapula.stl" name="l_scapula"/>
-        <mesh file="mesh/l_humerus.stl" name="l_humerus"/>
-        <mesh file="mesh/l_forearm.stl" name="l_forearm"/>
-        <mesh file="mesh/l_hand.stl" name="l_hand"/>
+        <mesh file="../mesh/l_clavicle.stl" name="l_clavicle"/>
+        <mesh file="../mesh/l_scapula.stl" name="l_scapula"/>
+        <mesh file="../mesh/l_humerus.stl" name="l_humerus"/>
+        <mesh file="../mesh/l_forearm.stl" name="l_forearm"/>
+        <mesh file="../mesh/l_hand.stl" name="l_hand"/>
 
         <!-- Exoskeleton -->
-        <mesh file="mesh/Humotech/Aft Sole R.stl" name="r_aft_sole"/>
-        <mesh file="mesh/Humotech/Aft Upper R.stl" name="r_aft_upper"/>
-        <mesh file="mesh/Humotech/Fore Sole R.stl" name="r_fore_sole"/>
-        <mesh file="mesh/Humotech/Fore Upper R.stl" name="r_fore_upper"/>
-        <mesh file="mesh/Humotech/Heel Connector.stl" name="heel_connector_r"/>
-        <mesh file="mesh/Humotech/Heel Ring R.stl" name="heel_ring_r"/>
-        <mesh file="mesh/Humotech/Shin Cuff.stl" name="shin_cuff_r"/>
-        <mesh file="mesh/Humotech/Shin Main R.stl" name="shin_main_r"/>
-        <mesh file="mesh/Humotech/Sole Attachment.stl" name="sole_attachment_r"/>
+        <mesh file="../mesh/Humotech/Aft Sole R.stl" name="r_aft_sole"/>
+        <mesh file="../mesh/Humotech/Aft Upper R.stl" name="r_aft_upper"/>
+        <mesh file="../mesh/Humotech/Fore Sole R.stl" name="r_fore_sole"/>
+        <mesh file="../mesh/Humotech/Fore Upper R.stl" name="r_fore_upper"/>
+        <mesh file="../mesh/Humotech/Heel Connector.stl" name="heel_connector_r"/>
+        <mesh file="../mesh/Humotech/Heel Ring R.stl" name="heel_ring_r"/>
+        <mesh file="../mesh/Humotech/Shin Cuff.stl" name="shin_cuff_r"/>
+        <mesh file="../mesh/Humotech/Shin Main R.stl" name="shin_main_r"/>
+        <mesh file="../mesh/Humotech/Sole Attachment.stl" name="sole_attachment_r"/>
 
-        <mesh file="mesh/Humotech/Aft Sole L.stl" name="l_aft_sole"/>
-        <mesh file="mesh/Humotech/Aft Upper L.stl" name="l_aft_upper"/>
-        <mesh file="mesh/Humotech/Fore Sole L.stl" name="l_fore_sole"/>
-        <mesh file="mesh/Humotech/Fore Upper L.stl" name="l_fore_upper"/>
-        <mesh file="mesh/Humotech/Heel Connector.stl" name="heel_connector_l"/>
-        <mesh file="mesh/Humotech/Heel Ring L.stl" name="heel_ring_l"/>
-        <mesh file="mesh/Humotech/Shin Cuff.stl" name="shin_cuff_l"/>
-        <mesh file="mesh/Humotech/Shin Main L.stl" name="shin_main_l"/>
-        <mesh file="mesh/Humotech/Sole Attachment.stl" name="sole_attachment_l"/>
+        <mesh file="../mesh/Humotech/Aft Sole L.stl" name="l_aft_sole"/>
+        <mesh file="../mesh/Humotech/Aft Upper L.stl" name="l_aft_upper"/>
+        <mesh file="../mesh/Humotech/Fore Sole L.stl" name="l_fore_sole"/>
+        <mesh file="../mesh/Humotech/Fore Upper L.stl" name="l_fore_upper"/>
+        <mesh file="../mesh/Humotech/Heel Connector.stl" name="heel_connector_l"/>
+        <mesh file="../mesh/Humotech/Heel Ring L.stl" name="heel_ring_l"/>
+        <mesh file="../mesh/Humotech/Shin Cuff.stl" name="shin_cuff_l"/>
+        <mesh file="../mesh/Humotech/Shin Main L.stl" name="shin_main_l"/>
+        <mesh file="../mesh/Humotech/Sole Attachment.stl" name="sole_attachment_l"/>
     </asset>
     
     <statistic center="0 0 0.6" extent="2.5"/>
@@ -114,7 +114,7 @@
         <headlight ambient="0.1 0.1 0.1" diffuse="0.4 0.4 0.4" specular="0.5 0.5 0.5"/>
     </visual>
     
-    <include file="terrain_config.xml"/>
+    <include file="../terrain_config.xml"/>
 
     <worldbody>
         <camera name="side_view" pos="-3 0 1.5" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>

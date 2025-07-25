@@ -77,8 +77,8 @@
             "foot_force_penalize": 0.5
         },
         "custom_max_episode_steps": 1000,
-        "model_path": "myosuite/simhive/myoassist_sim/myoLeg26_TUTORIAL.xml",
-        "reference_data_path": "reference_data/short_reference_gait.npz",
+        "model_path": "models/22muscle_2D/myoLeg26_TUTORIAL.xml",
+        "reference_data_path": "myoassist_rl/reference_data/short_reference_gait.npz",
         "reference_data_keys": ["ankle_angle_l", "ankle_angle_r",
                                 "hip_flexion_l", "hip_flexion_r",
                                 "hip_adduction_l", "hip_adduction_r",

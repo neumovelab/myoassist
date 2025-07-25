@@ -127,9 +127,9 @@ osl.log
 
 
 # MyoAssist #
-train_logs/
-# !train_logs/reflex/
-# !train_logs/selected/
+myoassist_rl/train_logs/
+# !myoassist_rl/train_logs/reflex/
+# !myoassist_rl/train_logs/selected/
 
 cma_dump/
 
