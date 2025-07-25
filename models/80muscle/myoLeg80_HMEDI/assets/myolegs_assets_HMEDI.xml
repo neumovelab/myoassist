@@ -85,16 +85,16 @@
         <mesh file="../myo_sim/meshes/l_patella.stl" name="l_patella"/>
     
         <!-- Exoskeleton -->
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI Torso_Reduced.stl" name="ASSEM_MEDI torso_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI WaistBand.stl" name="ASSEM_MEDI waistband_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI FemurFlap_L.stl" name="ASSEM_MEDI femurflap_l_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI FemurFlap_R.stl" name="ASSEM_MEDI femurflap_r_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI thigh INDV.stl" name="ASSEM_MEDI thigh_r_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI thigh INDV.stl" name="ASSEM_MEDI thigh_l_geom"/>        
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI MM03 Cobra.stl" name="ASSEM_MEDI mm03_r_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI MM03 Cobra.stl" name="ASSEM_MEDI mm03_l_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI MM03 Cobra 150.stl" name="ASSEM_MEDI mm03_150_r_geom"/>
-        <mesh file="../../../../mesh/HMEDI/ASSEM_MEDI MM03 Cobra 150.stl" name="ASSEM_MEDI mm03_150_l_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI Torso_Reduced.stl" name="ASSEM_MEDI torso_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI WaistBand.stl" name="ASSEM_MEDI waistband_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI FemurFlap_L.stl" name="ASSEM_MEDI femurflap_l_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI FemurFlap_R.stl" name="ASSEM_MEDI femurflap_r_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI thigh INDV.stl" name="ASSEM_MEDI thigh_r_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI thigh INDV.stl" name="ASSEM_MEDI thigh_l_geom"/>        
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI MM03 Cobra.stl" name="ASSEM_MEDI mm03_r_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI MM03 Cobra.stl" name="ASSEM_MEDI mm03_l_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI MM03 Cobra 150.stl" name="ASSEM_MEDI mm03_150_r_geom"/>
+        <mesh file="../../../models/mesh/HMEDI/ASSEM_MEDI MM03 Cobra 150.stl" name="ASSEM_MEDI mm03_150_l_geom"/>
     </asset>
 
     <equality>

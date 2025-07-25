@@ -85,25 +85,25 @@
         <mesh file="../myo_sim/meshes/l_patella.stl" name="l_patella"/>
 
         <!-- Exoskeleton -->
-        <mesh file="../../../../mesh/Humotech/Aft Sole R.stl" name="r_aft_sole"/>
-        <mesh file="../../../../mesh/Humotech/Aft Upper R.stl" name="r_aft_upper"/>
-        <mesh file="../../../../mesh/Humotech/Fore Sole R.stl" name="r_fore_sole"/>
-        <mesh file="../../../../mesh/Humotech/Fore Upper R.stl" name="r_fore_upper"/>
-        <mesh file="../../../../mesh/Humotech/Heel Connector.stl" name="heel_connector_r"/>
-        <mesh file="../../../../mesh/Humotech/Heel Ring R.stl" name="heel_ring_r"/>
-        <mesh file="../../../../mesh/Humotech/Shin Cuff.stl" name="shin_cuff_r"/>
-        <mesh file="../../../../mesh/Humotech/Shin Main R.stl" name="shin_main_r"/>
-        <mesh file="../../../../mesh/Humotech/Sole Attachment.stl" name="sole_attachment_r"/>
+        <mesh file="../../../models/mesh/Humotech/Aft Sole R.stl" name="r_aft_sole"/>
+        <mesh file="../../../models/mesh/Humotech/Aft Upper R.stl" name="r_aft_upper"/>
+        <mesh file="../../../models/mesh/Humotech/Fore Sole R.stl" name="r_fore_sole"/>
+        <mesh file="../../../models/mesh/Humotech/Fore Upper R.stl" name="r_fore_upper"/>
+        <mesh file="../../../models/mesh/Humotech/Heel Connector.stl" name="heel_connector_r"/>
+        <mesh file="../../../models/mesh/Humotech/Heel Ring R.stl" name="heel_ring_r"/>
+        <mesh file="../../../models/mesh/Humotech/Shin Cuff.stl" name="shin_cuff_r"/>
+        <mesh file="../../../models/mesh/Humotech/Shin Main R.stl" name="shin_main_r"/>
+        <mesh file="../../../models/mesh/Humotech/Sole Attachment.stl" name="sole_attachment_r"/>
 
-        <mesh file="../../../../mesh/Humotech/Aft Sole L.stl" name="l_aft_sole"/>
-        <mesh file="../../../../mesh/Humotech/Aft Upper L.stl" name="l_aft_upper"/>
-        <mesh file="../../../../mesh/Humotech/Fore Sole L.stl" name="l_fore_sole"/>
-        <mesh file="../../../../mesh/Humotech/Fore Upper L.stl" name="l_fore_upper"/>
-        <mesh file="../../../../mesh/Humotech/Heel Connector.stl" name="heel_connector_l"/>
-        <mesh file="../../../../mesh/Humotech/Heel Ring L.stl" name="heel_ring_l"/>
-        <mesh file="../../../../mesh/Humotech/Shin Cuff.stl" name="shin_cuff_l"/>
-        <mesh file="../../../../mesh/Humotech/Shin Main L.stl" name="shin_main_l"/>
-        <mesh file="../../../../mesh/Humotech/Sole Attachment.stl" name="sole_attachment_l"/>
+        <mesh file="../../../models/mesh/Humotech/Aft Sole L.stl" name="l_aft_sole"/>
+        <mesh file="../../../models/mesh/Humotech/Aft Upper L.stl" name="l_aft_upper"/>
+        <mesh file="../../../models/mesh/Humotech/Fore Sole L.stl" name="l_fore_sole"/>
+        <mesh file="../../../models/mesh/Humotech/Fore Upper L.stl" name="l_fore_upper"/>
+        <mesh file="../../../models/mesh/Humotech/Heel Connector.stl" name="heel_connector_l"/>
+        <mesh file="../../../models/mesh/Humotech/Heel Ring L.stl" name="heel_ring_l"/>
+        <mesh file="../../../models/mesh/Humotech/Shin Cuff.stl" name="shin_cuff_l"/>
+        <mesh file="../../../models/mesh/Humotech/Shin Main L.stl" name="shin_main_l"/>
+        <mesh file="../../../models/mesh/Humotech/Sole Attachment.stl" name="sole_attachment_l"/>
     </asset>
 
     <equality>

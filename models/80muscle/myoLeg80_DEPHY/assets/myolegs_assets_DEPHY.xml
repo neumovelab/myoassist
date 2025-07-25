@@ -85,29 +85,29 @@
         <mesh file="../myo_sim/meshes/l_patella.stl" name="l_patella"/>
     
          <!-- Exoskeleton -->
-        <mesh file="../../../../mesh/Dephy/exo_main_l.stl" name="exo_main_l_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_ilink_l.stl" name="exo_ilink_l_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_blink_l.stl" name="exo_blink_l_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_clink_l.stl" name="exo_clink_l_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_spad_l.stl" name="exo_spad_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_main_l.stl" name="exo_main_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_ilink_l.stl" name="exo_ilink_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_blink_l.stl" name="exo_blink_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_clink_l.stl" name="exo_clink_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_spad_l.stl" name="exo_spad_l_geom"/>
         
-        <mesh file="../../../../mesh/Dephy/exo_main_r.stl" name="exo_main_r_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_ilink_r.stl" name="exo_ilink_r_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_blink_r.stl" name="exo_blink_r_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_clink_r.stl" name="exo_clink_r_geom"/>
-        <mesh file="../../../../mesh/Dephy/exo_spad_r.stl" name="exo_spad_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_main_r.stl" name="exo_main_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_ilink_r.stl" name="exo_ilink_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_blink_r.stl" name="exo_blink_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_clink_r.stl" name="exo_clink_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/exo_spad_r.stl" name="exo_spad_r_geom"/>
         
-        <mesh file="../../../../mesh/Dephy/Battery.stl" name="battery_geom"/>
-        <mesh file="../../../../mesh/Dephy/Raspberry Pi 5.stl" name="raspberry_pi_geom"/>
-        <mesh file="../../../../mesh/Dephy/Fanny pack.stl" name="fanny_pack_geom"/>
+        <mesh file="../../../models/mesh/Dephy/Battery.stl" name="battery_geom"/>
+        <mesh file="../../../models/mesh/Dephy/Raspberry Pi 5.stl" name="raspberry_pi_geom"/>
+        <mesh file="../../../models/mesh/Dephy/Fanny pack.stl" name="fanny_pack_geom"/>
         
-        <mesh file="../../../../mesh/Dephy/tacboot_mid_l.stl" name="tb_mid_l_geom"/>
-        <mesh file="../../../../mesh/Dephy/tacboot_shank_l.stl" name="tb_shank_l_geom"/>
-        <mesh file="../../../../mesh/Dephy/tacboot_toe_l.stl" name="tb_toe_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/tacboot_mid_l.stl" name="tb_mid_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/tacboot_shank_l.stl" name="tb_shank_l_geom"/>
+        <mesh file="../../../models/mesh/Dephy/tacboot_toe_l.stl" name="tb_toe_l_geom"/>
 
-        <mesh file="../../../../mesh/Dephy/tacboot_mid_r.stl" name="tb_mid_r_geom"/>
-        <mesh file="../../../../mesh/Dephy/tacboot_shank_r.stl" name="tb_shank_r_geom"/>
-        <mesh file="../../../../mesh/Dephy/tacboot_toe_r.stl" name="tb_toe_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/tacboot_mid_r.stl" name="tb_mid_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/tacboot_shank_r.stl" name="tb_shank_r_geom"/>
+        <mesh file="../../../models/mesh/Dephy/tacboot_toe_r.stl" name="tb_toe_r_geom"/>
     </asset>
 
     <equality>

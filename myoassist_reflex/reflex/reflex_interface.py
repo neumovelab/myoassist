@@ -137,15 +137,15 @@ class myoLeg_reflex(object):
             mvt_dim = 2
             # Model selection logic
             if model == "baseline":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg22_2D_BASELINE.xml')
+                pathAndModel = os.path.join('..', 'models', '22muscle_2D', 'myoLeg22_2D_BASELINE.xml')
             elif model == "dephy":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg22_2D_DEPHY.xml')
+                pathAndModel = os.path.join('..', 'models', '22muscle_2D', 'myoLeg22_2D_DEPHY.xml')
             elif model == "hmedi":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg22_2D_HMEDI.xml')
+                pathAndModel = os.path.join('..', 'models', '22muscle_2D', 'myoLeg22_2D_HMEDI.xml')
             elif model == "humotech":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg22_2D_HUMOTECH.xml')
+                pathAndModel = os.path.join('..', 'models', '22muscle_2D', 'myoLeg22_2D_HUMOTECH.xml')
             elif model == "tutorial":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg22_2D_TUTORIAL.xml')
+                pathAndModel = os.path.join('..', 'models', '22muscle_2D', 'myoLeg22_2D_TUTORIAL.xml')
             elif model == "custom" and model_path:
                 pathAndModel = model_path
             else:
@@ -154,15 +154,15 @@ class myoLeg_reflex(object):
             mvt_dim = 3
             # Model selection logic
             if model == "baseline":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg26_BASELINE.xml')
+                pathAndModel = os.path.join('..', 'models', '26muscle_3D', 'myoLeg26_BASELINE.xml')
             elif model == "dephy":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg26_DEPHY.xml')
+                pathAndModel = os.path.join('..', 'models', '26muscle_3D', 'myoLeg26_DEPHY.xml')
             elif model == "hmedi":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg26_HMEDI.xml')
+                pathAndModel = os.path.join('..', 'models', '26muscle_3D', 'myoLeg26_HMEDI.xml')
             elif model == "humotech":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg26_HUMOTECH.xml')
+                pathAndModel = os.path.join('..', 'models', '26muscle_3D', 'myoLeg26_HUMOTECH.xml')
             elif model == "tutorial":
-                pathAndModel = os.path.join('..', 'models', 'myoLeg26_TUTORIAL.xml')
+                pathAndModel = os.path.join('..', 'models', '26muscle_3D', 'myoLeg26_TUTORIAL.xml')
             elif model == "custom" and model_path:
                 pathAndModel = model_path
             else:

@@ -13,10 +13,10 @@
     2. Added exoskeleton actuators (Exo_R and Exo_L) for the ankle joints.
 	-->
 
-    <include file="../myosuite/myosuite/simhive/myo_sim/scene/myosuite_scene_noPedestal.xml"/>
-    <include file="../myosuite/myosuite/simhive/myo_sim/torso/assets/myotorsorigid_assets.xml"/>
+    <include file="../../../myosuite/simhive/myo_sim/scene/myosuite_scene_noPedestal.xml"/>
+    <include file="../../../myosuite/simhive/myo_sim/torso/assets/myotorsorigid_assets.xml"/>
     <include file="assets/myolegs_assets_DEPHY.xml"/>
-    <compiler angle="radian" meshdir="../myosuite/myosuite/simhive/myo_sim" texturedir="../myosuite/myosuite/simhive/myo_sim"/>
+    <compiler angle="radian" meshdir="../../../myosuite/simhive/myo_sim" texturedir="../../../myosuite/simhive/myo_sim"/>
 
     <asset>
         <hfield name="terrain" size="7 7 1 0.001" nrow="100" ncol="100"/>
@@ -28,7 +28,7 @@
         <site name="pelvis_target" size="0.02" pos="0 0 .92" group="4"/>
 
         <body name="root" pos="0 0 1" euler="0 0 -1.57">
-            <include file="../myosuite/myosuite/simhive/myo_sim/torso/assets/myotorsorigid_chain.xml"/>
+            <include file="../../../myosuite/simhive/myo_sim/torso/assets/myotorsorigid_chain.xml"/>
             <include file="assets/myolegs_chain_DEPHY.xml"/>
             <freejoint name="root"/>
         </body>
