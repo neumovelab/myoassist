@@ -12,15 +12,18 @@ from myoassist_rl.rl_train.utils.handlers import train_log_handler
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from myoassist_rl.rl_train.utils.learning_callback import BaseCustomLearningCallback
 ################################################################
+
+# TODO: Move to myoassist_rl.rl_train.utils.config_imitation_exo.py
 @dataclass
 class ExoImitationTrainSessionConfig(ImitationTrainSessionConfig):
-    @dataclass
-    class CustomPolicyParams(ImitationTrainSessionConfig.PolicyParams.CustomPolicyParams):
-        human_observation_indices: list[int] = field(default_factory=list[int])
-        exo_observation_indices: list[int] = field(default_factory=list[int])
-        human_action_size: int = 0
-        exo_action_size: int = 0
-    custom_policy_params: CustomPolicyParams = field(default_factory=CustomPolicyParams)
+    # @dataclass
+    # class CustomPolicyParams(ImitationTrainSessionConfig.PolicyParams.CustomPolicyParams):
+    #     human_observation_indices: list[int] = field(default_factory=list[int])
+    #     exo_observation_indices: list[int] = field(default_factory=list[int])
+    #     human_action_size: int = 0
+    #     exo_action_size: int = 0
+    #     enable_exo: bool = True
+    # custom_policy_params: CustomPolicyParams = field(default_factory=CustomPolicyParams)
     @dataclass
     class PolicyParams(ImitationTrainSessionConfig.PolicyParams):
         '''
@@ -55,8 +58,13 @@ class ExoImitationTrainSessionConfig(ImitationTrainSessionConfig):
             exo_observation_indices: list[int] = field(default_factory=list[int])
             human_action_size: int = 0
             exo_action_size: int = 0
+            enable_exo: bool = True
         custom_policy_params: CustomPolicyParams = field(default_factory=CustomPolicyParams)
     policy_params: PolicyParams = field(default_factory=PolicyParams)
+    @dataclass
+    class EnvParams(ImitationTrainSessionConfig.EnvParams):
+        enable_exo: bool = True
+    env_params: EnvParams = field(default_factory=EnvParams)
 ##############################################################################
 
 

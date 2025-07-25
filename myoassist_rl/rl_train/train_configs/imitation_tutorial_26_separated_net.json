@@ -16,6 +16,8 @@
         "max_target_velocity": 1.25,
         "min_target_velocity_period": 2,
         "max_target_velocity_period": 10,
+        
+        "enable_exo": true,
 
         "enable_lumbar_joint": false,
         "lumbar_joint_fixed_angle": -0.317,
@@ -72,6 +74,8 @@
             "average_velocity_per_step": 0.0,
             "muscle_activation_penalty_per_step": 0.0,
 
+            "joint_constraint_force_penalty": 0.0,
+
             "foot_force_penalize": 0.5
         },
         "custom_max_episode_steps": 1000,
@@ -107,6 +111,7 @@
     },
     "policy_params": {
         "custom_policy_params": {
+            "enable_exo": true,
             "net_arch": {
                         "human_actor": [64, 64],
                         "exo_actor": [32, 8],

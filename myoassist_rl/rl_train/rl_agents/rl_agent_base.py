@@ -81,7 +81,7 @@ class BaseCustomActorCriticPolicy(BasePolicy):
     ):
         # Remove custom_policy_params from kwargs
         custom_policy_params_dict = kwargs.pop('custom_policy_params', None)
-        custom_policy_params = DictionableDataclass.create(myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams,
+        custom_policy_params = DictionableDataclass.create(self._get_custom_policy_type(),
                                                            custom_policy_params_dict)
         
         # Initialize base class
@@ -105,6 +105,8 @@ class BaseCustomActorCriticPolicy(BasePolicy):
         self.apply(self.init_weights)
         
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+    def _get_custom_policy_type(self):
+        return myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams
     def _build_policy_network(self, observation_space: spaces.Space,
                               action_space: spaces.Space,
                               custom_policy_params: myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams) -> BasePPOCustomNetwork:

@@ -22,6 +22,17 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         SINUSOIDAL = 1
         STEP = 2
 
+    JOINT_LIMIT_SENSOR_NAMES = [
+        "r_knee_sensor",
+        "l_knee_sensor",
+        "r_hip_sensor",
+        "l_hip_sensor",
+        "r_ankle_sensor",
+        "l_ankle_sensor",
+        "r_mtp_sensor",
+        "l_mtp_sensor",
+    ]
+
 
     DEFAULT_OBS_KEYS = ['qpos',
                         'qvel',
@@ -228,11 +239,16 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         info = {}
         return reward_per_steps, info
     def _calculate_base_reward(self, obs_dict):
+        model_mass = np.sum(self.sim.model.body_mass)
+        # print(f"DEBUG:: model_mass: {model_mass}")
+        model_weight = model_mass * 9.81 # in Newtons
+
         forward_reward = self.dt * np.exp(-5 * np.square(self.sim.data.joint("pelvis_tx").qvel[0].copy() - self._target_velocity))
 
         muscle_activations = self._get_muscle_activation()
+        muscle_activation_penalty = - self.dt * np.mean(muscle_activations)
 
-        muscle_activation_penalize = self.dt * np.mean(np.exp(-4 * np.square(muscle_activations)))
+        joint_constraint_force_penalty = - self.dt * self._get_max_joint_constraint_force() / (model_weight)
 
         # TODO: take off muscle activation penalty from imitation rewards
         reward_per_steps, info = self._calculate_reward_per_step(obs_dict, muscle_activations)    
@@ -243,21 +259,20 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             muscle_activation_diff_penalize = 0
         self._prev_muscle_activations_for_reward = muscle_activations
 
-        model_mass = np.sum(self.sim.model.body_mass)
-        # print(f"DEBUG:: model_mass: {model_mass}")
-        model_weight = model_mass * 9.81 # in Newtons
+        
         normalized_foot_force_sum = (np.abs(self._get_foot_force('r')) + np.abs(self._get_foot_force('l'))) / model_weight
         # print(f"DEBUG:: normalized_foot_force_sum: {normalized_foot_force_sum}")
         # e^(-max(0, f/w - 1))
         # foot_force_penalize = self.dt * np.exp(-np.maximum(0, normalized_foot_force_sum - 1))
-        foot_force_penalize = self.dt * np.exp(-0.3 * np.power(normalized_foot_force_sum, 4))
+        foot_force_penalty = self.dt * max(0, 1.2 - normalized_foot_force_sum)
         # print(f"DEBUG:: foot_force_penalize: {foot_force_penalize}")
 
         base_reward = {
             'forward_reward': forward_reward,
-            'muscle_activation_penalize': muscle_activation_penalize,
+            'muscle_activation_penalize': muscle_activation_penalty,
             'muscle_activation_diff_penalize': muscle_activation_diff_penalize,
-            'foot_force_penalize': foot_force_penalize,
+            'foot_force_penalize': foot_force_penalty,
+            'joint_constraint_force_penalty': joint_constraint_force_penalty,
         }
         # Update base_reward with reward_per_steps
         base_reward.update(reward_per_steps)
@@ -286,7 +301,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
     
     def step(self, a, **kwargs):
         self._modulate_target_velocity()
-
+        print(f"DEBUG:: action: {a=}")
         next_obs, reward, terminated, truncated, info = super().step(a, **kwargs)
         self._step_count_per_episode += 1
         is_over_time_limit = self._step_count_per_episode >= self.CUSTOM_MAX_EPISODE_STEPS
@@ -367,7 +382,12 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         muscle_activations_with_lumbar = np.concatenate((self.sim.data.act[:].copy(), 
                                               np.array([self.sim.data.actuator('lumbar_extension_motor').ctrl[0].copy()]).reshape(1,)))
         return muscle_activations_with_lumbar
-
+    def _get_max_joint_constraint_force(self):
+        max_constraint_force = 0
+        for sensor_name in self.JOINT_LIMIT_SENSOR_NAMES:
+            sensor_data = self.sim.data.sensor(sensor_name).data[0].copy()
+            max_constraint_force = max(max_constraint_force, np.max(np.abs(sensor_data)))
+        return max_constraint_force
     # ============ Custon Function ==============
     def _reset_properties_per_step(self):
         self._prev_pelvis_tx_pos = self.sim.data.body('pelvis').xpos[0]

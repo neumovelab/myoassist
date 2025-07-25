@@ -40,9 +40,19 @@ class NetworkIndexHandler:
             elif net_indexing_info["type"] == "index":# specifying index of observation
                 result[:,current_index] = observation[:,current_index]
                 current_index += 1
-        if observation.shape[1] != observation_num:
-            raise ValueError(f"Observation length {observation.shape[1]} does not match expected length {observation_num}")
+        # do not check observation length since it could be different if there is void
+        # if observation.shape[1] != observation_num:
+        #     raise ValueError(f"Observation length {observation.shape[1]} does not match expected length {observation_num}")
         return result
+    def mask_default_value(self, network_output_dict: dict[str, th.Tensor], action: th.Tensor):
+        for network_name, network_output in network_output_dict.items():
+            for net_indexing_info in self.net_indexing_info[network_name]["action"]:
+                
+                if net_indexing_info["type"] == "constant":
+                    print(f'masking: {net_indexing_info=}')
+                    start_inclusive_action, end_exclusive_action = net_indexing_info["range_action"]
+                    action[:,start_inclusive_action:end_exclusive_action] = net_indexing_info["default_value"]
+        return action
     def map_network_to_action(self, network_output_dict: dict[str, th.Tensor]):
         action_num = 0
         batch_size = 0
@@ -73,4 +83,7 @@ class NetworkIndexHandler:
                     result[:,start_inclusive_action:end_exclusive_action] = network_output[:,start_inclusive_net:end_exclusive_net]
                 elif net_indexing_info["type"] == "index_mapping":
                     result[:,net_indexing_info["index"]] = network_output[:,net_indexing_info["index"]]
+                elif net_indexing_info["type"] == "constant":
+                    start_inclusive_action, end_exclusive_action = net_indexing_info["range_action"]
+                    result[:,start_inclusive_action:end_exclusive_action] = net_indexing_info["default_value"]
         return result

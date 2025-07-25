@@ -3,7 +3,7 @@ import torch as th
 from torch import nn
 from gymnasium import spaces
 import myoassist_rl.rl_train.utils.config as myoassist_config
-
+import myoassist_rl.rl_train.utils.config_imitation as myoassist_config_imitation
 class HumanPPOCustomNetwork(BasePPOCustomNetwork):
 
     def forward_actor(self, obs: th.Tensor) -> th.Tensor:
@@ -40,8 +40,8 @@ class HumanPPOCustomNetwork(BasePPOCustomNetwork):
         self.value_net = nn.Sequential(*value_layers)
 
 class HumanActorCriticPolicy(BaseCustomActorCriticPolicy):
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
+    def _get_custom_policy_type(self):
+        return myoassist_config_imitation.ImitationTrainSessionConfig.PolicyParams.CustomPolicyParams
     def _build_policy_network(self, observation_space: spaces.Space,
                               action_space: spaces.Space,
                               custom_policy_params: myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams) -> BasePPOCustomNetwork:

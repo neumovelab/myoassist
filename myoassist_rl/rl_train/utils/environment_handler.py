@@ -86,6 +86,7 @@ class EnvironmentHandler:
         from myoassist_rl.rl_train.utils.config import TrainSessionConfigBase
         from myoassist_rl.rl_train.utils.config_imitation import ImitationTrainSessionConfig
         # Create appropriate config based on env_id
+        print(f"session_id: {session_id}")
         if session_id == 'myoAssistLeg-v0':
             return TrainSessionConfigBase
         elif session_id in ['myoAssistLegImitation-v0']:
@@ -145,10 +146,12 @@ class EnvironmentHandler:
         else:
             from myoassist_rl.rl_train.rl_agents.rl_agent_human import HumanActorCriticPolicy
             from myoassist_rl.rl_train.rl_agents.rl_agent_exo import HumanExoActorCriticPolicy
-            if config.env_params.env_id == 'myoLeg18ImitationDephy-v0':
+            if config.env_params.env_id in ["myoAssistLegImitationExo-v0"]:
                 policy_class = HumanExoActorCriticPolicy
+                print(f"Using HumanExoActorCriticPolicy")
             else:
                 policy_class = HumanActorCriticPolicy
+                print(f"Using HumanActorCriticPolicy")
             model = stable_baselines3.PPO(
                 policy=policy_class,
                 env=env,

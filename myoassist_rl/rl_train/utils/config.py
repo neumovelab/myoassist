@@ -20,6 +20,8 @@ class TrainSessionConfigBase:
             average_velocity_per_step:float = 0.0
             muscle_activation_penalty_per_step:float = 0.0
 
+            joint_constraint_force_penalty: float = 0.0
+
             foot_force_penalize: float = 0.0
         reward_keys_and_weights: RewardWeights = field(default_factory=RewardWeights)
         
