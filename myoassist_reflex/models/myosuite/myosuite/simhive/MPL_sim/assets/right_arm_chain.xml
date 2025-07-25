@@ -1,0 +1,26 @@
+<mujocoinclude>
+    <body name="Rmpl_attach" pos="0 0.19973 -0.30578" quat="0.707107 -0.707107 0 0">
+        <geom mesh="base_linkR"/>
+        <body name="Rshoulder_link" pos="0 0 0">
+            <joint axis="0 0 1" name="Rshoulder_fe" range="-0.611 2.792"/>
+            <geom mesh="shoulder_linkR"/>
+            <body name="Rhumerus_upper_link" pos="0.0016428 0 0">
+                <joint axis="1 0 0" name="Rshoulder_abad" range="-2.792 0"/>
+                <geom mesh="humerus_upper_linkR" class="MPL_arm_dark"/>
+                <body name="Rhumerus_lower_link" pos="-0.0016397 -0.15007 0.013891">
+                    <joint axis="0 1 0" name="Rhumeral_rot" range="-0.524 1.483"/>
+                    <geom mesh="humerus_lower_top_linkR"/>
+                    <geom mesh="humerus_lower_bottom_linkR"/>
+                    <body name="Rforearm_link" pos="0.01 -0.14441 0.0006524">
+                        <joint axis="0 0 1" name="Relbow" range="0.05 2.356"/>
+                        <geom mesh="forearm_linkR" class="MPL_arm_dark"/>
+
+                        <!-- RIGHT HAND -->
+                        <include file="./../../MPL_sim/assets/handR_chain.xml"/>
+
+                    </body>
+                </body>
+            </body>
+        </body>
+    </body>
+</mujocoinclude>

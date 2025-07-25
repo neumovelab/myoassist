@@ -1,0 +1,25 @@
+@echo off
+python -m myoassist_reflex.train ^
+    --musc_model leg_11 ^
+    --delayed 0 ^
+    --optim_mode single ^
+    --popsize 32 ^
+    --maxiter 1000 ^
+    --threads 32 ^
+    --sigma_gain 10 ^
+    --move_dim 2 ^
+    --num_strides 5 ^
+    --sim_time 20 ^
+    --tgt_vel 1.25 ^
+    --tgt_slope 0 ^
+    --pose_key walk_left ^
+    --reflex_mode uni ^
+    --tgt_sym_th 0.1 ^
+    --tgt_grf_th 1.5 ^
+    --trunk_err_type ref_diff ^
+    -kine ^
+    --model dephy ^
+    --ExoOn 1 ^
+    --use_4param_spline ^
+    --max_torque 100.0 ^
+    --save_path results/exo_4param_kine
