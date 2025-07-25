@@ -201,8 +201,9 @@
                             <site name="fdl_r-P4" pos="0.0708 0.0176 -0.0263"/>
                             <site name="fdl_r-P5" pos="0.1658 -0.0081 0.0116"/>
 
+                            <site name="r_foot_touch" type="box" pos="0.01 -0.002 -0.01" size=".03 .02 .03" euler="0 0 0" class="myo_leg_touch"/>
+
                             <body name="foot_attachment_r" pos="0.0815 0.02 -0.032" euler="0 -0.1 0">
-                                <site name="r_foot_touch" type="box" pos="-0.05 -0.005 0.05" size=".06 .03 .05" euler="0 0 0" class="myo_leg_touch"/>
                                 <inertial mass="0.75" pos="-0.01 0 0.05" diaginertia="0.00067 0.00264 0.00247"/>
                                 <geom name="foot_attachment_r_geom" mesh="foot_attachment_r" type="mesh"
                                     rgba="0.286 0.29 0.576 1"/>
@@ -319,12 +320,11 @@
                             <site name="fdl_l-P5" pos="0.1658 -0.0081 -0.0116"/>
 
                             <body name="foot_attachment_l" pos="0.0815 0.02 -0.053" euler="0 0.1 0">
-                                <site name="l_foot_touch" type="box" pos="-0.05 -0.005 0.05" size=".06 .03 .05" euler="0 0 0" class="myo_leg_touch"/>
                                 <inertial mass="0.75" pos="-0.01 0 0.05" diaginertia="0.00067 0.00264 0.00247"/>
                                 <geom name="foot_attachment_l_geom" mesh="foot_attachment_l" type="mesh"
                                     rgba="0.286 0.29 0.576 1"/>
                             </body>
-
+                            <site name="l_foot_touch" type="box" pos="0.01 -0.002 0.01" size=".03 .02 .03" euler="0 0 0" class="myo_leg_touch"/>
                             <site name="l_heel_btm" type="sphere" pos="0.01 -0.008 0.01" size="0.01" group="3" rgba="0 1 0 0.4"/>
                             <site name="l_toe_btm" type="sphere" pos="0.17 -0.003 0.01" size="0.01" group="3" rgba="0 1 0 0.4"/>
 
