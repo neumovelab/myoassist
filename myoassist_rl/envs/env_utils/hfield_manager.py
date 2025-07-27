@@ -11,7 +11,10 @@ class HfieldManager:
         self.np_random = np_random
 
     def set_hfield(self, type:str="dev", params:str=""):
-        params_float_list = list(map(float, params.split(" ")))
+        if params == "":
+            params_float_list = []
+        else:
+            params_float_list = list(map(float, params.split(" ")))
         if type == "flat":
             pass
         elif type == "random":
