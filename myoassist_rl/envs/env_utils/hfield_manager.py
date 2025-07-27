@@ -10,22 +10,18 @@ class HfieldManager:
         self._hfield_size = sim.model.geom(hfield_name).size
         self.np_random = np_random
 
-    def set_hfield(self, type:str="dev"):
+    def set_hfield(self, type:str="dev", params:str=""):
+        params_float_list = list(map(float, params.split(" ")))
         if type == "flat":
             pass
         elif type == "random":
-            self._create_random_hfield()
-        elif type == "sinusoidal":
-            self._create_sinusoidal_hfield()
+            self._create_random_hfield(params_float_list)
         elif type == "harmonic_sinusoidal":
-            self._create_harmonic_sinusoidal_hfield()
-        elif type == "uphill":
-            self._create_slope_hfield(0.3)
-        elif type == "downhill":
-            raise NotImplementedError("Downhill terrain is not implemented yet")
-            self._create_slope_hfield(-0.3)# not working yet
+            self._create_harmonic_sinusoidal_hfield(params_float_list)
+        elif type == "slope":
+            self._create_slope_hfield(params_float_list)
         elif type == "dev":
-            self._create_slope_hfield(0.3)
+            pass
         else:
             raise ValueError(f"Invalid terrain type: {type}")
         # mujoco.mjr_uploadHField(self._sim.model.ptr, self._sim.sim.contexts.mujoco.ptr, self._hfield.id)
@@ -74,49 +70,29 @@ class HfieldManager:
         hfield_data[row_start:row_end, col_start:col_end] *= mask
         return hfield_data
 
-    def _create_random_hfield(self):
+    def _create_random_hfield(self, params:list[float]):
 
-        amplitude = 0.3
+        amplitude = params[0]
         
 
         nrow, ncol = int(self._hfield.nrow), int(self._hfield.ncol)  # Ensure nrow and ncol are integers
         self._hfield.data[:] = self._make_safe_zone(self.np_random.uniform(low=0, high=amplitude, size=(nrow, ncol)))
 
+    def _create_harmonic_sinusoidal_hfield(self, params:list[float]):
+        
+        # row_params = [(20, 0.2), (60, 0.05)]
+        # col_params = [(8, 0.1), (40, 0.5), (80, 1.0)]
 
-    def _create_sinusoidal_hfield(self):
+        row_params = []
+        col_params = []
 
-        row_period = 20
-        col_period = 20
-        amplitude = 0.2
-
-        nrow, ncol = int(self._hfield.nrow), int(self._hfield.ncol)  # Ensure nrow and ncol are integers
-
-        row_idx = np.arange(nrow)
-        col_idx = np.arange(ncol)
-        row_grid, col_grid = np.meshgrid(row_idx, col_idx, indexing='ij')
-
-        freq_row = 2 * np.pi / row_period
-        freq_col = 2 * np.pi / col_period
-
-        # Compute the sinusoidal height values
-        # Compute the sinusoidal height values and shift so that minimum is at least 0
-        hfield_data = amplitude * (
-            np.sin(freq_row * row_grid) + np.sin(freq_col * col_grid)
-        )
-        min_val = np.min(hfield_data)
-        if min_val < 0:
-            # Shift the entire hfield_data so that minimum is 0
-            hfield_data = hfield_data - min_val
-
-        # self._hfield.data[:] = hfield_data
-
-        self._hfield.data[:] = self._make_safe_zone(hfield_data)
-
-    def _create_harmonic_sinusoidal_hfield(self):
-
-        row_period = 20
-        col_period = 20
-        amplitude = 0.2
+        for idx in range(0, len(params), 4):
+            amplitude_row = params[idx]
+            row_period = params[idx+1]
+            amplitude_col = params[idx+2]
+            col_period = params[idx+3]
+            row_params.append((amplitude_row, row_period))
+            col_params.append((amplitude_col, col_period))
 
         nrow, ncol = int(self._hfield.nrow), int(self._hfield.ncol)  # Ensure nrow and ncol are integers
 
@@ -127,18 +103,18 @@ class HfieldManager:
         freq_row = 2 * np.pi / row_period
         freq_col = 2 * np.pi / col_period
 
-        row_params = [(20, 0.2), (60, 0.05)]
-        col_params = [(8, 0.1), (40, 0.5), (80, 1.0)]
+        tile_size_col = 2 * self._hfield.size[0] / ncol
+        center_index = int((self._hfield_size[0] - self._hfield_pos[0]) / tile_size_col)
 
         hfield_data = np.zeros_like(row_grid, dtype=np.float32)
         # Add row-direction sinusoids
-        for period, amp in row_params:
+        for amplitude, period in row_params:
             freq_row = 2 * np.pi / period
-            hfield_data += amp * np.sin(freq_row * row_grid)
+            hfield_data += amplitude * np.sin(freq_row * row_grid)
         # Add col-direction sinusoids
-        for period, amp in col_params:
+        for amplitude, period in col_params:
             freq_col = 2 * np.pi / period
-            hfield_data += amp * np.sin(freq_col * col_grid)
+            hfield_data += amplitude * np.sin(freq_col * col_grid - 2 * np.pi *center_index - 2 * np.pi/4)
         min_val = np.min(hfield_data)
         if min_val < 0:
             # Shift the entire hfield_data so that minimum is 0
@@ -149,7 +125,10 @@ class HfieldManager:
         self._hfield.data[:] = self._make_safe_zone(hfield_data)
 
     
-    def _create_slope_hfield(self, slope:float):
+    def _create_slope_hfield(self, params:list[float]):
+
+        slope = params[0]
+        
         nrow, ncol = int(self._hfield.nrow), int(self._hfield.ncol)  # Ensure nrow and ncol are integers
 
         tile_size_row = 2 * self._hfield.size[1] / nrow# size is radius

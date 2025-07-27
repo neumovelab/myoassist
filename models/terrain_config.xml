@@ -31,7 +31,7 @@
         <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.561 0.725 0.937"  rgb2="0.384 0.494 0.639"  mark="edge" markrgb="1 1 1" gridlayout="8" />
         <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
 
-        <hfield name="terrain" size="50 10 1 0.1" nrow="100" ncol="500"/>
+        <hfield name="terrain" size="50 10 1 30" nrow="100" ncol="500"/>
     </asset>
 
     <worldbody>

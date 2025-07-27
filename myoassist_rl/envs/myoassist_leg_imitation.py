@@ -236,8 +236,8 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             self.sim.data.joint(f"{key}").qpos = self._reference_data["series_data"][f"q_{key}"][self._imitation_index]
             if not is_x_follow and key == 'pelvis_tx':
                 self.sim.data.joint(f"{key}").qpos = 0
-            if key == 'pelvis_ty':
-                self.sim.data.joint(f"{key}").qpos += 0.05
+            # if key == 'pelvis_ty':
+            #     self.sim.data.joint(f"{key}").qpos += 0.05
         speed_ratio_to_target_velocity = self._target_velocity / self._reference_data["series_data"]["dq_pelvis_tx"][self._imitation_index]
         for key in self.reference_data_keys:
             self.sim.data.joint(f"{key}").qvel = self._reference_data["series_data"][f"dq_{key}"][self._imitation_index] * speed_ratio_to_target_velocity

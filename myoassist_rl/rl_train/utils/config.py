@@ -52,6 +52,7 @@ class TrainSessionConfigBase:
 
         # terrain type: flat, random, sinusoidal, harmonic_sinusoidal, uphill, downhill, dev
         terrain_type: str = "flat"
+        terrain_params: str = ""
         
     env_params: EnvParams = field(default_factory=EnvParams)
     
