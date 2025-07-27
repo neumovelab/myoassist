@@ -14,6 +14,3 @@
 [submodule "myosuite/simhive/YCB_sim"]
 	path = myosuite/simhive/YCB_sim
 	url = https://github.com/vikashplus/YCB_sim.git
-[submodule "myosuite/simhive/myoassist_sim"]
-	path = myosuite/simhive/myoassist_sim
-	url = https://github.com/neumovelab/myoassist_sim.git
