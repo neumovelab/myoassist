@@ -259,24 +259,24 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         reward_per_steps, info = self._calculate_reward_per_step(obs_dict, muscle_activations)    
 
         if self._prev_muscle_activations_for_reward is not None:
-            muscle_activation_diff_penalize = self.dt * np.mean(np.exp(-4 * np.square(self._prev_muscle_activations_for_reward - muscle_activations)))
+            muscle_activation_diff_penalty = self.dt * np.mean(np.exp(-4 * np.square(self._prev_muscle_activations_for_reward - muscle_activations)))
         else:
-            muscle_activation_diff_penalize = 0
+            muscle_activation_diff_penalty = 0
         self._prev_muscle_activations_for_reward = muscle_activations
 
         
         normalized_foot_force_sum = (np.abs(self._get_foot_force('r')) + np.abs(self._get_foot_force('l'))) / model_weight
         # print(f"DEBUG:: normalized_foot_force_sum: {normalized_foot_force_sum}")
         # e^(-max(0, f/w - 1))
-        # foot_force_penalize = self.dt * np.exp(-np.maximum(0, normalized_foot_force_sum - 1))
+        # foot_force_penalty = self.dt * np.exp(-np.maximum(0, normalized_foot_force_sum - 1))
         foot_force_penalty = self.dt * max(0, 1.2 - normalized_foot_force_sum)
-        # print(f"DEBUG:: foot_force_penalize: {foot_force_penalize}")
+        # print(f"DEBUG:: foot_force_penalty: {foot_force_penalty}")
 
         base_reward = {
             'forward_reward': forward_reward,
-            'muscle_activation_penalize': muscle_activation_penalty,
-            'muscle_activation_diff_penalize': muscle_activation_diff_penalize,
-            'foot_force_penalize': foot_force_penalty,
+            'muscle_activation_penalty': muscle_activation_penalty,
+            'muscle_activation_diff_penalty': muscle_activation_diff_penalty,
+            'foot_force_penalty': foot_force_penalty,
             'joint_constraint_force_penalty': joint_constraint_force_penalty,
         }
         # Update base_reward with reward_per_steps

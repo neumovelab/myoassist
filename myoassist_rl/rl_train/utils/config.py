@@ -12,8 +12,8 @@ class TrainSessionConfigBase:
         @dataclass
         class RewardWeights:
             forward_reward: float = 0.01
-            muscle_activation_penalize: float = 0.1
-            muscle_activation_diff_penalize: float = 0.1
+            muscle_activation_penalty: float = 0.1
+            muscle_activation_diff_penalty: float = 0.1
 
             # for reward per step
             footstep_delta_time:float = 0.0
@@ -22,7 +22,7 @@ class TrainSessionConfigBase:
 
             joint_constraint_force_penalty: float = 0.0
 
-            foot_force_penalize: float = 0.0
+            foot_force_penalty: float = 0.0
         reward_keys_and_weights: RewardWeights = field(default_factory=RewardWeights)
         
         env_id: str = ""

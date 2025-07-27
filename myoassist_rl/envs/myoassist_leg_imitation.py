@@ -148,8 +148,6 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             return diff
         name_diff_dict = {}
         for q_key in self._reward_keys_and_weights.qpos_imitation_rewards:
-            # joint_weight = self._reward_keys_and_weights.qpos_imitation_rewards[q_key]
-            print(f"DEBUG:: {q_key}: qpos: {self.sim.data.joint(f'{q_key}').qpos}, ref_qpos: {self._reference_data['series_data'][f'q_{q_key}'][self._imitation_index]}, diff: {get_qpos_diff_one(q_key)}")
             name_diff_dict[q_key] = get_qpos_diff_one(q_key)
         return name_diff_dict
     def _get_qvel_diff(self):
@@ -313,15 +311,3 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     # override
     def _initialize_pose(self):
         super()._initialize_pose()
-
-        # print(f"DEBUG:: BEFORE _initialize_pose")
-        # for q_key in self._reward_keys_and_weights.qpos_imitation_rewards:
-        #     # joint_weight = self._reward_keys_and_weights.qpos_imitation_rewards[q_key]
-        #     print(f"DEBUG:: {q_key}: qpos: {self.sim.data.joint(f'{q_key}').qpos}, ref_qpos: {self._reference_data['series_data'][f'q_{q_key}'][self._imitation_index]}")
-        # self._follow_reference_motion(False)
-        # self.just_forward()
-        # print(f"DEBUG:: AFTER _initialize_pose")
-        # for q_key in self._reward_keys_and_weights.qpos_imitation_rewards:
-        #     # joint_weight = self._reward_keys_and_weights.qpos_imitation_rewards[q_key]
-        #     print(f"DEBUG:: {q_key}: qpos: {self.sim.data.joint(f'{q_key}').qpos}, ref_qpos: {self._reference_data['series_data'][f'q_{q_key}'][self._imitation_index]}")
-

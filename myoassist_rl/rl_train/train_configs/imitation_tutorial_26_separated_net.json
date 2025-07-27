@@ -68,8 +68,8 @@
             },
             "end_effector_imitation_reward": 0.0,
             "forward_reward": 0.2,
-            "muscle_activation_penalize": 0.1,
-            "muscle_activation_diff_penalize": 0.1,
+            "muscle_activation_penalty": 0.1,
+            "muscle_activation_diff_penalty": 0.1,
 
             "footstep_delta_time": 0.0,
             "average_velocity_per_step": 0.0,
@@ -77,7 +77,7 @@
 
             "joint_constraint_force_penalty": 0.0,
 
-            "foot_force_penalize": 0.5
+            "foot_force_penalty": 0.5
         },
         "custom_max_episode_steps": 1000,
         "model_path": "models/22muscle_2D/myoLeg26_TUTORIAL.xml",

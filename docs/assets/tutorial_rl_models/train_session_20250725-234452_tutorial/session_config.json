@@ -6,13 +6,13 @@
     "env_params": {
         "reward_keys_and_weights": {
             "forward_reward": 1.0,
-            "muscle_activation_penalize": 0.1,
-            "muscle_activation_diff_penalize": 0.1,
+            "muscle_activation_penalty": 0.1,
+            "muscle_activation_diff_penalty": 0.1,
             "footstep_delta_time": 0.0,
             "average_velocity_per_step": 0.0,
             "muscle_activation_penalty_per_step": 0.0,
             "joint_constraint_force_penalty": 0.5,
-            "foot_force_penalize": 0.5,
+            "foot_force_penalty": 0.5,
             "qpos_imitation_rewards": {
                 "pelvis_ty": 0.4,
                 "pelvis_tilt": 0.4,
