@@ -31,15 +31,13 @@
         <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.561 0.725 0.937"  rgb2="0.384 0.494 0.639"  mark="edge" markrgb="1 1 1" gridlayout="8" />
         <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
 
-        <hfield name="terrain" size="50 10 1 0.001" nrow="100" ncol="500"/>
+        <hfield name="terrain" size="50 10 1 0.1" nrow="100" ncol="500"/>
     </asset>
 
     <worldbody>
         <light dir="0 0 -1" directional="true" pos="0 0 0"/>
         <light dir="0 -1 0" directional="true" pos="0 0 0"/>
-        <body name="ground" pos="40 0 0" quat="0.707035 0.707179 0 0">
-            <geom name="ground-plane" quat="0.707035 -0.707179 0 0" rgba="1 1 1 1" material="matfloor" size="50 2.5 0.125" type="plane" />
-        </body>
-        <geom name="terrain" type="hfield" hfield="terrain" pos="40 0 -0.005" material="matfloor" conaffinity="1" contype="1" rgba="1 1 1 0"/>
+
+        <geom name="terrain" type="hfield" hfield="terrain" pos="40 0 0" material="matfloor" conaffinity="1" contype="1" rgba="1 1 1 1"/>
     </worldbody>
 </mujocoinclude> 

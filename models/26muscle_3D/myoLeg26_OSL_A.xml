@@ -431,22 +431,6 @@
         </body>
     </worldbody>
     <contact>
-        <pair geom1="ground-plane" geom2="pelvis_geom_1"/>
-        <pair geom1="ground-plane" geom2="pelvis_geom_2"/>
-        <pair geom1="ground-plane" geom2="pelvis_geom_3"/>
-        <pair geom1="ground-plane" geom2="femur_r_geom_1"/>
-        <pair geom1="ground-plane" geom2="osl_tibia_fibula_trans_r"/>
-
-        <pair geom1="ground-plane" geom2="femur_l_geom_1"/>
-        <pair geom1="ground-plane" geom2="tibia_l_geom_1"/>
-        <pair geom1="ground-plane" geom2="tibia_l_geom_2"/>
-        <pair geom1="ground-plane" geom2="talus_l_geom_1"/>
-        <pair geom1="ground-plane" geom2="calcn_l_geom_1"/>
-        <pair geom1="ground-plane" geom2="torso_geom_1"/>
-        <pair geom1="ground-plane" geom2="torso_geom_2"/>
-        <pair geom1="ground-plane" geom2="torso_geom_3"/>
-        <pair geom1="ground-plane" geom2="torso_geom_4"/>
-
         <pair geom1="terrain" geom2="pelvis_geom_1"/>
         <pair geom1="terrain" geom2="pelvis_geom_2"/>
         <pair geom1="terrain" geom2="pelvis_geom_3"/>
