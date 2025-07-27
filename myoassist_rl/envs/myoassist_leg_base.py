@@ -182,8 +182,6 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._hfield_manager.set_hfield(self._terrain_type)
 
         observation, _reward, done, *_, _info = self.step(np.zeros(self.sim.model.nu))
-        print(f"DEBUG:: obs: {len(observation)=}")
-        print(f"DEBUG:: nu: {self.sim.model.nu=}")
         # if qpos set to all zero, joint looks weird, 30 steps will make it normal
         for _ in range(30):
             super().step(a=np.zeros(self.sim.model.nu))

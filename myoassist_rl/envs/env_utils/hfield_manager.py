@@ -11,7 +11,6 @@ class HfieldManager:
         self.np_random = np_random
 
     def set_hfield(self, type:str="dev"):
-        print(f"Setting hfield to {type}")
         if type == "flat":
             pass
         elif type == "random":
@@ -53,9 +52,6 @@ class HfieldManager:
         row_end = center_row + tile_num_safezone
         col_start = center_col - tile_num_safezone_col
         col_end = center_col + tile_num_safezone_col
-
-        print(f"{center_index=} {center_row=} {center_col=}")
-        print(f"{row_start=}, {row_end=} {col_start=}, {col_end=}")
 
         # Generate grid for the safe zone
         safezone_rows = np.arange(row_start, row_end)
