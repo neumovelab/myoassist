@@ -1,14 +1,17 @@
 from myosuite.physics.sim_scene import SimScene
 import numpy as np
 import math
+import mujoco
 class HfieldManager:
     def __init__(self, sim:SimScene, hfield_name:str, np_random:np.random.RandomState):
+        self._sim = sim
         self._hfield = sim.model.hfield(hfield_name)
         self._hfield_pos = sim.model.geom(hfield_name).pos
         self._hfield_size = sim.model.geom(hfield_name).size
         self.np_random = np_random
 
     def set_hfield(self, type:str="dev"):
+        print(f"Setting hfield to {type}")
         if type == "flat":
             pass
         elif type == "random":
@@ -24,6 +27,10 @@ class HfieldManager:
             self._create_slope_hfield(-0.3)# not working yet
         elif type == "dev":
             self._create_slope_hfield(0.3)
+        else:
+            raise ValueError(f"Invalid terrain type: {type}")
+        # mujoco.mjr_uploadHField(self._sim.model.ptr, self._sim.sim.contexts.mujoco.ptr, self._hfield.id)
+        # self._sim.renderer = self._sim._create_renderer(self._sim)
 
     def _make_safe_zone(self, hfield_data):
         nrow, ncol = int(self._hfield.nrow), int(self._hfield.ncol)  # Ensure nrow and ncol are integers
