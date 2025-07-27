@@ -123,12 +123,12 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         self.reference_data_keys = env_params.reference_data_keys
         self._loop_reference_data = loop_reference_data
         self._reward_keys_and_weights:ImitationTrainSessionConfig.EnvParams.RewardWeights = env_params.reward_keys_and_weights
-        self.setup_reference_data(data=reference_data)
-        
         
         print("===============================PARAMETERS=============================")
         print(f"{self._reward_keys_and_weights=}")
         print("===============================PARAMETERS=============================")
+        self.setup_reference_data(data=reference_data)
+
         super()._setup(env_params=env_params,
                        **kwargs,
                        )
@@ -149,6 +149,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         name_diff_dict = {}
         for q_key in self._reward_keys_and_weights.qpos_imitation_rewards:
             # joint_weight = self._reward_keys_and_weights.qpos_imitation_rewards[q_key]
+            print(f"DEBUG:: {q_key}: qpos: {self.sim.data.joint(f'{q_key}').qpos}, ref_qpos: {self._reference_data['series_data'][f'q_{q_key}'][self._imitation_index]}, diff: {get_qpos_diff_one(q_key)}")
             name_diff_dict[q_key] = get_qpos_diff_one(q_key)
         return name_diff_dict
     def _get_qvel_diff(self):
@@ -237,6 +238,8 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             self.sim.data.joint(f"{key}").qpos = self._reference_data["series_data"][f"q_{key}"][self._imitation_index]
             if not is_x_follow and key == 'pelvis_tx':
                 self.sim.data.joint(f"{key}").qpos = 0
+            if key == 'pelvis_ty':
+                self.sim.data.joint(f"{key}").qpos += 0.05
         speed_ratio_to_target_velocity = self._target_velocity / self._reference_data["series_data"]["dq_pelvis_tx"][self._imitation_index]
         for key in self.reference_data_keys:
             self.sim.data.joint(f"{key}").qvel = self._reference_data["series_data"][f"dq_{key}"][self._imitation_index] * speed_ratio_to_target_velocity
@@ -257,32 +260,35 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     
     # override
     def step(self, a, **kwargs):
-        self._imitation_index += 1
-        if self._imitation_index < self._reference_data_length:
-            is_out_of_index = False
-        else:
-            if self._loop_reference_data:
-                self._imitation_index = 0
+        if self._imitation_index is not None:
+            self._imitation_index += 1
+            if self._imitation_index < self._reference_data_length:
                 is_out_of_index = False
             else:
-                is_out_of_index = True
-                self._imitation_index = self._reference_data_length - 1
+                if self._loop_reference_data:
+                    self._imitation_index = 0
+                    is_out_of_index = False
+                else:
+                    is_out_of_index = True
+                    self._imitation_index = self._reference_data_length - 1
+        else:
+            is_out_of_index = True
         
         next_obs, reward, terminated, truncated, info = super().step(a, **kwargs)
         if is_out_of_index:
-            is_out_of_trajectory = False
             reward = 0
             truncated = True
         else:
             q_diff_nparray:np.ndarray = self._get_qpos_diff_nparray()
             is_out_of_trajectory = np.any(np.abs(q_diff_nparray) >self._out_of_trajectory_threshold)
+            terminated = terminated or is_out_of_trajectory
         
-        return (next_obs, reward, terminated or is_out_of_trajectory, truncated, info)
+        return (next_obs, reward, terminated, truncated, info)
         
     
     def setup_reference_data(self, data:dict|None):
         self._reference_data = data
-        self._imitation_index = 0
+        self._imitation_index = None
         if data is not None:
             # self._follow_reference_motion(False)
             self._reference_data_length = self._reference_data["metadata"]["resampled_data_length"]
@@ -304,4 +310,18 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         obs = super().reset(reset_qpos= self.sim.data.qpos, reset_qvel=self.sim.data.qvel, **kwargs)
         return obs
 
-    
+    # override
+    def _initialize_pose(self):
+        super()._initialize_pose()
+
+        # print(f"DEBUG:: BEFORE _initialize_pose")
+        # for q_key in self._reward_keys_and_weights.qpos_imitation_rewards:
+        #     # joint_weight = self._reward_keys_and_weights.qpos_imitation_rewards[q_key]
+        #     print(f"DEBUG:: {q_key}: qpos: {self.sim.data.joint(f'{q_key}').qpos}, ref_qpos: {self._reference_data['series_data'][f'q_{q_key}'][self._imitation_index]}")
+        # self._follow_reference_motion(False)
+        # self.just_forward()
+        # print(f"DEBUG:: AFTER _initialize_pose")
+        # for q_key in self._reward_keys_and_weights.qpos_imitation_rewards:
+        #     # joint_weight = self._reward_keys_and_weights.qpos_imitation_rewards[q_key]
+        #     print(f"DEBUG:: {q_key}: qpos: {self.sim.data.joint(f'{q_key}').qpos}, ref_qpos: {self._reference_data['series_data'][f'q_{q_key}'][self._imitation_index]}")
+

@@ -140,7 +140,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             else:
                 self.rwd_keys_wt[key] = value
 
-        self._follow_key_qpos(0)
+        self._initialize_pose()
 
         # reward per step
         self._reset_heel_strike_buffer()
@@ -148,6 +148,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._reset_properties_per_step()
 
         
+        
+        # self.renderer = self.sim._create_renderer(self.sim)
 
 
 
@@ -178,7 +180,6 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._terrain_type = env_params.terrain_type
         self._hfield_manager = HfieldManager(self.sim, "terrain", self.np_random)
         self._hfield_manager.set_hfield(self._terrain_type)
-        
 
         observation, _reward, done, *_, _info = self.step(np.zeros(self.sim.model.nu))
         print(f"DEBUG:: obs: {len(observation)=}")
@@ -186,9 +187,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         # if qpos set to all zero, joint looks weird, 30 steps will make it normal
         for _ in range(30):
             super().step(a=np.zeros(self.sim.model.nu))
-    def _follow_key_qpos(self, key:int):
-        self.sim.data.qpos[:] = self.sim.model.key_qpos[key][:]
-        self.just_forward()
+
     # override from MujocoEnv
     def get_obs_dict(self, sim):
         # TODO observation - tx exclude
@@ -433,3 +432,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
     def _get_foot_force(self, foot_side_alphabet:str):
         foot_force = self.sim.data.sensor(f"{foot_side_alphabet}_foot").data.copy()[0] + self.sim.data.sensor(f"{foot_side_alphabet}_toes").data.copy()[0]
         return foot_force
+
+    # To override
+    def _initialize_pose(self):
+        self.sim.data.qpos[:] = self.sim.model.key_qpos[0][:]
+        self.just_forward()
