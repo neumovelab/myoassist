@@ -38,10 +38,10 @@ jobs:
         
         # Copy Sphinx configuration and source files from gh-pages branch
         git fetch origin gh-pages
-        git checkout origin/gh-pages -- conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile _static _templates
+        git checkout origin/gh-pages -- conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile
         
         # Move files to sphinx-docs directory
-        mv conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile _static _templates sphinx-docs/
+        mv conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile sphinx-docs/
         
         # Copy documentation source files to parent directory so ../docs/ includes work
         if [ -d "docs" ]; then
