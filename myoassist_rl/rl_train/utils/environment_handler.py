@@ -82,9 +82,9 @@ class EnvironmentHandler:
 
     def get_config_type_from_session_id(session_id):
         # from myoassist_rl.envs import myo_leg_18_reward_per_step
-        from myoassist_rl.envs import myoassist_leg_imitation_exo
         from myoassist_rl.rl_train.utils.config import TrainSessionConfigBase
         from myoassist_rl.rl_train.utils.config_imitation import ImitationTrainSessionConfig
+        from myoassist_rl.rl_train.utils.config_imiatation_exo import ExoImitationTrainSessionConfig
         # Create appropriate config based on env_id
         print(f"session_id: {session_id}")
         if session_id == 'myoAssistLeg-v0':
@@ -92,7 +92,7 @@ class EnvironmentHandler:
         elif session_id in ['myoAssistLegImitation-v0']:
             return ImitationTrainSessionConfig
         elif session_id == 'myoAssistLegImitationExo-v0':
-            return myoassist_leg_imitation_exo.ExoImitationTrainSessionConfig
+            return ExoImitationTrainSessionConfig
         raise ValueError(f"Invalid session id: {session_id}")
         
 

@@ -18,9 +18,8 @@ import gymnasium as gym
 
 from myoassist_rl.rl_train.utils.data_types import DictionableDataclass
 import myoassist_rl.rl_train.utils.config as myoassist_config
-import myoassist_rl.envs.myoassist_leg_imitation_exo as myoassist_env
 from myoassist_rl.rl_train.rl_agents.network_index_handler import NetworkIndexHandler
-import myoassist_rl.envs.myoassist_leg_imitation_exo as myoassist_leg_imitation_exo
+from myoassist_rl.rl_train.utils.config_imiatation_exo import ExoImitationTrainSessionConfig
 import torch
 torch.autograd.set_detect_anomaly(True)
 
@@ -29,7 +28,7 @@ from myoassist_rl.rl_train.rl_agents.rl_agent_base import BasePPOCustomNetwork, 
 class CustomNetworkHumanExo(BasePPOCustomNetwork):
     def __init__(self, observation_space: spaces.Space,
                     action_space: spaces.Space,
-                    custom_policy_params: myoassist_leg_imitation_exo.ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams,
+                    custom_policy_params: ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams,
                 ):
         super().__init__(observation_space, action_space, custom_policy_params)
 
@@ -89,7 +88,7 @@ class CustomNetworkHumanExo(BasePPOCustomNetwork):
 
 class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
     def _get_custom_policy_type(self):
-        return myoassist_leg_imitation_exo.ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams
+        return ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams
     def _build_policy_network(self, observation_space: spaces.Space,
                               action_space: spaces.Space,
                               custom_policy_params: myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams) -> BasePPOCustomNetwork:
