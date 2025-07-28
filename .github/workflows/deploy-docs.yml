@@ -38,11 +38,15 @@ jobs:
         
         # Copy Sphinx configuration and source files from gh-pages branch
         git fetch origin gh-pages
-        git checkout origin/gh-pages -- conf.py Makefile *.rst
+        git checkout origin/gh-pages -- conf.py Makefile *.rst || echo "Some files not found"
         
-        # Move RST files to source directory
-        mv *.rst build/sphinx-docs/source/
-        mv conf.py Makefile build/sphinx-docs/
+        # Move RST files and config to correct directories
+        if ls *.rst 1> /dev/null 2>&1; then
+          mv *.rst build/sphinx-docs/source/
+        else
+          echo "No RST files found"
+        fi
+        mv conf.py Makefile build/sphinx-docs/ || echo "Config files not found"
         
         # Copy markdown files directly into source directory
         if [ -d "docs" ]; then
@@ -57,12 +61,12 @@ jobs:
           fi
         fi
         
-        echo "Build directory structure:"
-        ls -la build/
-        echo "Sphinx files:"
-        ls -la build/sphinx-docs/
-        echo "Documentation files:"
-        ls -la build/docs/
+                 echo "Build directory structure:"
+         ls -la build/
+         echo "Sphinx files:"
+         ls -la build/sphinx-docs/
+         echo "Source files:"
+         ls -la build/sphinx-docs/source/
     
     - name: Build Sphinx documentation
       run: |
