@@ -52,12 +52,12 @@ jobs:
         if [ -d "docs" ]; then
           echo "Copying documentation files..."
           cp docs/*.md build/sphinx-docs/source/
-          # Copy assets and images if they exist
+          # Copy assets and images to source directory to maintain relative paths
           if [ -d "docs/assets" ]; then
-            cp -r docs/assets build/sphinx-docs/_static/
+            cp -r docs/assets build/sphinx-docs/source/
           fi
           if [ -d "docs/images" ]; then
-            cp -r docs/images build/sphinx-docs/_static/
+            cp -r docs/images build/sphinx-docs/source/
           fi
         fi
         
