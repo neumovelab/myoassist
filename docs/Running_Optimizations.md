@@ -8,7 +8,7 @@ There are two ways to run optimizations, depending on your operating system and 
 
 ### Windows: Using .bat Configuration Files
 
-The easiest way to begin on Windows is by using the `run_training.bat` script, which executes predefined configurations from the `training_configs/` directory.
+The easiest way to begin on Windows is by using the `run_training.bat` script, which executes one of the predefined configurations from the `training_configs/` directory.
 
 ```bash
 # Run from the myoassist_reflex directory
