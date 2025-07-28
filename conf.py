@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'MyoAssist'
-copyright = '2024, MyoAssist Team'
+copyright = '2025, MyoAssist Team'
 author = 'MyoAssist Team'
 
 # The master toctree document
@@ -40,9 +40,11 @@ extensions = [
     'myst_parser',
 ]
 
+from myst_parser.parsers.sphinx_ import MystParser
+
 source_suffix = {
     '.rst': 'restructuredtext',
-    '.md' : 'myst',         # ← tell Sphinx that “*.md” should use MyST
+    '.md' : MystParser,
 }
 
 # MyST Parser settings
