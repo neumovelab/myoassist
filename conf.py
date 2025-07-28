@@ -37,13 +37,13 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx_rtd_theme',
-    'myst_parser.sphinx_',
+    'myst_parser',
 ]
 
 # Source file configurations
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown'
+source_suffix = ['.rst', '.md']
+source_parsers = {
+    '.md': 'myst_parser.docutils_',
 }
 
 # MyST Parser settings
@@ -55,6 +55,10 @@ myst_enable_extensions = [
 
 myst_heading_anchors = 3
 suppress_warnings = ['image.not_readable']
+
+# Debug settings
+nitpicky = True
+keep_warnings = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
