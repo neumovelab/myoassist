@@ -36,12 +36,15 @@ jobs:
         # Create a clean build directory structure
         mkdir -p build/sphinx-docs build/docs
         
+        # Create build directory structure with empty static/templates dirs
+        mkdir -p build/sphinx-docs/_static build/sphinx-docs/_templates
+        
         # Copy Sphinx configuration and source files from gh-pages branch
         git fetch origin gh-pages
-        git checkout origin/gh-pages -- conf.py Makefile *.rst _static _templates
+        git checkout origin/gh-pages -- conf.py Makefile *.rst
         
         # Move Sphinx files to build/sphinx-docs directory
-        mv conf.py Makefile *.rst _static _templates build/sphinx-docs/
+        mv conf.py Makefile *.rst build/sphinx-docs/
         
         # Copy documentation source files to build/docs
         if [ -d "docs" ]; then
