@@ -40,8 +40,10 @@ extensions = [
     'myst_parser',
 ]
 
-# Source file configurations
-source_suffix = ['.rst', '.md']
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md' : 'myst',         # ← tell Sphinx that “*.md” should use MyST
+}
 
 # MyST Parser settings
 myst_enable_extensions = [
