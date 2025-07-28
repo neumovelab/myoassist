@@ -1,7 +1,7 @@
 Welcome to MyoAssist's documentation!
 =====================================
 
-**MyoAssist** is a Python-based framework for neuromechanical simulation for human locomotion, with support for exoskeleton assistance. It provides modular and extensible architecture for neuromuscular and exoskeleton control, with both Reinforcement Learning and CMA-ES based optimization for controller parameters.
+**MyoAssist** is a Python-based framework for optimizing neuromuscular reflex controllers for human locomotion, with support for exoskeleton assistance. It provides modular and extensible architecture for neuromuscular and exoskeleton control, with CMA-ES based optimization for controller parameters.
 
 Check our `github repository <https://github.com/neumovelab/myoassist>`_ for more technical details.
 
@@ -9,70 +9,36 @@ Check our `github repository <https://github.com/neumovelab/myoassist>`_ for mor
    This project is under active development.
 
 Get started
-----------
+-----------
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Get started
+* :doc:`docs/Running_Simulations`
+* :doc:`docs/Running_Optimizations`
 
-   install
-   tutorials
+Advanced Features
+-----------------
 
-Models and Modeling
-----------------
+* :doc:`docs/Exoskeleton_Controllers`
+* :doc:`docs/Processing_Results`
+* :doc:`docs/Modeling`
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Models and Modeling
+Projects with MyoAssist
+-----------------------
 
-   models
-   modeling
-
-Reinforcement Learning
----------------------
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Reinforcement Learning
-
-   rl_imitation_tutorial
-   rl_get_observation
-   rl_terrain_tutorial
-   rl_analyze_tutorial
-
-Control Optimization
-------------
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation
-
-   running_simulations
-   running_optimizations
-   understanding_cost
-   exoskeleton_controllers
-   processing_results
+* :doc:`docs/RL_MYOASSIST_TUTORIAL`
 
 References
 ----------
 
-.. toctree::
-   :maxdepth: 1
-   :caption: References
+* Publications
 
-   publications
+How to cite
+-----------
 
-.. How to cite
-.. ----------
+.. code-block:: bibtex
 
-.. .. code-block:: bibtex
-
-..    @article{MyoAssist2024,
-..       author = {tbd},
-..       title = {tbd},
-..       publisher = {tbd},
-..       year = {tbd},
-..       howpublished = {\url{https://github.com/neumovelab/myoassist}},
-..       doi = {tbd},
-..       url = {tbd},
-..    } 
+   @article{MyoAssist2025,
+      author = {MyoAssist Team},
+      title = {MyoAssist -- A Python-based framework for optimizing neuromuscular reflex controllers for human locomotion},
+      year = {2025},
+      howpublished = {\url{https://github.com/neumovelab/myoassist}},
+   } 
