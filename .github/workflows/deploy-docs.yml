@@ -29,42 +29,49 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install sphinx sphinx-rtd-theme myst-parser
+        pip install sphinx==6.2.1 sphinx-rtd-theme==1.3.0 myst-parser==1.0.0 docutils==0.18.1
     
     - name: Setup Sphinx documentation
       run: |
-        # Create Sphinx documentation structure
-        mkdir -p sphinx-docs
+        # Create a clean build directory structure
+        mkdir -p build/sphinx-docs build/docs
+        
+        # Create build directory structure with empty static/templates dirs
+        mkdir -p build/sphinx-docs/_static build/sphinx-docs/_templates
         
         # Copy Sphinx configuration and source files from gh-pages branch
         git fetch origin gh-pages
-        git checkout origin/gh-pages -- conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile _static _templates
+        git checkout origin/gh-pages -- conf.py Makefile *.rst
         
-        # Move files to sphinx-docs directory
-        mv conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile _static _templates sphinx-docs/
+        # Move Sphinx files to build/sphinx-docs directory
+        mv conf.py Makefile *.rst build/sphinx-docs/
         
-        # Copy documentation source files
+        # Copy documentation source files to build/docs
         if [ -d "docs" ]; then
           echo "Copying documentation source files..."
-          cp -r docs sphinx-docs/
+          cp -r docs/* build/docs/
         fi
         
-        echo "Sphinx documentation structure created:"
-        ls -la sphinx-docs/
+        echo "Build directory structure:"
+        ls -la build/
+        echo "Sphinx files:"
+        ls -la build/sphinx-docs/
+        echo "Documentation files:"
+        ls -la build/docs/
     
     - name: Build Sphinx documentation
       run: |
-        cd sphinx-docs
+        cd build/sphinx-docs
         
         # Build the documentation
         make html
         
         # Copy built documentation to docs-site
-        mkdir -p ../docs-site
-        cp -r _build/html/* ../docs-site/
+        mkdir -p ../../docs-site
+        cp -r _build/html/* ../../docs-site/
         
         echo "Sphinx documentation built successfully"
-        ls -la ../docs-site/
+        ls -la ../../docs-site/
     
     - name: Setup Pages
       uses: actions/configure-pages@v4
