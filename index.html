@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to MyoAssist's documentation! &mdash; MyoAssist 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Lato, "Helvetica Neue", Arial, Helvetica, sans-serif;
+            font-size: 16px;
+            color: #404040;
+            margin: 0;
+            background: #edf0f2;
+        }
+        
+        .wy-nav-side {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 300px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background: #343131;
+            z-index: 200;
+        }
+        
+        .wy-side-scroll {
+            width: 320px;
+            position: relative;
+        }
+        
+        .wy-side-nav-search {
+            background: #2980b9;
+            color: #fcfcfc;
+            padding: 12px;
+            position: relative;
+        }
+        
+        .wy-side-nav-search .wy-dropdown > a img.logo, .wy-side-nav-search > a img.logo {
+            display: block;
+            margin: auto auto 0.809em auto;
+            height: 45px;
+            width: 45px;
+            background-color: transparent;
+            padding: 5px;
+            border-radius: 100%;
+        }
+        
+        .wy-side-nav-search > div.version {
+            margin-top: 0.809em;
+            margin-bottom: 0.809em;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .wy-side-nav-search input[type=text] {
+            width: 100%;
+            border-radius: 50px;
+            padding: 6px 12px;
+            border-color: #2472a4;
+            border: 1px solid #2472a4;
+            background: #2472a4;
+            color: #fcfcfc;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+        }
+        
+        .wy-menu-vertical {
+            width: 100%;
+        }
+        
+        .wy-menu-vertical a {
+            display: block;
+            padding: 0.4045em 1.618em;
+            color: #b3b3b3;
+            text-decoration: none;
+            font-size: 90%;
+        }
+        
+        .wy-menu-vertical a:hover {
+            background-color: #4e4a4a;
+            cursor: pointer;
+        }
+        
+        .wy-menu-vertical li.current > a {
+            color: gray;
+            border-right: solid 1px #c9c9c9;
+            padding: 0.4045em 2.427em;
+        }
+        
+        .wy-menu-vertical li.toctree-l1.current > a {
+            padding: 0.4045em 1.618em;
+            background: #d6d6d6;
+            color: #404040;
+        }
+        
+        .wy-menu-vertical header, .wy-menu-vertical p.caption {
+            color: #55a5d9;
+            height: 32px;
+            line-height: 32px;
+            padding: 0 1.618em;
+            margin: 12px 0 0 0;
+            display: block;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 85%;
+            white-space: nowrap;
+        }
+        
+        .wy-nav-content-wrap {
+            margin-left: 300px;
+            background: #fcfcfc;
+            min-height: 100%;
+        }
+        
+        .wy-nav-content {
+            padding: 1.618em 3.236em;
+            height: 100%;
+            max-width: 800px;
+        }
+        
+        .wy-breadcrumbs {
+            margin-bottom: 1.2em;
+        }
+        
+        .wy-breadcrumbs li {
+            display: inline-block;
+        }
+        
+        .wy-breadcrumbs li.wy-breadcrumbs-aside {
+            float: right;
+        }
+        
+        .wy-breadcrumbs a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        
+        .wy-breadcrumbs a:hover {
+            color: #3091d1;
+        }
+        
+        .section h1 {
+            margin-top: 0;
+            font-weight: 700;
+            color: #000;
+            font-size: 175%;
+        }
+        
+        .section h2 {
+            font-size: 150%;
+            font-weight: 700;
+            margin: 24px 0 16px 0;
+            color: #000;
+        }
+        
+        .section p {
+            line-height: 24px;
+            margin: 0 0 12px 0;
+        }
+        
+        .section a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        
+        .section a:hover {
+            color: #3091d1;
+        }
+        
+        .admonition {
+            padding: 12px;
+            line-height: 24px;
+            margin-bottom: 24px;
+            background: #e7f2fa;
+        }
+        
+        .admonition-title {
+            color: #fff;
+            font-weight: bold;
+            display: block;
+            color: #fff;
+            background: #6ab0de;
+            margin: -12px -12px 12px;
+            padding: 6px 12px;
+        }
+        
+        .admonition.note {
+            background: #e7f2fa;
+        }
+        
+        .admonition.note .admonition-title {
+            background: #6ab0de;
+        }
+        
+        ul {
+            margin-bottom: 24px;
+        }
+        
+        ul li {
+            list-style: disc;
+            line-height: 24px;
+            margin-left: 24px;
+        }
+        
+        .highlight {
+            background: #f8f8f8;
+        }
+        
+        .highlight pre {
+            white-space: pre;
+            margin: 0;
+            padding: 12px 12px;
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", Courier, monospace;
+            display: block;
+            overflow: auto;
+            color: #404040;
+        }
+        
+        .footer {
+            color: #999;
+            margin-top: 3em;
+            padding-top: 3em;
+            border-top: 1px solid #e1e4e5;
+            font-size: 90%;
+        }
+        
+        .footer a {
+            color: #2980b9;
+        }
+    </style>
+</head>
+
+<body class="wy-body-for-nav">
+    <div class="wy-grid-for-nav">
+        <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+            <div class="wy-side-scroll">
+                <div class="wy-side-nav-search">
+                    <a href="#" class="icon icon-home">
+                        <!-- Logo placeholder -->
+                        <img src="" class="logo" alt="Logo" style="background: rgba(255,255,255,0.2); border-radius: 50%;" />
+                        MyoAssist
+                    </a>
+                    <div class="version">1.0.0</div>
+                    <div role="search">
+                        <form class="wy-form" action="#" method="get">
+                            <input type="text" name="q" placeholder="Search docs" />
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                    <p class="caption"><span class="caption-text">GET STARTED</span></p>
+                    <ul>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Installation.md">Installation</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/tutorials.md">Tutorials</a></li>
+                    </ul>
+                    
+                    <p class="caption"><span class="caption-text">ADVANCED FEATURES</span></p>
+                    <ul>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Modeling.md">Models and Tasks</a></li>
+                    </ul>
+                    
+                    <p class="caption"><span class="caption-text">PROJECTS WITH MYOASSIST</span></p>
+                    <ul>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/RL_MYOASSIST_TUTORIAL.md">Projects with MyoAssist</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Running_Simulations.md">RL Baselines</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Exoskeleton_Controllers.md">MyoAssist-2024 Documentations</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Processing_Results.md">MyoAssist-2025 Documentations</a></li>
+                    </ul>
+                    
+                    <p class="caption"><span class="caption-text">REFERENCES</span></p>
+                    <ul>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/publications.md">Publications</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
+        <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+            <nav class="wy-nav-top" aria-label="top navigation">
+                <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+                <a href="#">MyoAssist</a>
+            </nav>
+            
+            <div class="wy-nav-content">
+                <div class="rst-content">
+                    <div role="navigation" aria-label="breadcrumbs navigation">
+                        <ul class="wy-breadcrumbs">
+                            <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+                            <li>Welcome to MyoAssist's documentation!</li>
+                            <li class="wy-breadcrumbs-aside">
+                                <a href="#" class="fa fa-github"> View page source</a>
+                            </li>
+                        </ul>
+                        <hr/>
+                    </div>
+                    
+                    <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+                        <div itemprop="articleBody">
+                            <div class="section" id="welcome-to-myoassist-s-documentation">
+                                <h1>Welcome to MyoAssist's documentation!<a class="headerlink" href="#welcome-to-myoassist-s-documentation" title="Permalink to this headline">¶</a></h1>
+                                
+                                <p><a class="reference external" href="https://github.com/neumovelab/myoassist">MyoAssist</a> is a collection of neuromuscular reflex controller optimization environments and tasks simulated with the <a class="reference external" href="https://mujoco.org/">MuJoCo</a> physics engine and wrapped in the OpenAI <a class="reference external" href="https://gymnasium.farama.org/">Gym</a> API to enable the application of Machine Learning to bio-mechanic control problems.</p>
+                                
+                                <p>Check our <a class="reference external" href="https://github.com/neumovelab/myoassist">github repository</a> for more technical details.</p>
+                                
+                                <p>Our paper can be found at: <a class="reference external" href="https://arxiv.org/abs/2205.13600">https://arxiv.org/abs/2205.13600</a></p>
+                                
+                                <p>Advanced user are invited to familiarize themselves with the basics of the <a class="reference external" href="https://gymnasium.farama.org/">OpenAI Gym API</a> and review the basic principle of Reinforcement Learning to make the most out of MyoAssist features and functionalities</p>
+                                
+                                <div class="admonition note">
+                                    <p class="admonition-title">Note</p>
+                                    <p>This project is under active development.</p>
+                                </div>
+                                
+                                <div class="section" id="get-started">
+                                    <h2>Get started<a class="headerlink" href="#get-started" title="Permalink to this headline">¶</a></h2>
+                                    <ul>
+                                        <li><a class="reference internal" href="docs/Installation.md"><span class="doc">Installation</span></a></li>
+                                        <li><a class="reference internal" href="docs/tutorials.md"><span class="doc">Tutorials</span></a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="section" id="advanced-features">
+                                    <h2>Advanced Features<a class="headerlink" href="#advanced-features" title="Permalink to this headline">¶</a></h2>
+                                    <ul>
+                                        <li><a class="reference internal" href="docs/Modeling.md"><span class="doc">Models and Tasks</span></a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="section" id="projects-with-myoassist">
+                                    <h2>Projects with MyoAssist<a class="headerlink" href="#projects-with-myoassist" title="Permalink to this headline">¶</a></h2>
+                                    <ul>
+                                        <li><a class="reference internal" href="docs/RL_MYOASSIST_TUTORIAL.md"><span class="doc">Projects with MyoAssist</span></a></li>
+                                        <li><a class="reference internal" href="docs/Running_Simulations.md"><span class="doc">RL Baselines</span></a></li>
+                                        <li><a class="reference internal" href="docs/Exoskeleton_Controllers.md"><span class="doc">MyoAssist-2024 Documentations</span></a></li>
+                                        <li><a class="reference internal" href="docs/Processing_Results.md"><span class="doc">MyoAssist-2025 Documentations</span></a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="section" id="references">
+                                    <h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+                                    <ul>
+                                        <li><a class="reference internal" href="docs/publications.md"><span class="doc">Publications</span></a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="section" id="how-to-cite">
+                                    <h2>How to cite<a class="headerlink" href="#how-to-cite" title="Permalink to this headline">¶</a></h2>
+                                    <div class="highlight-default notranslate">
+                                        <div class="highlight">
+                                            <pre>@article{MyoAssist2025,
+    author = {MyoAssist Team},
+    title = {MyoAssist -- A Python-based framework for optimizing neuromuscular reflex controllers for human locomotion},
+    publisher = {arXiv},
+    year = {2025},
+    howpublished = {\url{https://github.com/neumovelab/myoassist}},
+    year = {2025}
+    doi = {10.48550/ARXIV.2205.13600},
+    url = {https://arxiv.org/abs/2205.13600},
+}</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <footer class="footer">
+                        <div class="container">
+                            <p class="pull-right">
+                                <a href="#">Back to top</a>
+                            </p>
+                            <p>
+                                &copy; Copyright 2025 MyoAssist Team.<br/>
+                                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+                            </p>
+                        </div>
+                    </footer>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html> 
