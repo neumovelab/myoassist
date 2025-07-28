@@ -43,14 +43,16 @@ jobs:
         # Move files to sphinx-docs directory
         mv conf.py index.rst install.rst tutorials.rst models.rst modeling.rst rl_imitation_tutorial.rst rl_get_observation.rst rl_terrain_tutorial.rst controllers.rst optimization.rst processing.rst running_simulations.rst running_optimizations.rst understanding_cost.rst exoskeleton_controllers.rst processing_results.rst rl_analyze_tutorial.rst publications.rst Makefile _static _templates sphinx-docs/
         
-        # Copy documentation source files
+        # Copy documentation source files to parent directory so ../docs/ includes work
         if [ -d "docs" ]; then
           echo "Copying documentation source files..."
-          cp -r docs sphinx-docs/
+          cp -r docs sphinx-docs/../
         fi
         
         echo "Sphinx documentation structure created:"
         ls -la sphinx-docs/
+        echo "Docs directory contents:"
+        ls -la sphinx-docs/../docs/ || echo "No docs directory found"
     
     - name: Build Sphinx documentation
       run: |
