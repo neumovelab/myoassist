@@ -20,6 +20,9 @@ project = 'MyoAssist'
 copyright = '2024, MyoAssist Team'
 author = 'MyoAssist Team'
 
+# The master toctree document
+master_doc = 'index'
+
 # The full version, including alpha/beta/rc tags
 release = '1.0.0'
 
