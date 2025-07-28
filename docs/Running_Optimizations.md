@@ -4,9 +4,14 @@ This guide explains how to run optimizations for the neuromuscular reflex contro
 
 ## Quick Start
 
-The easiest way to begin is by using the `run_training.bat` script, which executes predefined configurations from the `training_configs/` directory.
+There are two ways to run optimizations, depending on your operating system and preferences:
+
+### Windows: Using .bat Configuration Files
+
+The easiest way to begin on Windows is by using the `run_training.bat` script, which executes one of the predefined configurations from the `training_configs/` directory.
 
 ```bash
+# Run from the myoassist_reflex directory
 run_training.bat <config_name>
 ```
 
@@ -15,20 +20,146 @@ For example, to run the baseline configuration:
 run_training.bat baseline
 ```
 
+### Cross-Platform: Using JSON Configuration Files
+
+For cross-platform compatibility (Windows, Linux, Mac) or when you want to easily modify parameters from the command line without updating the configuration (i.e., for hot swapping models), use JSON configuration files:
+
+```bash
+# Run from the project root directory (MyoAssist)
+python -m myoassist_reflex.train --config <config_name>
+```
+
+For example:
+```bash
+python -m myoassist_reflex.train --config baseline
+```
+
 ## Training Configurations
 
-The `training_configs/` directory contains several `.bat` files, each pre-configured for a specific optimization scenario.
+The `training_configs/` directory contains both `.bat` and `.json` files for each configuration. Each `.json` file is equivalent to its corresponding `.bat` file.
 
-| Configuration         | Description                                                                                             |
+| Example Configuration         | Description                                                                                             |
 |-----------------------|---------------------------------------------------------------------------------------------------------|
-| `baseline.bat`        | A standard optimization for the 11-muscle model without an exoskeleton. A good starting point.          |
-| `debug.bat`           | A small, quick run with few iterations, designed for testing and debugging the optimization pipeline.   |
-| `exo_4param.bat`      | Optimizes the controller with an exoskeleton using the legacy 4-parameter spline for its torque profile. |
-| `exo_4param_kine.bat` | Similar to `exo_4param`, but uses a kinematics-focused cost function (`-kine`).                           |
-| `exo_npoint.bat`      | Optimizes with an exoskeleton using the modern n-point spline controller.                                 |
-| `exo_npoint_cont.bat` | An example of a continued optimization, starting from the results of a previous run.                      |
+| `baseline`            | A standard optimization for the 11-muscle model without an exoskeleton. A good starting point.          |
+| `debug`               | A small, quick run with few iterations, designed for testing and debugging the optimization pipeline.   |
+| `exo_4param`          | Optimizes the controller with an exoskeleton using the legacy 4-parameter spline for its torque profile. |
+| `exo_4param_kine`     | Similar to `exo_4param`, but uses a kinematics-focused cost function (`-kine`).                           |
+| `exo_npoint`          | Optimizes with an exoskeleton using the modern n-point spline controller.                                 |
+| `exo_npoint_cont`     | An example of a continued optimization, starting from the results of a previous run.                      |
+                                            
 
-You can modify these files or create new ones to define custom optimization runs.
+## Usage Patterns
+
+### Windows Users
+
+**Option 1: .bat files**
+```bash
+# Navigate to myoassist_reflex directory
+cd myoassist_reflex
+
+# Run using .bat files
+run_training.bat baseline
+```
+
+**Option 2: JSON files**
+```bash
+# Navigate to project root directory
+cd ..
+
+# Run using JSON files
+python -m myoassist_reflex.train --config baseline
+
+# Hotswap parameters
+python -m myoassist_reflex.train --config exo_4param --model dephy
+# or
+python -m myoassist_reflex.train --config debug --maxiter 100
+```
+
+### Linux/Mac Users
+
+**JSON files only**
+```bash
+# Navigate to project root directory
+cd ..
+
+# Run using JSON files
+python -m myoassist_reflex.train --config baseline
+
+# Hotswap parameters
+python -m myoassist_reflex.train --config exo_npoint --model hmedi
+```
+
+### Cluster/Remote Execution
+
+For cluster environments, use JSON configurations with the `--cluster` flag:
+
+```bash
+python -m myoassist_reflex.train --config baseline --cluster
+python -m myoassist_reflex.train --config debug --cluster --popsize 32 --threads 32
+```
+
+## Configuration File Formats
+
+### .bat Files (Windows)
+Batch files contain Windows command-line syntax and are executed from the `myoassist_reflex` directory.
+
+**Example `debug.bat`:**
+```batch
+python -m myoassist_reflex.train ^
+    --musc_model 22 ^
+    --model tutorial ^
+    --sim_time 20 ^
+    --pose_key walk_left ^
+    --num_strides 5 ^
+    --delayed 0 ^
+    --optim_mode single ^
+    --reflex_mode uni ^
+    --tgt_vel 1.25 ^
+    --tgt_slope 0 ^
+    --trunk_err_type ref_diff ^
+    --tgt_sym_th 0.1 ^
+    --tgt_grf_th 1.5 ^
+    -kine ^
+    --ExoOn 1 ^
+    --n_points 6 ^
+    --max_torque 10.0 ^
+    --popsize 8 ^
+    --maxiter 50 ^
+    --threads 8 ^
+    --sigma_gain 10 ^
+    --save_path results/debug
+```
+
+### .json Files
+JSON files contain key-value pairs and are executed from the project root directory.
+
+**Example `debug.json`:**
+```json
+{
+    "musc_model": 22,
+    "model": "tutorial",
+    "sim_time": 20,
+    "pose_key": "walk_left",
+    "num_strides": 5,
+    "delayed": 0,
+    "optim_mode": "single",
+    "reflex_mode": "uni",
+    "tgt_vel": 1.25,
+    "tgt_slope": 0,
+    "trunk_err_type": "ref_diff",
+    "tgt_sym_th": 0.1,
+    "tgt_grf_th": 1.5,
+    "kinematics": true,
+    "ExoOn": 1,
+    "n_points": 6,
+    "max_torque": 10.0,
+    "popsize": 8,
+    "maxiter": 50,
+    "threads": 8,
+    "sigma_gain": 10,
+    "save_path": "results/debug"
+}
+```
 
 ## Command-Line Arguments
 
@@ -90,4 +221,38 @@ You can fine-tune the optimizer's stopping conditions by passing `CMAOptions` di
 You can combine multiple options:
 ```batch
 --cma_options "tolfun:1e-10,tolx:1e-10,tolstagnation:150"
-``` 
+```
+
+## Results and Configuration Saving
+
+### Results Location
+All results are automatically saved in the `myoassist_reflex/results/` directory, regardless of whether you use `.bat` or `.json` configurations.
+
+### Configuration Saving
+The system automatically saves the final configuration used for each run:
+
+- **JSON runs**: Saves as `config_name_timestamp.json` (e.g., `debug_0725_1810.json`)
+- **BAT runs**: Saves as `config_name_timestamp.bat` (e.g., `debug_0725_1810.bat`)
+
+Only explicitly set parameters are saved, avoiding clutter from default values.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Module not found" errors**: Make sure you're running from the correct directory:
+   - For `.bat` files: Run from `myoassist_reflex/` directory
+   - For JSON files: Run from project root (`MyoAssist_Reflex/`) directory
+
+2. **File path errors**: The system automatically resolves paths, but ensure your directory structure is correct.
+
+3. **Configuration not found**: Verify the configuration name exists in `training_configs/` directory.
+
+### Creating Custom Configurations
+
+You can create new configurations by:
+1. Copying an existing `.bat` or `.json` file
+2. Modifying the parameters as needed
+3. Saving with a new name in the `training_configs/` directory
+
+For JSON files, ensure boolean flags are properly formatted (e.g., `"kinematics": true` instead of `"-kine"`). 
