@@ -1,5 +1,5 @@
 Processing and Analysis
-======================
+=======================
 
 MyoAssist provides comprehensive tools for processing and analyzing simulation results.
 

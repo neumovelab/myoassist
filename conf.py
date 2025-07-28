@@ -42,9 +42,6 @@ extensions = [
 
 # Source file configurations
 source_suffix = ['.rst', '.md']
-source_parsers = {
-    '.md': 'myst_parser.docutils_',
-}
 
 # MyST Parser settings
 myst_enable_extensions = [

@@ -1,5 +1,5 @@
 Models and Tasks
-===============
+================
 
 MyoAssist provides a collection of musculoskeletal models for human locomotion simulation and exoskeleton control.
 

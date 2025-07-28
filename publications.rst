@@ -1,5 +1,5 @@
 Publications
-===========
+============
 
 How to Cite MyoAssist
 ---------------------

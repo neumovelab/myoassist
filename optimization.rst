@@ -1,5 +1,5 @@
 Optimization Framework
-=====================
+=======================
 
 MyoAssist uses CMA-ES (Covariance Matrix Adaptation Evolution Strategy) for optimizing neuromuscular reflex controller parameters.
 
