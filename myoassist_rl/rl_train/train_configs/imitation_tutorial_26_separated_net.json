@@ -18,7 +18,7 @@
         "max_target_velocity_period": 10,
         
         "enable_lumbar_joint": false,
-        "lumbar_joint_fixed_angle": -0.317,
+        "lumbar_joint_fixed_angle": -0.13,
         "lumbar_joint_damping_value": 0.05,
 
         "observation_joint_pos_keys": [

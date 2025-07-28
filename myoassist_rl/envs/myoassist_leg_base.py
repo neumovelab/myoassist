@@ -123,7 +123,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
                     dof_count = 0  # Currently unused
 
                 self.sim.model.dof_damping[dof_adr] = self._lumbar_joint_damping_value
-
+            else:
+                self.sim.model.body("torso").quat = [1, 0, 0, self._lumbar_joint_fixed_angle]
         
         
         #phys: 1000hz
