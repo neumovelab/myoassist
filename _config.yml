@@ -1,0 +1,34 @@
+title: MyoAssist Documentation
+description: A Python-based framework for optimizing neuromuscular reflex controllers for human locomotion
+url: "https://neumovelab.github.io"
+baseurl: "/myoassist"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Plugin settings
+plugins:
+  - jekyll-relative-links
+
+# Enable relative links processing
+relative_links:
+  enabled: true
+  collections: false
+
+# Include markdown files without front matter
+include:
+  - "*.md"
+  - "docs/*.md"
+  - "docs/*.ipynb"
+
+# Exclude files
+exclude:
+  - .git/
+  - .gitignore
+  - README.md
+  - Gemfile
+  - Gemfile.lock 

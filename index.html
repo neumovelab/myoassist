@@ -242,7 +242,7 @@
         <nav data-toggle="wy-nav-shift" class="wy-nav-side">
             <div class="wy-side-scroll">
                 <div class="wy-side-nav-search">
-                    <a href="#" class="icon icon-home">
+                    <a href="index.html" class="icon icon-home">
                         <!-- Logo placeholder -->
                         <img src="" class="logo" alt="Logo" style="background: rgba(255,255,255,0.2); border-radius: 50%;" />
                         MyoAssist
@@ -258,26 +258,35 @@
                 <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
                     <p class="caption"><span class="caption-text">GET STARTED</span></p>
                     <ul>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/Installation.md">Installation</a></li>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/tutorials.md">Tutorials</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/README">Installation</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Running_Simulations">Running Simulations</a></li>
                     </ul>
                     
                     <p class="caption"><span class="caption-text">ADVANCED FEATURES</span></p>
                     <ul>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/Modeling.md">Models and Tasks</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Modeling">Models and Tasks</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Exoskeleton_Controllers">Exoskeleton Controllers</a></li>
                     </ul>
                     
                     <p class="caption"><span class="caption-text">PROJECTS WITH MYOASSIST</span></p>
                     <ul>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/RL_MYOASSIST_TUTORIAL.md">Projects with MyoAssist</a></li>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/Running_Simulations.md">RL Baselines</a></li>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/Exoskeleton_Controllers.md">MyoAssist-2024 Documentations</a></li>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/Processing_Results.md">MyoAssist-2025 Documentations</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/RL_MYOASSIST_TUTORIAL">RL MyoAssist Tutorial</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/rl_imitation_tutorial.ipynb">RL Imitation Tutorial</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/rl_get_observation.ipynb">RL Get Observation</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/rl_terrain_tutorial.ipynb">RL Terrain Tutorial</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/rl_analyze_tutorial.ipynb">RL Analyze Tutorial</a></li>
+                    </ul>
+                    
+                    <p class="caption"><span class="caption-text">OPTIMIZATION</span></p>
+                    <ul>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Running_Optimizations">Running Optimizations</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Processing_Results">Processing Results</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="docs/Understanding_Cost">Understanding Cost Functions</a></li>
                     </ul>
                     
                     <p class="caption"><span class="caption-text">REFERENCES</span></p>
                     <ul>
-                        <li class="toctree-l1"><a class="reference internal" href="docs/publications.md">Publications</a></li>
+                        <li class="toctree-l1"><a class="reference internal" href="#publications">Publications</a></li>
                     </ul>
                 </div>
             </div>
@@ -286,17 +295,17 @@
         <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
             <nav class="wy-nav-top" aria-label="top navigation">
                 <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-                <a href="#">MyoAssist</a>
+                <a href="index.html">MyoAssist</a>
             </nav>
             
             <div class="wy-nav-content">
                 <div class="rst-content">
                     <div role="navigation" aria-label="breadcrumbs navigation">
                         <ul class="wy-breadcrumbs">
-                            <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+                            <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
                             <li>Welcome to MyoAssist's documentation!</li>
                             <li class="wy-breadcrumbs-aside">
-                                <a href="#" class="fa fa-github"> View page source</a>
+                                <a href="https://github.com/neumovelab/myoassist" class="fa fa-github"> View page source</a>
                             </li>
                         </ul>
                         <hr/>
@@ -313,7 +322,7 @@
                                 
                                 <p>Our paper can be found at: <a class="reference external" href="https://arxiv.org/abs/2205.13600">https://arxiv.org/abs/2205.13600</a></p>
                                 
-                                <p>Advanced user are invited to familiarize themselves with the basics of the <a class="reference external" href="https://gymnasium.farama.org/">OpenAI Gym API</a> and review the basic principle of Reinforcement Learning to make the most out of MyoAssist features and functionalities</p>
+                                <p>Advanced users are invited to familiarize themselves with the basics of the <a class="reference external" href="https://gymnasium.farama.org/">OpenAI Gym API</a> and review the basic principle of Reinforcement Learning to make the most out of MyoAssist features and functionalities</p>
                                 
                                 <div class="admonition note">
                                     <p class="admonition-title">Note</p>
@@ -323,32 +332,43 @@
                                 <div class="section" id="get-started">
                                     <h2>Get started<a class="headerlink" href="#get-started" title="Permalink to this headline">¶</a></h2>
                                     <ul>
-                                        <li><a class="reference internal" href="docs/Installation.md"><span class="doc">Installation</span></a></li>
-                                        <li><a class="reference internal" href="docs/tutorials.md"><span class="doc">Tutorials</span></a></li>
+                                        <li><a class="reference internal" href="docs/README"><span class="doc">Installation</span></a></li>
+                                        <li><a class="reference internal" href="docs/Running_Simulations"><span class="doc">Running Simulations</span></a></li>
                                     </ul>
                                 </div>
                                 
                                 <div class="section" id="advanced-features">
                                     <h2>Advanced Features<a class="headerlink" href="#advanced-features" title="Permalink to this headline">¶</a></h2>
                                     <ul>
-                                        <li><a class="reference internal" href="docs/Modeling.md"><span class="doc">Models and Tasks</span></a></li>
+                                        <li><a class="reference internal" href="docs/Modeling"><span class="doc">Models and Tasks</span></a></li>
+                                        <li><a class="reference internal" href="docs/Exoskeleton_Controllers"><span class="doc">Exoskeleton Controllers</span></a></li>
                                     </ul>
                                 </div>
                                 
                                 <div class="section" id="projects-with-myoassist">
                                     <h2>Projects with MyoAssist<a class="headerlink" href="#projects-with-myoassist" title="Permalink to this headline">¶</a></h2>
                                     <ul>
-                                        <li><a class="reference internal" href="docs/RL_MYOASSIST_TUTORIAL.md"><span class="doc">Projects with MyoAssist</span></a></li>
-                                        <li><a class="reference internal" href="docs/Running_Simulations.md"><span class="doc">RL Baselines</span></a></li>
-                                        <li><a class="reference internal" href="docs/Exoskeleton_Controllers.md"><span class="doc">MyoAssist-2024 Documentations</span></a></li>
-                                        <li><a class="reference internal" href="docs/Processing_Results.md"><span class="doc">MyoAssist-2025 Documentations</span></a></li>
+                                        <li><a class="reference internal" href="docs/RL_MYOASSIST_TUTORIAL"><span class="doc">RL MyoAssist Tutorial</span></a></li>
+                                        <li><a class="reference internal" href="docs/rl_imitation_tutorial.ipynb"><span class="doc">RL Imitation Tutorial</span></a></li>
+                                        <li><a class="reference internal" href="docs/rl_get_observation.ipynb"><span class="doc">RL Get Observation</span></a></li>
+                                        <li><a class="reference internal" href="docs/rl_terrain_tutorial.ipynb"><span class="doc">RL Terrain Tutorial</span></a></li>
+                                        <li><a class="reference internal" href="docs/rl_analyze_tutorial.ipynb"><span class="doc">RL Analyze Tutorial</span></a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="section" id="optimization">
+                                    <h2>Optimization<a class="headerlink" href="#optimization" title="Permalink to this headline">¶</a></h2>
+                                    <ul>
+                                        <li><a class="reference internal" href="docs/Running_Optimizations"><span class="doc">Running Optimizations</span></a></li>
+                                        <li><a class="reference internal" href="docs/Processing_Results"><span class="doc">Processing Results</span></a></li>
+                                        <li><a class="reference internal" href="docs/Understanding_Cost"><span class="doc">Understanding Cost Functions</span></a></li>
                                     </ul>
                                 </div>
                                 
                                 <div class="section" id="references">
                                     <h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
                                     <ul>
-                                        <li><a class="reference internal" href="docs/publications.md"><span class="doc">Publications</span></a></li>
+                                        <li><a class="reference internal" href="#publications"><span class="doc">Publications</span></a></li>
                                     </ul>
                                 </div>
                                 
@@ -362,7 +382,6 @@
     publisher = {arXiv},
     year = {2025},
     howpublished = {\url{https://github.com/neumovelab/myoassist}},
-    year = {2025}
     doi = {10.48550/ARXIV.2205.13600},
     url = {https://arxiv.org/abs/2205.13600},
 }</pre>
