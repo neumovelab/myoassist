@@ -43,7 +43,7 @@ extensions = [
 # MyST Parser settings
 source_suffix = {
     '.rst': 'restructuredtext',
-    '.md': 'myst-parser'
+    '.md': 'myst'
 }
 
 myst_enable_extensions = [
@@ -56,6 +56,9 @@ myst_heading_anchors = 3
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+# The path where source files are located
+source_path = 'source'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
