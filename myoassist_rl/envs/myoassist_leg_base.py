@@ -6,7 +6,7 @@ from myoassist_rl.rl_train.utils.config import TrainSessionConfigBase
 from myoassist_rl.rl_train.utils.data_types import DictionableDataclass
 import collections
 import mujoco
-from myoassist_rl.envs.env_utils.hfield_manager import HfieldManager
+from myoassist_utils.hfield_manager import HfieldManager
 from enum import Enum
 import random
 import numpy as np
