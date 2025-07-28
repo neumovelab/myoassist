@@ -7,7 +7,7 @@
         "num_envs": 16,
         "seed": 1234,
         "safe_height": 0.7,
-        "out_of_trajectory_threshold": 0.6,
+        "out_of_trajectory_threshold": 0.2,
         "flag_random_ref_index": true,
         "control_framerate": 30,
         "physics_sim_framerate": 1200,
@@ -43,27 +43,27 @@
         
         "reward_keys_and_weights": {
             "qpos_imitation_rewards": {
-                "pelvis_ty": 0.4,
-                "pelvis_tilt": 0.4,
+                "pelvis_ty": 0.1,
+                "pelvis_tilt": 1.0,
                 "hip_flexion_l": 0.2,
                 "hip_flexion_r": 0.2,
-                "knee_angle_l": 0.2,
-                "knee_angle_r": 0.2,
+                "knee_angle_l": 1.0,
+                "knee_angle_r": 1.0,
                 "ankle_angle_l": 0.2,
                 "ankle_angle_r": 0.2
             },
             "qvel_imitation_rewards": {
-                "pelvis_ty": 0.4,
-                "pelvis_tilt": 0.4,
+                "pelvis_ty": 0.1,
+                "pelvis_tilt": 0.1,
                 "hip_flexion_l": 0.2,
                 "hip_flexion_r": 0.2,
-                "knee_angle_l": 0.2,
-                "knee_angle_r": 0.2,
-                "ankle_angle_l": 0.2,
-                "ankle_angle_r": 0.2
+                "knee_angle_l": 0.1,
+                "knee_angle_r": 0.1,
+                "ankle_angle_l": 0.1,
+                "ankle_angle_r": 0.1
             },
             "end_effector_imitation_reward": 0.0,
-            "forward_reward": 0.2,
+            "forward_reward": 1.0,
             "muscle_activation_penalty": 0.1,
             "muscle_activation_diff_penalty": 0.1,
 
@@ -71,7 +71,7 @@
             "average_velocity_per_step": 0.0,
             "muscle_activation_penalty_per_step": 0.0,
 
-            "joint_constraint_force_penalty": 0.0,
+            "joint_constraint_force_penalty": 1.0,
 
             "foot_force_penalty": 0.5
         },
@@ -89,7 +89,7 @@
     "ppo_params": {
         "learning_rate": 0.0001,
         "n_steps": 512,
-        "batch_size": 8192,
+        "batch_size": 4096,
         "n_epochs": 30,
         "gamma": 0.99,
         "gae_lambda": 0.95,
