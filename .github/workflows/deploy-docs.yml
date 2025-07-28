@@ -46,7 +46,7 @@ jobs:
         # Copy documentation source files to parent directory so ../docs/ includes work
         if [ -d "docs" ]; then
           echo "Copying documentation source files..."
-          cp -r docs sphinx-docs/../
+          cp -r docs sphinx-docs/../docs/
         fi
         
         echo "Sphinx documentation structure created:"
