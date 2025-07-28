@@ -37,8 +37,18 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx_rtd_theme',
-    'myst_parser',
+    'myst_parser.sphinx',
 ]
+
+# MyST Parser settings
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+]
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
