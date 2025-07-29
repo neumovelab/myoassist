@@ -10,7 +10,7 @@
 ## Tutorial Exo
 ### 22 muscle 2D
 ```
-.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_tutorial_22_separated_net.json
+.venv\Scripts\python.exe myoassist_rl/rl_train/train_ppo.py --config_file_path myoassist_rl/rl_train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
 ```
 
 ### 26 muscle 3D
