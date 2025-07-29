@@ -50,7 +50,7 @@
         "prev_trained_policy_path": null,
         "reference_data_path": "myoassist_rl/reference_data/short_reference_gait.npz",
         "enable_lumbar_joint": false,
-        "lumbar_joint_fixed_angle": -0.317,
+        "lumbar_joint_fixed_angle": -0.13,
         "lumbar_joint_damping_value": 0.05,
         "observation_joint_pos_keys": [
             "ankle_angle_l",
