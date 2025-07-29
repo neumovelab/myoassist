@@ -5,16 +5,28 @@ import mujoco
 class HfieldManager:
     def __init__(self, sim:SimScene, hfield_name:str, np_random:np.random.RandomState):
         self._sim = sim
+        self._model_hfield_geom = sim.model.geom(hfield_name)
         self._hfield = sim.model.hfield(hfield_name)
         self._hfield_pos = sim.model.geom(hfield_name).pos
         self._hfield_size = sim.model.geom(hfield_name).size
         self.np_random = np_random
+
+        self._model_geom_ground_plane = sim.model.geom("ground-plane")
+        self._data_geom_ground_plane = sim.data.geom("ground-plane")
+
+        # doesnt work
+        # self._model_geom_ground_plane.pos[2] = -100
+        # self._data_geom_ground_plane.xpos[2] = -100
+
 
     def set_hfield(self, type:str="dev", params:str=""):
         if params == "":
             params_float_list = []
         else:
             params_float_list = list(map(float, params.split(" ")))
+        self._model_hfield_geom.rgba = [1, 1, 1, 1]
+        self._model_hfield_geom.pos[2] = 0.0
+        self._model_geom_ground_plane.rgba = [1, 1, 1, 0]
         if type == "flat":
             pass
         elif type == "random":
