@@ -33,6 +33,8 @@ class ExoImitationTrainSessionConfig(ImitationTrainSessionConfig):
         #     reset_policy_net: bool = False
         #     reset_value_net: bool = False
         # custom_policy_params: CustomPolicyParams = field(default_factory=CustomPolicyParams)
+        
+        # This actually does nothing
         @dataclass
         class CustomPolicyParams(ImitationTrainSessionConfig.PolicyParams.CustomPolicyParams):
             human_observation_indices: list[int] = field(default_factory=list[int])

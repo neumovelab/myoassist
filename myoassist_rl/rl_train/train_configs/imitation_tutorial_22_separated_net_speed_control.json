@@ -4,7 +4,7 @@
     },
     "env_params": {
         "env_id": "myoAssistLegImitationExo-v0",
-        "num_envs": 16,
+        "num_envs": 32,
         "seed": 1234,
         "safe_height": 0.7,
         "out_of_trajectory_threshold": 100,
@@ -63,7 +63,7 @@
                 "ankle_angle_r": 0.0
             },
             "end_effector_imitation_reward": 0.0,
-            "forward_reward": 1.0,
+            "forward_reward": 0.5,
             "muscle_activation_penalty": 0.1,
             "muscle_activation_diff_penalty": 0.1,
 
@@ -73,7 +73,7 @@
 
             "joint_constraint_force_penalty": 0.0,
 
-            "foot_force_penalty": 0.5
+            "foot_force_penalty": 0.1
         },
         "custom_max_episode_steps": 1000,
         "model_path": "models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml",
