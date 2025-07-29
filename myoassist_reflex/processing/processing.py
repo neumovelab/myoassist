@@ -331,7 +331,7 @@ class ParameterSelector:
         self.fixed_exo_check.pack(side=tk.LEFT, padx=(0, 15))
         
         self.legacy_var = tk.BooleanVar(value=self.config.use_4param_spline)
-        self.legacy_check = ttk.Checkbutton(bool_frame, text="Use Legacy Spline", variable=self.legacy_var)
+        self.legacy_check = ttk.Checkbutton(bool_frame, text="Use 4param Spline", variable=self.legacy_var)
         self.legacy_check.pack(side=tk.LEFT)
 
         # Collect environment widgets for later enable/disable
@@ -702,7 +702,7 @@ class ParameterSelector:
         right_values.pack(side="left", padx=(5,0))
         ttk.Label(right_values, text="On" if cfg.exo_bool else "Off", style="PreviewValue.TLabel").pack(anchor="w")
         ttk.Label(right_values, text=str(cfg.delayed), style="PreviewValue.TLabel").pack(anchor="w")
-        ttk.Label(right_values, text="Legacy" if cfg.use_4param_spline else "Npoint", style="PreviewValue.TLabel").pack(anchor="w")
+        ttk.Label(right_values, text="4param" if cfg.use_4param_spline else "Npoint", style="PreviewValue.TLabel").pack(anchor="w")
 
         # Add bottom separator if not the last preview
         if self.preview_frames:  # If there are already other previews
