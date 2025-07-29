@@ -16,7 +16,7 @@ class ExoVisualizer:
         self.frame_width = frame_width
         self.frame_height = frame_height
         
-        # Colors (BGR format for OpenCV)
+        # Colors (BGR format for OpenCV) - Original style
         self.colors = {
             'white': (255, 255, 255),
             'black': (0, 0, 0),
@@ -24,20 +24,19 @@ class ExoVisualizer:
             'red': (0, 0, 255),
             'blue': (255, 0, 0),
             'yellow': (0, 255, 255),
-            'cyan': (255, 255, 0),
-            'orange': (0, 165, 255)
+            'cyan': (255, 255, 0)
         }
         
-        # Font settings
+        # Font settings - Larger for better visibility
         self.font = cv2.FONT_HERSHEY_SIMPLEX
-        self.font_scale_large = 1.2
-        self.font_scale_medium = 1.0
-        self.font_scale_small = 0.8
+        self.font_scale_large = 1.5
+        self.font_scale_medium = 1.2
+        self.font_scale_small = 1.0
         self.thickness = 2
         
-        # Layout settings
-        self.margin = 30
-        self.line_height = 45
+        # Layout settings - More spacing
+        self.margin = 40
+        self.line_height = 55
         
     def create_overlay(self, env, current_torque_r: float, current_torque_l: float,
                       stance_percent_r: float, stance_percent_l: float,
@@ -50,43 +49,43 @@ class ExoVisualizer:
         # Header
         cv2.putText(overlay, "EXOSKELETON CONTROL VISUALIZATION", 
                     (self.margin, self.margin), self.font, self.font_scale_large, 
-                    self.colors['black'], self.thickness)
+                    self.colors['white'], self.thickness)
         
         # Right leg info
-        y_pos = self.margin + 70
+        y_pos = self.margin + 80
         cv2.putText(overlay, f"RIGHT LEG:", (self.margin, y_pos), self.font, 
-                    self.font_scale_medium, self.colors['black'], self.thickness)
+                    self.font_scale_medium, self.colors['cyan'], self.thickness)
         y_pos += self.line_height
         cv2.putText(overlay, f"  State: {state_r}", (self.margin, y_pos), self.font, 
                     self.font_scale_medium, 
-                    self.colors['green'] if state_r == "STANCE" else self.colors['red'], 
+                    self.colors['green'] if state_r == "STANCE" else self.colors['yellow'], 
                     self.thickness)
         y_pos += self.line_height
         cv2.putText(overlay, f"  Stance Phase: {stance_percent_r:.1f}%", 
                     (self.margin, y_pos), self.font, self.font_scale_medium, 
-                    self.colors['black'], self.thickness)
+                    self.colors['white'], self.thickness)
         y_pos += self.line_height
         cv2.putText(overlay, f"  Applied Torque: {current_torque_r:.2f} Nm", 
                     (self.margin, y_pos), self.font, self.font_scale_medium, 
-                    self.colors['orange'], self.thickness)
+                    self.colors['yellow'], self.thickness)
         
         # Left leg info
-        y_pos += self.line_height + 15
+        y_pos += self.line_height + 20
         cv2.putText(overlay, f"LEFT LEG:", (self.margin, y_pos), self.font, 
-                    self.font_scale_medium, self.colors['black'], self.thickness)
+                    self.font_scale_medium, self.colors['cyan'], self.thickness)
         y_pos += self.line_height
         cv2.putText(overlay, f"  State: {state_l}", (self.margin, y_pos), self.font, 
                     self.font_scale_medium, 
-                    self.colors['green'] if state_l == "STANCE" else self.colors['red'], 
+                    self.colors['green'] if state_l == "STANCE" else self.colors['yellow'], 
                     self.thickness)
         y_pos += self.line_height
         cv2.putText(overlay, f"  Stance Phase: {stance_percent_l:.1f}%", 
                     (self.margin, y_pos), self.font, self.font_scale_medium, 
-                    self.colors['black'], self.thickness)
+                    self.colors['white'], self.thickness)
         y_pos += self.line_height
         cv2.putText(overlay, f"  Applied Torque: {current_torque_l:.2f} Nm", 
                     (self.margin, y_pos), self.font, self.font_scale_medium, 
-                    self.colors['orange'], self.thickness)
+                    self.colors['yellow'], self.thickness)
         
         # Torque profile visualization (right side of screen)
         if env.exo_bool and env.ExoCtrl_R is not None:
@@ -96,10 +95,10 @@ class ExoVisualizer:
     
     def _draw_torque_profile(self, overlay: np.ndarray, env, stance_percent_r: float):
         """Draw the torque profile graph."""
-        profile_width = 500  # Larger profile
-        profile_height = 250  # Larger profile
+        profile_width = 600  # Larger profile
+        profile_height = 300  # Larger profile
         profile_x = self.frame_width - profile_width - self.margin
-        profile_y = self.margin + 70
+        profile_y = self.margin + 80
         
         # Create torque profile plot
         x_vals = np.linspace(0, 100, 101)
@@ -115,50 +114,47 @@ class ExoVisualizer:
         max_torque = max(1, np.max(torque_vals))
         normalized_torque = (torque_vals / max_torque) * profile_height * 0.8
         
-        # Draw profile background
+        # Draw profile background (clean white border like original)
         cv2.rectangle(overlay, (profile_x, profile_y), 
                      (profile_x + profile_width, profile_y + profile_height), 
-                     self.colors['black'], 3)
+                     self.colors['white'], 2)
         
-        # Draw torque curve (cleaner without grid lines)
+        # Draw torque curve (blue like original, no grid lines) - thicker line
         for i in range(len(x_vals) - 1):
             x1 = int(profile_x + (x_vals[i] / 100) * profile_width)
             y1 = int(profile_y + profile_height - normalized_torque[i])
             x2 = int(profile_x + (x_vals[i+1] / 100) * profile_width)
             y2 = int(profile_y + profile_height - normalized_torque[i+1])
-            cv2.line(overlay, (x1, y1), (x2, y2), self.colors['blue'], 3)
+            cv2.line(overlay, (x1, y1), (x2, y2), self.colors['blue'], 4)  # Thicker line
         
-        # Draw current position indicator
+        # Draw current position indicator (red dot like original) - thicker
         if stance_percent_r > 0:
             current_x = int(profile_x + (stance_percent_r / 100) * profile_width)
             current_y = int(profile_y + profile_height - normalized_torque[int(stance_percent_r)])
-            cv2.circle(overlay, (current_x, current_y), 12, self.colors['red'], -1)
-            cv2.circle(overlay, (current_x, current_y), 12, self.colors['black'], 2)
+            cv2.circle(overlay, (current_x, current_y), 12, self.colors['red'], -1)  # Larger circle
         
-        # Labels
-        cv2.putText(overlay, "TORQUE PROFILE", (profile_x, profile_y - 15), 
-                    self.font, self.font_scale_medium, self.colors['black'], self.thickness)
-        cv2.putText(overlay, "0%", (profile_x, profile_y + profile_height + 30), 
-                    self.font, self.font_scale_small, self.colors['black'], 1)
-        cv2.putText(overlay, "100%", (profile_x + profile_width - 40, profile_y + profile_height + 30), 
-                    self.font, self.font_scale_small, self.colors['black'], 1)
-        
-        # Add max torque label
-        cv2.putText(overlay, f"Max: {max_torque:.1f} Nm", 
-                    (profile_x, profile_y - 40), self.font, self.font_scale_small, 
-                    self.colors['black'], 1)
+        # Labels (white text like original)
+        cv2.putText(overlay, "TORQUE PROFILE", (profile_x, profile_y - 10), 
+                    self.font, self.font_scale_medium, self.colors['white'], self.thickness)
+        cv2.putText(overlay, "0%", (profile_x, profile_y + profile_height + 25), 
+                    self.font, self.font_scale_small, self.colors['white'], 1)
+        cv2.putText(overlay, "100%", (profile_x + profile_width - 35, profile_y + profile_height + 25), 
+                    self.font, self.font_scale_small, self.colors['white'], 1)
     
     def overlay_on_frame(self, frame: np.ndarray, overlay: np.ndarray) -> np.ndarray:
-        """Blend overlay onto frame without dimming."""
+        """Blend overlay onto frame with transparent-but-dimmed style like original."""
         # Resize overlay to match frame dimensions
         overlay_resized = cv2.resize(overlay, (frame.shape[1], frame.shape[0]))
         
         # Create mask for non-black pixels in overlay
         mask = np.any(overlay_resized > 0, axis=2)
         
-        # Apply overlay only where there's content
+        # Apply overlay with dimming effect (like original)
         result = frame.copy()
-        result[mask] = overlay_resized[mask]
+        # Dim the background where overlay will be applied
+        result[mask] = cv2.addWeighted(result[mask], 0.3, np.zeros_like(result[mask]), 0.7, 0)
+        # Apply overlay text/graphics
+        result[mask] = cv2.addWeighted(result[mask], 0.7, overlay_resized[mask], 0.3, 0)
         
         return result
     
@@ -188,28 +184,30 @@ class ExoVisualizer:
             
             # Get actual applied torques directly from simulation actuators
             try:
-                # Access the actual applied torque from the simulation
+                # Access the actual applied torque from the simulation (like MyoReport.py)
                 if 'Exo_R' in env.torque_dict and len(env.torque_dict['Exo_R']) > 0:
                     exo_r_idx = env.torque_dict['Exo_R'][0]
-                    # Convert control signal back to torque using actuator gain
-                    control_signal = env.env.sim.data.ctrl[exo_r_idx]
-                    actuator_gain = env.env.sim.model.actuator('Exo_R').gainprm[0]
-                    current_torque_r = abs(control_signal * actuator_gain)
+                    # Get the actual actuator force/torque from simulation
+                    current_torque_r = abs(env.env.sim.data.actuator_force[exo_r_idx])
                 
                 if 'Exo_L' in env.torque_dict and len(env.torque_dict['Exo_L']) > 0:
                     exo_l_idx = env.torque_dict['Exo_L'][0]
-                    # Convert control signal back to torque using actuator gain
-                    control_signal = env.env.sim.data.ctrl[exo_l_idx]
-                    actuator_gain = env.env.sim.model.actuator('Exo_L').gainprm[0]
-                    current_torque_l = abs(control_signal * actuator_gain)
+                    # Get the actual actuator force/torque from simulation
+                    current_torque_l = abs(env.env.sim.data.actuator_force[exo_l_idx])
                     
             except Exception as e:
                 # Fallback to controller values if direct access fails
                 try:
                     if hasattr(env.ExoCtrl_R, 'last_torque'):
                         current_torque_r = env.ExoCtrl_R.last_torque
+                        # Un-normalize by multiplying by max_torque
+                        if hasattr(env.ExoCtrl_R, 'max_torque'):
+                            current_torque_r *= env.ExoCtrl_R.max_torque
                     if hasattr(env.ExoCtrl_L, 'last_torque'):
                         current_torque_l = env.ExoCtrl_L.last_torque
+                        # Un-normalize by multiplying by max_torque
+                        if hasattr(env.ExoCtrl_L, 'max_torque'):
+                            current_torque_l *= env.ExoCtrl_L.max_torque
                 except:
                     pass
         
