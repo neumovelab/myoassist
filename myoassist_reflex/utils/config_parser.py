@@ -135,7 +135,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
     
     try:
         # Import here to avoid circular imports
-        from myoassist_reflex.reflex import reflex_interface
+        from reflex import reflex_interface
         
         # Parse the .bat file
         config = parse_bat_config(bat_file_path)
