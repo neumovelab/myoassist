@@ -37,8 +37,8 @@ def main():
     optim_type = get_optimization_type(input_args)
     
     if input_args.cluster:
-        save_path = os.path.join('/home', 'robbins.cal', 'Code', 'NeuMove_MyoReflex', 'workspace', 'reflex_npoint')
-        home_path = os.path.join('/home', 'robbins.cal', 'Code', 'NeuMove_MyoReflex', 'workspace', 'reflex_npoint')
+        save_path = os.path.join('your_path')
+        home_path = os.path.join('your_path')
     else:
         save_path = os.path.join('results')
         home_path = os.getcwd()
@@ -63,7 +63,7 @@ def main():
     ]
     
     if len(sys.argv) > 0 and sys.argv[0].endswith('.bat'):
-        potential_configs.insert(0, sys.argv[0])  # Add .bat file being run as first priority
+        potential_configs.insert(0, sys.argv[0]) 
     
     config_found = False
     for potential_config in potential_configs:
@@ -75,7 +75,7 @@ def main():
             break
     
     if not config_found:
-        print(f"Note: Could not find configuration file {config_name}.bat in training_configs directory")
+        print(f"Note: Could not copy configuration file {config_name}.bat to save_path. Config name must match save_path.")
         print(f"Searched in: {[os.path.dirname(p) for p in potential_configs]}")
 
     convert = str(input_args.tgt_vel).replace('.', '_')

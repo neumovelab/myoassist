@@ -1,7 +1,7 @@
 @echo off
 python -m myoassist_reflex.train ^
     --musc_model 22 ^
-    --model humotech ^
+    --model tutorial ^
     --sim_time 20 ^
     --pose_key walk_left ^
     --num_strides 5 ^
@@ -17,8 +17,8 @@ python -m myoassist_reflex.train ^
     --ExoOn 1 ^
     --use_4param_spline ^
     --max_torque 100.0 ^
-    --popsize 8 ^
-    --maxiter 50 ^
-    --threads 8 ^
+    --popsize 32 ^
+    --maxiter 1000 ^
+    --threads 32 ^
     --sigma_gain 10 ^
-    --save_path results/debug
+    --save_path results/exo_4param_tutorial

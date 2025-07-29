@@ -8,7 +8,7 @@ There are two ways to run optimizations, depending on your operating system and 
 
 ### Windows: Using .bat Configuration Files
 
-The easiest way to begin on Windows is by using the `run_training.bat` script, which executes one of the predefined configurations from the `training_configs/` directory.
+On Windows, use the `run_training.bat` script, which executes predefined configurations from the `training_configs/` directory.
 
 ```bash
 # Run from the myoassist_reflex directory
@@ -20,23 +20,23 @@ For example, to run the baseline configuration:
 run_training.bat baseline
 ```
 
-### Cross-Platform: Using JSON Configuration Files
+### Cross-Platform: Using .sh Configuration Files
 
-For cross-platform compatibility (Windows, Linux, Mac) or when you want to easily modify parameters from the command line without updating the configuration (i.e., for hot swapping models), use JSON configuration files:
+For cross-platform compatibility (Linux, Mac), use the `run_training.sh` script with `.sh` configuration files:
 
 ```bash
-# Run from the project root directory (MyoAssist)
-python -m myoassist_reflex.train --config <config_name>
+# Run from the myoassist_reflex directory
+./run_training.sh <config_name>
 ```
 
 For example:
 ```bash
-python -m myoassist_reflex.train --config baseline
+./run_training.sh baseline
 ```
 
 ## Training Configurations
 
-The `training_configs/` directory contains both `.bat` and `.json` files for each configuration. Each `.json` file is equivalent to its corresponding `.bat` file.
+The `training_configs/` directory contains both `.bat` (Windows) and `.sh` (Linux/Mac) files for each configuration. Each `.sh` file is equivalent to its corresponding `.bat` file.
 
 | Example Configuration         | Description                                                                                             |
 |-----------------------|---------------------------------------------------------------------------------------------------------|
@@ -52,7 +52,7 @@ The `training_configs/` directory contains both `.bat` and `.json` files for eac
 
 ### Windows Users
 
-**Option 1: .bat files**
+**Using .bat files**
 ```bash
 # Navigate to myoassist_reflex directory
 cd myoassist_reflex
@@ -61,47 +61,30 @@ cd myoassist_reflex
 run_training.bat baseline
 ```
 
-**Option 2: JSON files**
-```bash
-# Navigate to project root directory
-cd ..
-
-# Run using JSON files
-python -m myoassist_reflex.train --config baseline
-
-# Hotswap parameters
-python -m myoassist_reflex.train --config exo_4param --model dephy
-# or
-python -m myoassist_reflex.train --config debug --maxiter 100
-```
-
 ### Linux/Mac Users
 
-**JSON files only**
+**Using .sh files**
 ```bash
-# Navigate to project root directory
-cd ..
+# Navigate to myoassist_reflex directory
+cd myoassist_reflex
 
-# Run using JSON files
-python -m myoassist_reflex.train --config baseline
+# Make the script executable (first time only)
+chmod +x run_training.sh
 
-# Hotswap parameters
-python -m myoassist_reflex.train --config exo_npoint --model hmedi
+# Run using .sh files
+./run_training.sh baseline
 ```
 
 ### Cluster/Remote Execution
 
-For cluster environments, use JSON configurations with the `--cluster` flag:
+For cluster environments, use the `.sh` configurations:
 
 ```bash
-python -m myoassist_reflex.train --config baseline --cluster
-python -m myoassist_reflex.train --config debug --cluster --popsize 32 --threads 32
+./run_training.sh baseline
+./run_training.sh debug
 ```
 
 ## Configuration File Formats
-
-### .bat Files (Windows)
-Batch files contain Windows command-line syntax and are executed from the `myoassist_reflex` directory.
 
 **Example `debug.bat`:**
 ```batch
@@ -130,61 +113,30 @@ python -m myoassist_reflex.train ^
     --save_path results/debug
 ```
 
-### .json Files
-JSON files contain key-value pairs and are executed from the project root directory.
-
-**Example `debug.json`:**
-```json
-{
-    "musc_model": 22,
-    "model": "tutorial",
-    "sim_time": 20,
-    "pose_key": "walk_left",
-    "num_strides": 5,
-    "delayed": 0,
-    "optim_mode": "single",
-    "reflex_mode": "uni",
-    "tgt_vel": 1.25,
-    "tgt_slope": 0,
-    "trunk_err_type": "ref_diff",
-    "tgt_sym_th": 0.1,
-    "tgt_grf_th": 1.5,
-    "kinematics": true,
-    "ExoOn": 1,
-    "n_points": 6,
-    "max_torque": 10.0,
-    "popsize": 8,
-    "maxiter": 50,
-    "threads": 8,
-    "sigma_gain": 10,
-    "save_path": "results/debug"
-}
-```
-
-## Command-Line Arguments
+## Arguments
 
 The `train.py` script accepts a wide range of arguments to customize the optimization. Here are the most important ones, grouped by category. For a complete list, refer to `myoassist_reflex/config/arg_parser.py`.
 
 ### Model Configuration
-- `--model`: The physical model for the legs and feet. Options: `baseline`, `dephy`, `hmedi`, `humotech`, `osl`.
-- `--musc_model`: The muscle model to use. `leg_11` (22 muscles total) is standard. `leg_80` (160 muscles total) is experimental.
+- `--model`: The physical model, primarily used to specify different devices
+- `--musc_model`: The muscle model to use, e.g. 22 muscle for 2D or 26 muscle for 3D
 - `--delayed`: Use delayed muscle dynamics. (Default: `False`)
 
 ### Exoskeleton Configuration
 - `--exo_bool`: Enable (`True`) or disable (`False`) the exoskeleton.
-- `--use_4param_spline`: If `exo_bool` is `True`, use the legacy 4-parameter spline controller. If `False`, uses the n-point spline.
+- `--use_4param_spline`: If passed and `exo_bool` is `True`, use the 4-parameter spline controller. If `False`, uses the n-point spline.
 - `--n_points`: Number of control points for the n-point spline (e.g., `4` for a 4-point spline).
-- `--max_torque`: Maximum torque the exoskeleton can apply (in Nm).
+- `--max_torque`: Maximum torque the exoskeleton can apply (in Nm). This parameter also influences the initial torque values for both controllers.
 - `--fixed_exo`: Keep exoskeleton parameters fixed (not optimized).
 
 ### Optimization Target
-- `-eff`, `-vel`, `-kine`, `-combined`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose one that best fits your goal (e.g., minimizing effort, matching a target velocity, or tracking reference kinematics).
+- `-eff`, `-vel`, `-kine`, `-combined`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose one that best fits your goal (e.g., minimizing effort, matching a target velocity, or tracking reference kinematics). For more information see (**[Understanding_Cost](./Understanding_Cost.md)**).
 
 ### Optimizer Settings
 - `--popsize`: The population size for the CMA-ES optimizer (number of solutions per generation).
 - `--maxiter`: The maximum number of generations the optimizer will run.
 - `--threads`: Number of parallel threads for evaluating the population.
-- `--sigma`: The initial standard deviation (step size) for the CMA-ES optimizer.
+- `--sigma_gain`: Gain value for the initial standard deviation (step size) for the CMA-ES optimizer (if gain = 1, sigma = 0.01).
 
 ### Continuing an Optimization
 
@@ -193,11 +145,11 @@ You can start a new optimization from the results of a previous one or resume an
 #### `--param_path`: Start with Existing Parameters
 Use this to start a new optimization (e.g., with a different cost function or model) using the best parameters from a previous run as the starting point.
 - **Argument**: `--param_path <path_to_results_folder>`
-- **Behavior**: The script looks for a `_Best.txt` or `_BestLast.txt` file inside the specified folder and loads it as the initial guess (`x0`) for the new optimization. The optimizer's internal state (covariance matrix, step size) is reset.
+- **Behavior**: The script looks for a `_Best.txt` or `_BestLast.txt` file inside the specified folder and loads it as the initial guess for the new optimization. The optimizer's internal state (covariance matrix, step size) is reset.
 
-**Example from `exo_npoint_cont.bat`**:
+**Example**:
 ```batch
---param_path results/exo_npoint_0630_1557
+--param_path results/exo_npoint_date_time
 ```
 
 #### `--pickle_path`: Resume a Saved State
@@ -207,12 +159,12 @@ Use this to continue an optimization that was stopped prematurely.
 
 **Example**:
 ```batch
---pickle_path results/my_run_20240101_1200/myo_reflex_20240101_1200.pkl
+--pickle_path results/my_run_date_time/myo_reflex_date_time.pkl
 ```
 
-### Advanced CMA-ES Termination Criteria
+### Additional CMA-ES Termination Criteria
 
-You can fine-tune the optimizer's stopping conditions by passing `CMAOptions` directly via the command line. These are useful for preventing premature termination or for ending a run once a satisfactory solution is found.
+You can fine-tune the optimizer's stopping conditions by passing `CMAOptions` directly via the command line or setting them in the `train.py` file. These are useful for preventing premature termination or for ending a run once a satisfactory solution is found.
 
 - `--cma_options "tolfun:1e-9"`: Sets the tolerance for the change in fitness value. The optimization stops if the change in the best function value over recent generations is less than this tolerance.
 - `--cma_options "tolx:1e-9"`: Sets the tolerance for the change in the parameter vector (`x`). The optimization stops if the change in the solution vector is less than this tolerance.
@@ -226,33 +178,37 @@ You can combine multiple options:
 ## Results and Configuration Saving
 
 ### Results Location
-All results are automatically saved in the `myoassist_reflex/results/` directory, regardless of whether you use `.bat` or `.json` configurations.
+All results are automatically saved in the `myoassist_reflex/results/` directory, regardless of whether you use `.bat` or `.sh` configurations.
 
 ### Configuration Saving
 The system automatically saves the final configuration used for each run:
 
-- **JSON runs**: Saves as `config_name_timestamp.json` (e.g., `debug_0725_1810.json`)
-- **BAT runs**: Saves as `config_name_timestamp.bat` (e.g., `debug_0725_1810.bat`)
+- **BAT runs**: Saves as `config_name_timestamp.bat`
+- **SH runs**: Saves as `config_name_timestamp.sh`
 
-Only explicitly set parameters are saved, avoiding clutter from default values.
+Only explicitly set parameters are saved.
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"Module not found" errors**: Make sure you're running from the correct directory:
-   - For `.bat` files: Run from `myoassist_reflex/` directory
-   - For JSON files: Run from project root (`MyoAssist_Reflex/`) directory
+   - i.e., Run from `myoassist_reflex/` directory
 
-2. **File path errors**: The system automatically resolves paths, but ensure your directory structure is correct.
+2. **File path errors**: The system (attempts to) automatically resolve paths, but ensure your directory structure is correct.
 
 3. **Configuration not found**: Verify the configuration name exists in `training_configs/` directory.
+
+4. **Permission denied on .sh files**: Make sure the script is executable:
+   ```bash
+   chmod +x run_training.sh
+   ```
 
 ### Creating Custom Configurations
 
 You can create new configurations by:
-1. Copying an existing `.bat` or `.json` file
+1. Copying an existing `.bat` or `.sh` file
 2. Modifying the parameters as needed
 3. Saving with a new name in the `training_configs/` directory
 
-For JSON files, ensure boolean flags are properly formatted (e.g., `"kinematics": true` instead of `"-kine"`). 
+For `.sh` files, ensure you use proper bash syntax with backslashes (`\`) for line continuation instead of carets (`^`). 
