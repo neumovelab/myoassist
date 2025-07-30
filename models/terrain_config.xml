@@ -1,0 +1,45 @@
+<!-- =================================================
+    Copyright 2025 NeuMove Laboratory, Northeastern University
+    Model   :: Terrain Configuration (MuJoCoV2.0)
+    Author  :: Calder Robbins (robbins.cal@northeastern.edu)
+    License :: Under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+====================================================== -->
+
+<mujocoinclude>
+    <asset>
+        <!-- Plain white -->
+        <!-- <texture name="texfloor" type="2d" height="1" width="1" file="mesh/floor0.png"/>
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true"/> -->
+
+        <!-- Myosuite blue check -->
+        <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.2 0.3 0.4"  rgb2="0.1 0.2 0.3"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
+
+        <!-- NEU red/white check -->
+        <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.784 0.063 0.18"  rgb2="1 1 1"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
+
+        <!-- Grey check -->
+        <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.671 0.671 0.671"  rgb2="0.541 0.541 0.541"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
+		
+        <!-- Terracotta solid tile -->
+        <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.988 0.757 0.749"  rgb2="0.988 0.757 0.749"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" />
+
+        <!-- Light blue check -->
+        <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.561 0.725 0.937"  rgb2="0.384 0.494 0.639"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
+
+        <hfield name="terrain" size="50 10 1 30" nrow="100" ncol="500"/>
+    </asset>
+
+    <worldbody>
+        <light dir="0 0 -1" directional="true" pos="0 0 0"/>
+        <light dir="0 -1 0" directional="true" pos="0 0 0"/>
+        <body name="ground" pos="40 0 0" quat="0.707035 0.707179 0 0">
+            <geom name="ground-plane" quat="0.707035 -0.707179 0 0" rgba="1 1 1 1" material="matfloor" size="50 2.5 0.125" type="plane" />
+        </body>
+        <geom name="terrain" type="hfield" hfield="terrain" pos="40 0 -0.005" material="matfloor" conaffinity="1" contype="1" rgba="1 1 1 0"/>
+    </worldbody>
+</mujocoinclude> 

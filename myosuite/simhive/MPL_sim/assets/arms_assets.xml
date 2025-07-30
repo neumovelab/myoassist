@@ -1,0 +1,58 @@
+<mujocoinclude>
+
+    <compiler angle="radian" meshdir="./../" texturedir='../scenes/' convexhull="false"/>
+    <size nconmax="1000" njmax="5000"/>
+    <option timestep="0.002"/>
+
+    <default>
+        <default class="MPL_arm">
+            <geom condim="3" contype="2" conaffinity="1" type="mesh" material="matmetal"/>
+            <joint limited="true" damping="10"/>
+            <position kp="100" ctrllimited="true"/>
+            <default class="MPL_arm_dark">
+                <geom rgba=".1 .13 .13 1"/>
+            </default>
+        </default>
+    </default>
+
+    <asset>
+        <mesh file="meshes/hdm/torso_yaw_axis_assembly_bottom-1_cvx.stl" name="torso_yaw_axis_assembly_bottom-1" scale="0.001 0.001 0.001"/>
+        <mesh file="meshes/hdm/torso_yaw_axis_assembly_top-2_cvx.stl" name="torso_yaw_axis_assembly_top-2" scale="0.001 0.001 0.001"/>
+        <mesh file="meshes/hdm/roll_slip_yoke_assembly-3_cvx.stl" name="roll_slip_yoke_assembly-3" scale="0.001 0.001 0.001"/>
+        <mesh file="meshes/hdm/roll_slip_yoke_assembly_top-4_cvx.stl" name="roll_slip_yoke_assembly_top-4" scale="0.001 0.001 0.001"/>
+        <mesh file="meshes/hdm/upper_torso_assembly-5_cvx.stl" name="upper_torso_assembly-5" scale="0.001 0.001 0.001"/>
+
+        <mesh file="meshes/mplR/base_link-cvx.stl" name="base_linkR"/>
+        <mesh file="meshes/mplR/shoulder_link-cvx.stl" name="shoulder_linkR"/>
+        <mesh file="meshes/mplR/humerus_upper_link-cvx.stl" name="humerus_upper_linkR"/>
+        <mesh file="meshes/mplR/humerus_lower_top_link-cvx.stl" name="humerus_lower_top_linkR"/>
+        <mesh file="meshes/mplR/humerus_lower_bottom_link-cvx.stl" name="humerus_lower_bottom_linkR"/>
+        <mesh file="meshes/mplR/forearm_link-cvx.stl" name="forearm_linkR"/>
+
+        <mesh file="meshes/mplL/base_link-cvx.stl" name="base_linkL"/>
+        <mesh file="meshes/mplL/shoulder_link-cvx.stl" name="shoulder_linkL"/>
+        <mesh file="meshes/mplL/humerus_upper_link-cvx.stl" name="humerus_upper_linkL"/>
+        <mesh file="meshes/mplL/humerus_lower_top_link-cvx.stl" name="humerus_lower_top_linkL"/>
+        <mesh file="meshes/mplL/humerus_lower_bottom_link-cvx.stl" name="humerus_lower_bottom_linkL"/>
+        <mesh file="meshes/mplL/forearm_link-cvx.stl" name="forearm_linkL"/>
+
+        <texture name="texmetal" type="cube" builtin="flat" rgb1=".85 .85 0.86" rgb2=".85 .85 0.86"  mark="random" markrgb=".2 .2 .3" random="0.25" width="512" height="512"/>
+        <material name="matmetal" texture="texmetal" specular="0.75" shininess=".03"/>
+    </asset>
+
+    <actuator>
+        <position class="MPL_arm" kp="100" name="torso_yaw" joint="torso_yaw" ctrlrange="-1.57 1.57"/>
+        <position class="MPL_arm" kp="100" name="torso_pitch" joint="torso_pitch" ctrlrange="-.785 .785"/>
+        <position class="MPL_arm" kp="100" name="torso_roll" joint="torso_roll" ctrlrange="-.785 .785"/>
+        <position class="MPL_arm" kp="50" name="Rshoulder_fe" joint="Rshoulder_fe" ctrlrange="-0.611 2.792"/>
+        <position class="MPL_arm" kp="50" name="Rshoulder_abad" joint="Rshoulder_abad" ctrlrange="-2.792 0"/>
+        <position class="MPL_arm" kp="50" name="Rhumeral_rot" joint="Rhumeral_rot" ctrlrange="-0.524 1.483"/>
+        <position class="MPL_arm" kp="50" name="Relbow" joint="Relbow" ctrlrange="0.05 2.356"/>
+        <position class="MPL_arm" kp="50" name="Lshoulder_fe" joint="Lshoulder_fe" ctrlrange="-0.611 2.792"/>
+        <position class="MPL_arm" kp="50" name="Lshoulder_abad" joint="Lshoulder_abad" ctrlrange="-2.792 0"/>
+        <position class="MPL_arm" kp="50" name="Lhumeral_rot" joint="Lhumeral_rot" ctrlrange="-0.524 1.483"/>
+        <position class="MPL_arm" kp="50" name="Lelbow" joint="Lelbow" ctrlrange="0.05 2.356"/>
+    </actuator>
+
+
+</mujocoinclude>

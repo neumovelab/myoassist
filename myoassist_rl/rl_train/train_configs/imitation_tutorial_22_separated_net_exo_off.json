@@ -1,0 +1,240 @@
+{
+    "logger_params": {
+        "logging_frequency": 8
+    },
+    "env_params": {
+        "env_id": "myoAssistLegImitationExo-v0",
+        "num_envs": 16,
+        "seed": 1234,
+        "safe_height": 0.7,
+        "out_of_trajectory_threshold": 0.6,
+        "flag_random_ref_index": true,
+        "control_framerate": 30,
+        "physics_sim_framerate": 1200,
+        
+        "min_target_velocity": 1.25,
+        "max_target_velocity": 1.25,
+        "min_target_velocity_period": 2,
+        "max_target_velocity_period": 10,
+
+        "enable_lumbar_joint": false,
+        "lumbar_joint_fixed_angle": -0.13,
+        "lumbar_joint_damping_value": 0.05,
+
+        "observation_joint_pos_keys": [
+            "ankle_angle_l", "ankle_angle_r",
+            "hip_flexion_l", "hip_flexion_r",
+            "knee_angle_l", "knee_angle_r",
+            "pelvis_tilt",
+            "pelvis_ty"
+        ],
+        "observation_joint_vel_keys": [
+            "ankle_angle_l", "ankle_angle_r",
+            "hip_flexion_l", "hip_flexion_r",
+            "knee_angle_l", "knee_angle_r",
+            "pelvis_tilt",
+            "pelvis_tx", "pelvis_ty"
+        ],
+        "observation_joint_sensor_keys": [
+            "r_foot", "l_foot", "r_toes", "l_toes"
+        ],
+
+        "terrain_type": "flat",
+        
+        "reward_keys_and_weights": {
+            "qpos_imitation_rewards": {
+                "pelvis_ty": 0.4,
+                "pelvis_tilt": 0.4,
+                "hip_flexion_l": 0.2,
+                "hip_flexion_r": 0.2,
+                "knee_angle_l": 0.2,
+                "knee_angle_r": 0.2,
+                "ankle_angle_l": 0.2,
+                "ankle_angle_r": 0.2
+            },
+            "qvel_imitation_rewards": {
+                "pelvis_ty": 0.4,
+                "pelvis_tilt": 0.4,
+                "hip_flexion_l": 0.2,
+                "hip_flexion_r": 0.2,
+                "knee_angle_l": 0.2,
+                "knee_angle_r": 0.2,
+                "ankle_angle_l": 0.2,
+                "ankle_angle_r": 0.2
+            },
+            "end_effector_imitation_reward": 0.0,
+            "forward_reward": 0.2,
+            "muscle_activation_penalty": 0.1,
+            "muscle_activation_diff_penalty": 0.1,
+
+            "footstep_delta_time": 0.0,
+            "average_velocity_per_step": 0.0,
+            "muscle_activation_penalty_per_step": 0.0,
+
+            "joint_constraint_force_penalty": 0.0,
+
+            "foot_force_penalty": 0.5
+        },
+        "custom_max_episode_steps": 1000,
+        "model_path": "models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml",
+        "reference_data_path": "myoassist_rl/reference_data/short_reference_gait.npz",
+        "reference_data_keys": ["ankle_angle_l", "ankle_angle_r",
+                                "hip_flexion_l", "hip_flexion_r",
+                                "knee_angle_l", "knee_angle_r",
+                                "pelvis_tilt",
+                                "pelvis_tx", "pelvis_ty"
+                                ],
+        "prev_trained_policy_path": null
+    },
+    "ppo_params": {
+        "learning_rate": 0.0001,
+        "n_steps": 512,
+        "batch_size": 8192,
+        "n_epochs": 30,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "clip_range": 0.2,
+        "clip_range_vf": 100,
+        "ent_coef": 0.001,
+        "vf_coef": 0.5,
+        "max_grad_norm": 0.5,
+        "use_sde": false,
+        "sde_sample_freq": -1,
+        "target_kl": 0.01,
+
+        "device": "cpu"
+    },
+    "policy_params": {
+        "custom_policy_params": {
+            "net_arch": {
+                        "human_actor": [64, 64],
+                        "exo_actor": [8, 8],
+                        "common_critic": [64, 64]
+                    },
+            "net_indexing_info": {
+                "human_actor":
+                {
+                    "observation":
+                        [
+                            {
+                                "type":"range",
+                                "range":[0,8],
+                                "comment":"8 qpos without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[8,17],
+                                "comment":"9 qvel without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[17,28],
+                                "comment":"11 left muscle activation"
+                            },
+                            {
+                                "type":"range",
+                                "range":[28,39],
+                                "comment":"11 right muscle activation"
+                            },
+                            {
+                                "type":"range",
+                                "range":[39,43],
+                                "comment":"4 foot force"
+                            },
+                            {
+                                "type":"range",
+                                "range":[43,44],
+                                "comment":"target velocity"
+                            }
+                        ],
+                    "action":
+                        [
+                            {
+                                "type":"range_mapping",
+                                "range_net":[0,11],
+                                "range_action":[0,11],
+                                "comment":"r 11 muscle activation without exo"
+                            },
+                            {
+                                "type":"range_mapping",
+                                "range_net":[11,22],
+                                "range_action":[11,22],
+                                "comment":"l 11 muscle activation without exo"
+                            }
+                        ]
+                },
+                "exo_actor": 
+                {
+                    "observation":
+                        [
+                            {
+                                "type":"range",
+                                "range":[0,2],
+                                "comment":"2 ankle angle in 8 qpos without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[8,10],
+                                "comment":"2 angkle angular in 9 qvel without lumbar_extension"
+                            }
+                        ],
+                    "action":
+                        [
+                            {
+                                "type":"range_mapping",
+                                "range_net":[0,2],
+                                "range_action":[22,24],
+                                "comment":"2 for exo L, R"
+                            },
+                            {
+                                "type":"constant",
+                                "range_action":[22,24],
+                                "default_value":1.0,
+                                "comment":"override exo"
+                            }
+                        ]
+                },
+                "common_critic": 
+                {
+                    "observation":
+                        [
+                            {
+                                "type":"range",
+                                "range":[0,8],
+                                "comment":"8 qpos without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[8,17],
+                                "comment":"9 qvel without lumbar_extension"
+                            },
+                            {
+                                "type":"range",
+                                "range":[17,28],
+                                "comment":"11 left muscle activation"
+                            },
+                            {
+                                "type":"range",
+                                "range":[28,39],
+                                "comment":"11 right muscle activation"
+                            },
+                            {
+                                "type":"range",
+                                "range":[39,43],
+                                "comment":"4 foot force"
+                            },
+                            {
+                                "type":"range",
+                                "range":[43,44],
+                                "comment":"target velocity"
+                            }
+                        ]
+                }
+            },
+            "log_std_init": 0.0
+        }
+    },
+    "auto_reward_adjust_params":{
+        "learning_rate": 0.0
+    }
+}

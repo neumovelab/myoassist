@@ -1,0 +1,15 @@
+Effort_Cost : 1.5676044835654763
+Symmetry_Cost : 0.01825697803551766
+Velocity_Cost : 0.0011488884513669191
+GRF_Cost : 0.1604526031159699
+JointPain_Cost : 0.0
+HipPain_Cost : 0.0
+KneePain_Cost : 0.0
+AnklePain_Cost : 0.0
+Kinematic_Cost : 117.61943742409284
+Comb_Eff_Vel_Pain_Scruff : 19.24825141257343
+Comb_Kine_Vel_Pain_Scruff : 118.76832587545975
+Actual_velocity : [1.7489e+00 6.9376e-08]
+Actual_dist : [8.4994e+00 3.3717e-07]
+Actual_time : 4.859999999999999
+Pelvis_Cost : None

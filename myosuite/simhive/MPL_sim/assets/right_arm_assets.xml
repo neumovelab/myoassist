@@ -1,0 +1,38 @@
+<mujocoinclude>
+
+    <compiler angle="radian" meshdir="./../" texturedir='../scenes/' convexhull="false"/>
+    <size nconmax="1000" njmax="5000"/>
+    <option timestep="0.002"/>
+
+    <default>
+        <default class="MPL_arm">
+            <geom condim="3" contype="2" conaffinity="1" type="mesh" material="matmetal"/>
+            <joint limited="true" damping="10"/>
+            <position kp="100" ctrllimited="true"/>
+            <default class="MPL_arm_dark">
+                <geom rgba=".1 .13 .13 1"/>
+            </default>
+        </default>
+    </default>
+
+    <asset>
+        <mesh file="../MPL_sim/meshes/mplR/base_link-cvx.stl" name="base_linkR"/>
+        <mesh file="../MPL_sim/meshes/mplR/shoulder_link-cvx.stl" name="shoulder_linkR"/>
+        <mesh file="../MPL_sim/meshes/mplR/humerus_upper_link-cvx.stl" name="humerus_upper_linkR"/>
+        <mesh file="../MPL_sim/meshes/mplR/humerus_lower_top_link-cvx.stl" name="humerus_lower_top_linkR"/>
+        <mesh file="../MPL_sim/meshes/mplR/humerus_lower_bottom_link-cvx.stl" name="humerus_lower_bottom_linkR"/>
+        <mesh file="../MPL_sim/meshes/mplR/forearm_link-cvx.stl" name="forearm_linkR"/>
+
+        <texture name="texmetal" type="cube" builtin="flat" rgb1=".85 .85 0.86" rgb2=".85 .85 0.86"  mark="random" markrgb=".2 .2 .3" random="0.25" width="512" height="512"/>
+        <material name="matmetal" texture="texmetal" specular="0.75" shininess=".03"/>
+    </asset>
+
+    <actuator>
+        <position class="MPL_arm" kp="50" name="Rshoulder_fe" joint="Rshoulder_fe" ctrlrange="-0.611 2.792"/>
+        <position class="MPL_arm" kp="50" name="Rshoulder_abad" joint="Rshoulder_abad" ctrlrange="-2.792 0"/>
+        <position class="MPL_arm" kp="50" name="Rhumeral_rot" joint="Rhumeral_rot" ctrlrange="-0.524 1.483"/>
+        <position class="MPL_arm" kp="50" name="Relbow" joint="Relbow" ctrlrange="0.05 2.356"/>
+    </actuator>
+
+
+</mujocoinclude>

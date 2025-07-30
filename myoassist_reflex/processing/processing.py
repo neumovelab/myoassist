@@ -1,0 +1,1757 @@
+# Author(s): Calder Robbins <robbins.cal@northeastern.edu>
+"""
+Unified Myo_Reflex Processing Pipeline
+"""
+
+import os
+import sys
+import textwrap
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from tkinter import ttk
+import numpy as np
+import matplotlib.pyplot as plt
+import mujoco
+import skvideo.io
+from datetime import datetime
+import argparse
+import json
+import time
+import shutil
+
+# Import the necessary interfaces from framework
+try:
+    from reflex import myoLeg_reflex
+    from processing.MyoReport import MyoReport
+except ImportError as e:
+    print(f"Error importing required modules: {e}")
+    print("Please ensure you're running this script from the correct directory.")
+    sys.exit(1)
+
+
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=50, fill='█', print_end="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=print_end)
+    if iteration == total: 
+        print()
+
+
+class SimulationConfig:
+    """Configuration class to hold all simulation parameters"""
+    
+    def __init__(self):
+        self.param_files = []
+        self.config_file = None
+        self.model = "dephy"
+        self.mode = "2D"
+        self.sim_time = 20
+        self.slope_deg = 0
+        self.delayed = False
+        self.exo_bool = False
+        self.fixed_exo = False
+        self.use_4param_spline = False
+        self.max_torque = 0
+        self.init_pose = "walk_left"
+        self.processing_mode = "quick"  # debug, quick, full
+        self.output_dir = "processing_outputs"
+        self.n_points = 4
+        self.result_dirs = []  # selected results folders
+
+    def parse_bat_config(self, config_file):
+        """Parse a .bat configuration file and update settings"""
+        try:
+            with open(config_file, 'r') as f:
+                lines = f.readlines()
+
+            config_text = ' '.join(lines[1:]).replace('^', ' ').replace('\n', ' ')
+            
+            if 'python -m myoassist_reflex.train' not in config_text:
+                raise ValueError("Not a valid MyoAssist configuration file")
+            
+            # Parse arguments
+            args = config_text.split()[3:]
+            arg_map = {
+                '--model': 'model',
+                '--move_dim': ('mode', lambda x: '2D' if x == '2' else '3D'),
+                '--slope_deg': ('slope_deg', float),
+                '--delayed': ('delayed', lambda x: bool(int(x))),
+                '--ExoOn': ('exo_bool', lambda x: bool(int(x))),
+                '--fixed_exo': ('fixed_exo', lambda x: bool(int(x))),
+                '--use_4param_spline': ('use_4param_spline', lambda x: bool(int(x))),
+                '--max_torque': ('max_torque', float),
+                '--init_pose': 'init_pose',
+                '--n_points': ('n_points', int)
+            }
+            
+            # Process arguments
+            i = 0
+            while i < len(args):
+                arg = args[i]
+                if arg in arg_map:
+                    map_info = arg_map[arg]
+                    if isinstance(map_info, tuple):
+                        attr_name, convert_func = map_info
+                        if i + 1 < len(args) and not args[i+1].startswith('--'):
+                            setattr(self, attr_name, convert_func(args[i+1]))
+                            i += 2
+                        else:
+                            i += 1
+                    else:
+                        if i + 1 < len(args) and not args[i+1].startswith('--'):
+                            setattr(self, map_info, args[i+1])
+                            i += 2
+                        else:
+                            i += 1
+                else:
+                    i += 1
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error parsing configuration file: {e}")
+            return False
+
+
+class ParameterSelector:
+    """GUI for parameter file selection"""
+    
+    def __init__(self):
+        self.config = SimulationConfig()
+        self.configs = []
+        self.result_dirs = []  # holds selected result folders
+        self.root = None
+        self._process_started = False
+        
+        # Keep track of environment related widgets for enable/disable
+        self._env_widgets = []
+        
+    def select_parameters(self):
+        """Launch GUI for parameter selection"""
+        # Explicitly reset state each time the GUI is opened
+        self.config = SimulationConfig()
+        self.configs = []
+        self.result_dirs = []
+        self._process_started = False
+
+        self.root = tk.Tk()
+        self.root.title("MyoReflex Processing Pipeline")
+        self.root.geometry("550x650")
+        self.root.configure(bg="#F0F0F0")
+
+        # --- Style Configuration ---
+        style = ttk.Style(self.root)
+        style.theme_use('clam')
+
+        # Colors
+        BG_COLOR = "#F0F0F0"
+        TEXT_COLOR = "#333333"
+        ACCENT_COLOR = "#50aaab"
+        BUTTON_TEXT_COLOR = "#FFFFFF"
+        FRAME_BG = "#FAFAFA"
+        BORDER_COLOR = "#CCCCCC"
+
+        # Fonts
+        TITLE_FONT = ("Segoe UI", 14, "bold")
+        LABEL_FONT = ("Segoe UI", 10, "bold")
+        NORMAL_FONT = ("Segoe UI", 9)
+
+        style.configure("TFrame", background=BG_COLOR)
+        style.configure("TLabel", background=BG_COLOR, foreground=TEXT_COLOR, font=NORMAL_FONT)
+        style.configure("Title.TLabel", font=TITLE_FONT, background=BG_COLOR)
+        style.configure("Section.TLabel", font=LABEL_FONT, background=FRAME_BG)
+        style.configure("TLabelframe", background=FRAME_BG, bordercolor=BORDER_COLOR, relief="solid")
+        style.configure("TLabelframe.Label", background=FRAME_BG, foreground=TEXT_COLOR, font=LABEL_FONT)
+        style.configure("TButton", font=(*NORMAL_FONT, "bold"), background=ACCENT_COLOR, foreground=BUTTON_TEXT_COLOR)
+        style.map("TButton",
+                  background=[('active', '#40898a')],
+                  relief=[('pressed', 'sunken')])
+        style.configure("TCombobox", font=NORMAL_FONT)
+        style.configure("TEntry", font=NORMAL_FONT)
+        style.configure("TRadiobutton", background=FRAME_BG, font=NORMAL_FONT, foreground=TEXT_COLOR)
+        style.configure("TCheckbutton", background=FRAME_BG, font=NORMAL_FONT, foreground=TEXT_COLOR)
+        style.configure("Inner.TFrame", background=FRAME_BG)
+
+        # ---------------- Scrollable container ----------------
+        container = ttk.Frame(self.root)
+        container.pack(fill='both', expand=True)
+
+        canvas = tk.Canvas(container, borderwidth=0, background=BG_COLOR, highlightthickness=0)
+        vscroll = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vscroll.set)
+        vscroll.pack(side='right', fill='y')
+        canvas.pack(side='left', fill='both', expand=True)
+
+        main_frame = ttk.Frame(canvas, padding="10")
+        canvas.create_window((0, 0), window=main_frame, anchor='nw', width=530)  # Fixed width to prevent horizontal scroll
+        
+        def _on_frame_config(event):
+            canvas.configure(scrollregion=canvas.bbox('all'))
+
+        def _on_mousewheel(event):
+            # Respond to Linux (event.num) or Windows (event.delta) wheel event
+            if event.num == 5 or event.delta < 0:  # scroll down
+                canvas.yview_scroll(1, "units")
+            elif event.num == 4 or event.delta > 0:  # scroll up
+                canvas.yview_scroll(-1, "units")
+
+        def _bind_mousewheel(event):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)  # Windows
+            canvas.bind_all("<Button-4>", _on_mousewheel)    # Linux scroll up
+            canvas.bind_all("<Button-5>", _on_mousewheel)    # Linux scroll down
+
+        def _unbind_mousewheel(event):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        # Bind mouse wheel scrolling when mouse enters the window
+        canvas.bind('<Enter>', _bind_mousewheel)
+        canvas.bind('<Leave>', _unbind_mousewheel)
+        main_frame.bind('<Configure>', _on_frame_config)
+
+        self.root.update_idletasks()
+        
+        main_frame.columnconfigure(0, weight=1)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="MyoReflex Processing Pipeline", style="Title.TLabel")
+        title_label.grid(row=0, column=0, pady=(0, 10), sticky="ew")
+        
+        # --- Results Folder Selection ---
+        results_frame = ttk.Labelframe(main_frame, text="Select Results Folder", padding="5")
+        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        results_frame.columnconfigure(0, weight=1)
+
+        # Reduced listbox height
+        self.results_listbox = tk.Listbox(results_frame, height=3, font=("Consolas", 9), borderwidth=1, relief="solid")
+        self.results_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+
+        results_btn_frame = ttk.Frame(results_frame, style="Inner.TFrame")
+        results_btn_frame.grid(row=1, column=0)
+
+        ttk.Button(results_btn_frame, text="Add Folder(s)", command=self._add_result_folders).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(results_btn_frame, text="Clear", command=self._clear_result_folders).pack(side=tk.LEFT)
+
+        # OR separator label
+        self.or_label = ttk.Label(main_frame, text="-----------  OR  -----------", style="Section.TLabel")
+        self.or_label.grid(row=3, column=0, pady=(0,10))
+
+        # --- 1. Configuration File Selection ---
+        config_frame = ttk.Labelframe(main_frame, text="Select Configuration File", padding="5")
+        config_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        config_frame.columnconfigure(0, weight=1)
+        
+        # Listbox to display selected configuration (.bat) files
+        self.config_listbox = tk.Listbox(config_frame, height=3, font=("Consolas", 9), borderwidth=1, relief="solid")
+        self.config_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        
+        config_buttons_frame = ttk.Frame(config_frame, style="Inner.TFrame")
+        config_buttons_frame.grid(row=1, column=0)
+        
+        ttk.Button(config_buttons_frame, text="Add Config File(s)", 
+                  command=self._add_config_files).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(config_buttons_frame, text="Clear", 
+                  command=self._clear_config_files).pack(side=tk.LEFT)
+        
+        # --- 2. Parameter File Selection ---
+        param_frame = ttk.Labelframe(main_frame, text="Select Parameter Files", padding="5")
+        param_frame.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        param_frame.columnconfigure(0, weight=1)
+        
+        self.param_listbox = tk.Listbox(param_frame, height=3, font=("Consolas", 9), borderwidth=1, relief="solid")
+        self.param_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        
+        param_buttons_frame = ttk.Frame(param_frame, style="Inner.TFrame")
+        param_buttons_frame.grid(row=1, column=0)
+        
+        ttk.Button(param_buttons_frame, text="Add Parameter Files", 
+                  command=self._add_param_files).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(param_buttons_frame, text="Clear All", 
+                  command=self._clear_param_files).pack(side=tk.LEFT)
+        
+        # --- Environment Configuration (editable/previews) ---
+        env_config_frame = ttk.Labelframe(main_frame, text="Environment Configuration", padding="5") 
+        env_config_frame.grid(row=6, column=0, sticky=(tk.W, tk.E), pady=(0, 10)) 
+        env_config_frame.columnconfigure(1, weight=1)
+        env_config_frame.columnconfigure(3, weight=1)
+
+        # Model, Slope, Max Torque (Left Column)
+        ttk.Label(env_config_frame, text="Model:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10), pady=5)
+        self.model_var = tk.StringVar(value=self.config.model)
+        self.model_combo = ttk.Combobox(env_config_frame, textvariable=self.model_var, 
+                                  values=["barefoot", "dephy", "hmedi", "default", "custom"], width=15)
+        self.model_combo.grid(row=0, column=1, sticky=tk.W)
+        
+        ttk.Label(env_config_frame, text="Slope (deg):").grid(row=1, column=0, sticky=tk.W, padx=(0, 10), pady=5)
+        self.slope_var = tk.StringVar(value=str(self.config.slope_deg))
+        self.slope_entry = ttk.Entry(env_config_frame, textvariable=self.slope_var, width=17)
+        self.slope_entry.grid(row=1, column=1, sticky=tk.W)
+        
+        ttk.Label(env_config_frame, text="Max Torque:").grid(row=2, column=0, sticky=tk.W, padx=(0, 10), pady=5)
+        self.torque_var = tk.StringVar(value=str(self.config.max_torque))
+        self.torque_entry = ttk.Entry(env_config_frame, textvariable=self.torque_var, width=17)
+        self.torque_entry.grid(row=2, column=1, sticky=tk.W)
+        
+        # Mode, Init Pose (Right Column)
+        ttk.Label(env_config_frame, text="Mode:").grid(row=0, column=2, sticky=tk.W, padx=(20, 10), pady=5)
+        self.mode_var = tk.StringVar(value=self.config.mode)
+        self.mode_combo = ttk.Combobox(env_config_frame, textvariable=self.mode_var, 
+                                 values=["2D", "3D"], width=15)
+        self.mode_combo.grid(row=0, column=3, sticky=tk.W)
+        
+        ttk.Label(env_config_frame, text="Init Pose:").grid(row=1, column=2, sticky=tk.W, padx=(20, 10), pady=5)
+        self.pose_var = tk.StringVar(value=self.config.init_pose)
+        self.pose_combo = ttk.Combobox(env_config_frame, textvariable=self.pose_var, 
+                                 values=["walk_left", "walk_right", "walk"], width=15)
+        self.pose_combo.grid(row=1, column=3, sticky=tk.W)
+
+        # Boolean options
+        bool_frame = ttk.Frame(env_config_frame, style="Inner.TFrame")
+        bool_frame.grid(row=3, column=0, columnspan=4, sticky=tk.W, pady=(10, 0))
+        
+        self.delayed_var = tk.BooleanVar(value=self.config.delayed)
+        self.delayed_check = ttk.Checkbutton(bool_frame, text="Delayed Controller", variable=self.delayed_var)
+        self.delayed_check.pack(side=tk.LEFT, padx=(0, 15))
+        
+        self.exo_var = tk.BooleanVar(value=self.config.exo_bool)
+        self.exo_check = ttk.Checkbutton(bool_frame, text="Exoskeleton On", variable=self.exo_var)
+        self.exo_check.pack(side=tk.LEFT, padx=(0, 15))
+        
+        self.fixed_exo_var = tk.BooleanVar(value=self.config.fixed_exo)
+        self.fixed_exo_check = ttk.Checkbutton(bool_frame, text="Fixed Exo Profile", variable=self.fixed_exo_var)
+        self.fixed_exo_check.pack(side=tk.LEFT, padx=(0, 15))
+        
+        self.legacy_var = tk.BooleanVar(value=self.config.use_4param_spline)
+        self.legacy_check = ttk.Checkbutton(bool_frame, text="Use 4param Spline", variable=self.legacy_var)
+        self.legacy_check.pack(side=tk.LEFT)
+
+        # Collect environment widgets for later enable/disable
+        self._env_widgets = [
+            self.model_combo, self.slope_entry, self.torque_entry,
+            self.mode_combo, self.pose_combo,
+            self.delayed_check, self.exo_check, self.fixed_exo_check, self.legacy_check
+        ]
+
+        # --- Environment Preview (initially hidden) ---
+        env_preview_frame = ttk.Labelframe(main_frame, text="Environment Preview", padding="5")
+        env_preview_frame.grid(row=7, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        env_preview_frame.columnconfigure(0, weight=1)
+
+        # Create a canvas for scrolling multiple configurations
+        preview_canvas = tk.Canvas(env_preview_frame, borderwidth=0, background=FRAME_BG, highlightthickness=0, height=120)
+        preview_scroll = ttk.Scrollbar(env_preview_frame, orient="vertical", command=preview_canvas.yview)
+        preview_canvas.configure(yscrollcommand=preview_scroll.set)
+
+        # Main container for all previews
+        self.all_previews_frame = ttk.Frame(preview_canvas, style="Inner.TFrame")
+        preview_canvas.create_window((0, 0), window=self.all_previews_frame, anchor='n')
+
+        # Configure grid
+        preview_canvas.grid(row=0, column=0, sticky="nsew", padx=(5,0))
+        preview_scroll.grid(row=0, column=1, sticky="ns")
+        env_preview_frame.columnconfigure(0, weight=1)
+        env_preview_frame.rowconfigure(0, weight=1)
+
+        # Style for preview labels
+        style.configure("Preview.TLabel", 
+                      font=("Segoe UI", 9),
+                      background=FRAME_BG,
+                      foreground=TEXT_COLOR)
+        style.configure("PreviewValue.TLabel",
+                      font=("Consolas", 9),
+                      background=FRAME_BG,
+                      foreground=ACCENT_COLOR)
+        style.configure("PreviewHeader.TLabel",
+                      font=("Segoe UI", 9, "bold"),
+                      background=FRAME_BG,
+                      foreground=TEXT_COLOR)
+
+        # Initialize empty list to store preview frames
+        self.preview_frames = []
+
+        def update_preview_scroll(event):
+            preview_canvas.configure(scrollregion=preview_canvas.bbox("all"))
+        
+        self.all_previews_frame.bind('<Configure>', update_preview_scroll)
+
+        # Add mousewheel scrolling for preview
+        def _on_preview_mousewheel(event):
+            preview_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        preview_canvas.bind_all("<MouseWheel>", _on_preview_mousewheel)
+
+        env_preview_frame.grid_remove()  # hidden by default
+
+        # --- 4a. Parameter Type Selection ---
+        type_frame = ttk.Labelframe(main_frame, text="Parameter Types to Process", padding="5")
+        type_frame.grid(row=8, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+
+        self.include_best_var = tk.BooleanVar(value=True)
+        self.include_bestlast_var = tk.BooleanVar(value=True)
+
+        ttk.Checkbutton(type_frame, text="Best", variable=self.include_best_var).pack(side=tk.LEFT, padx=10)
+        ttk.Checkbutton(type_frame, text="BestLast", variable=self.include_bestlast_var).pack(side=tk.LEFT, padx=10)
+
+        # Store frames for conditional visibility
+        self._single_frames = [config_frame, param_frame, env_config_frame]
+        self._batch_frames = [type_frame, env_preview_frame]
+
+        # --- 5. Processing Mode ---
+        processing_frame = ttk.Labelframe(main_frame, text="Processing Mode", padding="5")
+        processing_frame.grid(row=9, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+
+        self.mode_desc = {
+            "debug": "5s simulation, video only",
+            "quick": "10s simulation, kinematics + video",
+            "full": "20s simulation, video + full report"
+        }
+        
+        self.processing_var = tk.StringVar(value=self.config.processing_mode)
+        
+        for i, (mode, desc) in enumerate(self.mode_desc.items()):
+            ttk.Radiobutton(processing_frame, text=f"{mode.title()}: {desc}", 
+                           variable=self.processing_var, value=mode).pack(anchor=tk.W, pady=2)
+        
+        # --- Outputs ---
+        output_frame = ttk.Frame(main_frame)
+        output_frame.grid(row=10, column=0, sticky=(tk.W, tk.E))
+        
+        ttk.Label(output_frame, text="Output Directory:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.output_var = tk.StringVar(value=self.config.output_dir)
+        output_entry = ttk.Entry(output_frame, textvariable=self.output_var, width=50, font=NORMAL_FONT)
+        output_entry.grid(row=0, column=1, columnspan=2, sticky=tk.W, padx=(10, 0))
+        
+        # --- Action Buttons ---
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=11, column=0, pady=(20, 10))
+        
+        ttk.Button(button_frame, text="Start Processing", 
+                  command=self._start_processing).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", 
+                  command=self._cancel).pack(side=tk.LEFT)
+        
+        # Status
+        self.status_var = tk.StringVar(value="")
+        status_label = ttk.Label(main_frame, textvariable=self.status_var, 
+                                 font=("Segoe UI", 9, "italic"), foreground=ACCENT_COLOR)
+        status_label.grid(row=12, column=0, columnspan=2, pady=(10, 0), sticky=tk.W)
+        
+        # Update GUI visibility based on initial state
+        self._update_visibility()
+        self.root.mainloop()
+        # Return a list of SimulationConfig objects if processing was started
+        if self._process_started:
+            return self.configs if self.configs else [self.config]
+        return None
+
+    def _add_config_files(self):
+        """Allow user to select one or more .bat configuration files for batch processing."""
+        bat_paths = filedialog.askopenfilenames(
+            title="Select Configuration Files",
+            filetypes=[("Batch files", "*.bat"), ("All files", "*.*")]
+        )
+
+        added = 0
+        for bat_path in bat_paths:
+            # Prevent duplicates
+            if any(cfg.config_file == bat_path for cfg in self.configs):
+                continue
+
+            # Validate
+            results_dir = os.path.dirname(bat_path)
+            try:
+                _, param_files = find_param_files(results_dir)
+            except Exception as e:
+                messagebox.showwarning("Warning", f"Skipping '{bat_path}': {e}")
+                continue
+
+            # Build SimulationConfig for this run
+            cfg = SimulationConfig()
+            cfg.config_file = bat_path
+            cfg.parse_bat_config(bat_path) 
+            cfg.param_files = param_files
+
+            # Processing mode is taken from GUI selection for all runs
+            cfg.processing_mode = self.processing_var.get()
+            cfg.config_file = bat_path
+            if cfg.processing_mode == "debug":
+                cfg.sim_time = 5
+            elif cfg.processing_mode == "quick":
+                cfg.sim_time = 10
+            else:
+                cfg.sim_time = 20
+
+            # Note: CLI mode includes all parameter files found
+
+            # Update parameter listbox for single-run mode only (if no configs previously)
+            if not self.configs:  # first add
+                self.param_listbox.delete(0, tk.END)
+                for pf in cfg.param_files:
+                    self.param_listbox.insert(tk.END, os.path.basename(pf))
+
+            self.configs.append(cfg)
+            # Display in listbox
+            self.config_listbox.insert(tk.END, os.path.basename(bat_path))
+            added += 1
+
+        if added:
+            self.status_var.set("Configurations loaded successfully")
+            # Disable env widgets when config-driven batch processing
+            self._set_env_widgets_state('disabled')
+            self._update_visibility()
+        elif not self.configs:
+            self.status_var.set("")
+            # Re-enable env widgets for manual single-run mode
+            self._set_env_widgets_state('normal')
+            self._update_visibility()
+
+    def _clear_config_files(self):
+        """Clear all previously selected configuration files."""
+        self.configs = []
+        self.result_dirs = [] 
+        self.config_listbox.delete(0, tk.END)
+        self.status_var.set("")
+        # Re-enable env widgets for manual single-run mode
+        self._set_env_widgets_state('normal')
+        self._update_visibility()
+
+    # Retain single-file functions for compatibility (unused in UI but may be called elsewhere)
+    def _select_config_file(self):
+        """Deprecated – use _add_config_files instead."""
+        self._add_config_files()
+
+    def _clear_config_file(self):
+        """Deprecated – use _clear_config_files instead."""
+        self._clear_config_files()
+
+    def _start_processing(self):
+        """Validate inputs and start processing. Handles single or batch configurations."""
+        # Batch mode takes precedence if configs list is populated
+        if self.configs:
+            # Build a unique root output folder using timestamp
+            date_time_str = datetime.now().strftime('%m%d_%H%M')
+            root_output = os.path.join(self.output_var.get(), date_time_str)
+            os.makedirs(root_output, exist_ok=True)
+
+            # Assign distinct output sub-dir for each run
+            for cfg in self.configs:
+                bat_name = os.path.splitext(os.path.basename(cfg.config_file))[0]
+                cfg.output_dir = os.path.join(root_output, bat_name)
+                os.makedirs(cfg.output_dir, exist_ok=True)
+
+                # Copy original .bat into the run folder for record keeping
+                shutil.copy2(cfg.config_file, os.path.join(cfg.output_dir, f"{bat_name}_{date_time_str}.bat"))
+
+            self._process_started = True
+            self.root.destroy()
+            return
+
+        # -------------------- Single-run path (legacy) --------------------
+        if not self.config.param_files:
+            messagebox.showerror("Error", "Please select at least one parameter file.")
+            return
+
+        # Update config from GUI widgets
+        self.config.model = self.model_var.get()
+        self.config.mode = self.mode_var.get()
+        self.config.slope_deg = float(self.slope_var.get())
+        self.config.init_pose = self.pose_var.get()
+        self.config.max_torque = float(self.torque_var.get())
+        self.config.delayed = self.delayed_var.get()
+        self.config.exo_bool = self.exo_var.get()
+        self.config.fixed_exo = self.fixed_exo_var.get()
+        self.config.use_4param_spline = self.legacy_var.get()
+        self.config.processing_mode = self.processing_var.get()
+
+        # Set sim_time based on processing_mode
+        if self.config.processing_mode == "debug":
+            self.config.sim_time = 5
+        elif self.config.processing_mode == "quick":
+            self.config.sim_time = 10
+        else:  # full
+            self.config.sim_time = 20
+
+        # Add date and time to the output directory
+        date_time_str = datetime.now().strftime('%m%d_%H%M')
+        self.config.output_dir = os.path.join(self.output_var.get(), f"{date_time_str}")
+
+        # Create output directory
+        os.makedirs(self.config.output_dir, exist_ok=True)
+
+        # If a config file was used, copy it to the output directory
+        if self.config.config_file:
+            config_basename = os.path.basename(self.config.config_file)
+            config_name = os.path.splitext(config_basename)[0]
+            config_copy_path = os.path.join(self.config.output_dir, f"{config_name}_{date_time_str}.bat")
+            shutil.copy2(self.config.config_file, config_copy_path)
+
+        self._process_started = True
+        self.root.destroy()
+
+    def _cancel(self):
+        """Cancel the processing"""
+        self.root.destroy()
+
+    def _add_param_files(self):
+        """Add parameter files to the list (single-run mode only)."""
+        files = filedialog.askopenfilenames(
+            title="Select Parameter Files",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        )
+        for file in files:
+            if file not in self.config.param_files:
+                self.config.param_files.append(file)
+                self.param_listbox.insert(tk.END, os.path.basename(file))
+
+        if self.config.param_files:
+            self.status_var.set("Ready to start processing...")
+
+    def _clear_param_files(self):
+        """Clear all parameter files (single-run mode only)."""
+        self.config.param_files = []
+        self.param_listbox.delete(0, tk.END)
+        self.status_var.set("")
+
+    def _set_env_widgets_state(self, state: str):
+        """Enable or disable environment configuration widgets."""
+        for w in self._env_widgets:
+            try:
+                w.configure(state=state)
+            except tk.TclError:
+                pass
+
+    def _update_visibility(self):
+        """Toggle visibility of frames based on whether batch folders are selected."""
+        batch_mode = len(self.result_dirs) > 0
+
+        for frame in self._single_frames:
+            if batch_mode:
+                frame.grid_remove()
+            else:
+                frame.grid()
+
+        for frame in self._batch_frames:
+            if batch_mode:
+                frame.grid()
+            else:
+                frame.grid_remove()
+
+        # OR label visibility
+        if batch_mode:
+            self.or_label.grid()
+        else:
+            self.or_label.grid()
+
+    # -------------------- Results Folder Handling --------------------
+
+    def _create_preview_frame(self, cfg, folder):
+        """Create a new preview frame for a configuration"""
+        # Create frame for this preview
+        preview_frame = ttk.Frame(self.all_previews_frame, style="Inner.TFrame")
+        preview_frame.pack(fill="x", padx=5, pady=2)
+        preview_frame.columnconfigure(1, weight=1)
+        preview_frame.columnconfigure(3, weight=1)
+
+        # Center everything
+        content_frame = ttk.Frame(preview_frame, style="Inner.TFrame")
+        content_frame.pack(expand=True, fill="x")
+        
+        # Header
+        header_frame = ttk.Frame(content_frame, style="Inner.TFrame")
+        header_frame.pack(fill="x", pady=(0,5))
+        ttk.Label(header_frame, text="Configuration Name:", style="PreviewHeader.TLabel").pack(side="left")
+        ttk.Label(header_frame, text=os.path.basename(folder), style="PreviewValue.TLabel").pack(side="left", padx=(5,0))
+
+        # Separator
+        ttk.Separator(content_frame, orient="horizontal").pack(fill="x", pady=5)
+
+        # Parameters grid
+        param_grid = ttk.Frame(content_frame, style="Inner.TFrame")
+        param_grid.pack(expand=True)
+
+        # Left column
+        left_frame = ttk.Frame(param_grid, style="Inner.TFrame")
+        left_frame.pack(side="left", padx=(0,20))
+        ttk.Label(left_frame, text="Model:", style="Preview.TLabel").pack(anchor="w")
+        ttk.Label(left_frame, text="Mode:", style="Preview.TLabel").pack(anchor="w")
+        ttk.Label(left_frame, text="Slope:", style="Preview.TLabel").pack(anchor="w")
+
+        left_values = ttk.Frame(param_grid, style="Inner.TFrame")
+        left_values.pack(side="left", padx=(0,40))
+        ttk.Label(left_values, text=cfg.model, style="PreviewValue.TLabel").pack(anchor="w")
+        ttk.Label(left_values, text=cfg.mode, style="PreviewValue.TLabel").pack(anchor="w")
+        ttk.Label(left_values, text=f"{cfg.slope_deg}°", style="PreviewValue.TLabel").pack(anchor="w")
+
+        # Right column
+        right_frame = ttk.Frame(param_grid, style="Inner.TFrame")
+        right_frame.pack(side="left")
+        ttk.Label(right_frame, text="Exo:", style="Preview.TLabel").pack(anchor="w")
+        ttk.Label(right_frame, text="Delayed:", style="Preview.TLabel").pack(anchor="w")
+        ttk.Label(right_frame, text="Controller:", style="Preview.TLabel").pack(anchor="w")
+
+        right_values = ttk.Frame(param_grid, style="Inner.TFrame")
+        right_values.pack(side="left", padx=(5,0))
+        ttk.Label(right_values, text="On" if cfg.exo_bool else "Off", style="PreviewValue.TLabel").pack(anchor="w")
+        ttk.Label(right_values, text=str(cfg.delayed), style="PreviewValue.TLabel").pack(anchor="w")
+        ttk.Label(right_values, text="4param" if cfg.use_4param_spline else "Npoint", style="PreviewValue.TLabel").pack(anchor="w")
+
+        # Add bottom separator if not the last preview
+        if self.preview_frames:  # If there are already other previews
+            ttk.Separator(preview_frame, orient="horizontal").pack(fill="x", pady=(10,0))
+
+        return preview_frame
+
+    def _add_result_folders(self):
+        """Add one or more results directories for batch processing."""
+        folder = filedialog.askdirectory(title="Select Results Folder", mustexist=True)
+        if not folder:
+            return
+
+        if folder in self.result_dirs:
+            return  # already added
+
+        try:
+            bat_file, param_files = find_param_files(folder)
+        except Exception as e:
+            messagebox.showwarning("Warning", f"{e}")
+            return
+
+        # Parse settings
+        settings = parse_bat_file(bat_file)
+
+        # Build SimulationConfig
+        cfg = SimulationConfig()
+        for k, v in settings.items():
+            setattr(cfg, k, v)
+
+        cfg.processing_mode = self.processing_var.get()
+        cfg.config_file = bat_file
+        cfg.param_files = param_files
+
+        # Append and update GUI
+        self.result_dirs.append(folder)
+        self.configs.append(cfg)
+
+        self.results_listbox.insert(tk.END, os.path.basename(folder))
+
+        # Create and add new preview frame
+        preview_frame = self._create_preview_frame(cfg, folder)
+        self.preview_frames.append(preview_frame)
+
+        # Update GUI visibility & state
+        self._set_env_widgets_state('disabled')
+        self._update_visibility()
+
+    def _clear_result_folders(self):
+        """Clear all selected results folders."""
+        self.result_dirs = []
+        self.configs = []
+        self.results_listbox.delete(0, tk.END)
+        
+        # Clear all preview frames
+        for frame in self.preview_frames:
+            frame.destroy()
+        self.preview_frames = []
+        
+        self._set_env_widgets_state('normal')
+        self._update_visibility()
+
+
+class SimulationProcessor:
+    """Main simulation processing class"""
+    
+    def __init__(self, config: SimulationConfig):
+        self.config = config
+        self.report_generator = None
+        
+        # Ensure sim_time matches processing_mode (safety against earlier mis-set)
+        if self.config.processing_mode == 'debug':
+            self.config.sim_time = 5
+        elif self.config.processing_mode == 'quick':
+            self.config.sim_time = 10
+        else:
+            self.config.sim_time = 20
+        
+        # Create output directory
+        os.makedirs(self.config.output_dir, exist_ok=True)
+        
+    def process_all_parameters(self):
+        """Process all selected parameter files"""
+        # Print header only once
+        print(f"\n{'='*60}")
+        print(f"MyoReflex Processing Pipeline")
+        print(f"{'='*60}")
+        print(f"Processing Mode: {self.config.processing_mode.upper()}")
+        print(f"Model: {self.config.model}")
+        print(f"Simulation Time: {self.config.sim_time}s")
+        print(f"Output Directory: {self.config.output_dir}")
+        print(f"Parameter Files: {len(self.config.param_files)}")
+        print(f"{'='*60}\n")
+        
+        for i, param_file in enumerate(self.config.param_files, 1):
+            print(f"Processing {i}/{len(self.config.param_files)}: {os.path.basename(param_file)}")
+            try:
+                self._process_single_parameter(param_file, i)
+                print(f"✓ Completed: {os.path.basename(param_file)}\n")
+            except Exception as e:
+                print(f"✗ Error processing {os.path.basename(param_file)}: {e}\n")
+        
+        # Print footer only once
+        print(f"{'='*60}")
+        print(f"Processing Complete! Check {self.config.output_dir} for outputs.")
+        print(f"{'='*60}")
+    
+    def _process_single_parameter(self, param_file: str, file_index: int):
+        """Process a single parameter file"""
+        # Load parameters
+        self._current_param_file = param_file
+        params = np.loadtxt(param_file)
+
+        # Create environment based on model type
+        if self.config.model == "barefoot":
+            env = self._create_barefoot_env(params)
+        else:
+            env = self._create_exo_env(params)
+        
+        # Run simulation and generate outputs
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_filename = f"{os.path.splitext(os.path.basename(param_file))[0]}_{timestamp}_{file_index:03d}"
+        
+        # Generate video
+        video_path = self._run_simulation(env, base_filename)
+        
+        # Process based on mode
+        if self.config.processing_mode == "debug":
+            print(f"  Debug mode: Video saved to {video_path}")
+            
+        elif self.config.processing_mode == "quick":
+            print(f"  Quick mode: Generating kinematics plot...")
+            self._generate_quick_analysis(env, base_filename)
+            print(f"  Video saved to {video_path}")
+            
+        elif self.config.processing_mode == "full":
+            print(f"  Full mode: Generating complete report...")
+            self._generate_full_report(env, base_filename, param_file)
+            print(f"  Video saved to {video_path}")
+    
+    def _create_barefoot_env(self, params):
+        """Create barefoot environment using ReflexInterface"""
+        return self._create_exo_env(params)
+    
+    def _create_exo_env(self, params):
+        """Create exoskeleton environment using Reflex_EXO_Interface"""
+        return myoLeg_reflex(
+            sim_time=self.config.sim_time,
+            mode=self.config.mode,
+            init_pose=self.config.init_pose,
+            control_params=params,
+            slope_deg=self.config.slope_deg,
+            delayed=self.config.delayed,
+            exo_bool=self.config.exo_bool,
+            fixed_exo=self.config.fixed_exo,
+            use_4param_spline=self.config.use_4param_spline,
+            max_torque=self.config.max_torque,
+            model=self.config.model,
+            n_points=self.config.n_points
+        )
+    
+    def _run_simulation(self, env, base_filename):
+        """Run the simulation and generate video with data collection"""
+        env.reset()
+        
+        # Calculate timesteps
+        timesteps = int(self.config.sim_time / env.dt)
+        frames = []
+        
+        # Initialize data collection for kinematics and full report modes
+        simulation_data = {
+            'time': [],
+            'r_leg': {
+                'joint': {'hip': [], 'knee': [], 'ankle': []},
+                'joint_torque': {'hip': [], 'knee': [], 'ankle': []},
+                'load_ipsi': [],
+                'mus': {},
+                'mus_force': {},
+                'mus_vel': {}
+            },
+            'l_leg': {
+                'joint': {'hip': [], 'knee': [], 'ankle': []},
+                'joint_torque': {'hip': [], 'knee': [], 'ankle': []},
+                'load_ipsi': [],
+                'mus': {},
+                'mus_force': {},
+                'mus_vel': {}
+            },
+            'trunk': [],  # pelvis tilt
+            'timesteps': timesteps,
+            'dt': env.dt
+        }
+        
+        print(f"  Running {timesteps} timesteps...")
+        
+        # Initialize muscle data structures if full mode
+        if self.config.processing_mode == "full":
+            muscle_names = ['GLU', 'VAS', 'SOL', 'GAS', 'HAM', 'HAB', 'HFL', 'RF', 'BFSH', 'TA', 'FDL']
+            for leg in ['r_leg', 'l_leg']:
+                for muscle in muscle_names:
+                    simulation_data[leg]['mus'][muscle] = []
+                    simulation_data[leg]['mus_force'][muscle] = []
+                    simulation_data[leg]['mus_vel'][muscle] = []
+        
+        # Set up renderer
+        env.env.sim.renderer.render_offscreen(camera_id=4)
+        env.env.sim.renderer._scene_option.flags[0] = 0  # Remove convex hull
+        env.env.sim.renderer._scene_option.flags[4] = 0
+        
+        # Camera setup for video
+        free_cam = mujoco.MjvCamera()
+        camera_speed = 1.25
+        slope_angle_rad = np.radians(env.slope_deg)
+        start_position = env.env.unwrapped.sim.data.body("pelvis").xpos.copy()
+        
+        camera_pos = start_position.copy()
+        camera_pos[2] = 0.8
+        
+        for i in range(timesteps):
+            # Show progress bar every 10%
+            if i % max(1, timesteps // 10) == 0 or i % 50 == 0:
+                print_progress_bar(i, timesteps, prefix='  Progress:', suffix=f'({i}/{timesteps})', length=30)
+            
+            # Update camera position for following
+            if not env.delayed:
+                distance_traveled = camera_speed * env.dt * i
+                camera_pos[0] = start_position[0] + distance_traveled
+                
+                slope_correction = 0.2
+                height_increase = (camera_pos[0] - start_position[0]) * np.tan(slope_angle_rad) * slope_correction
+                camera_pos[2] = 0.8 + height_increase
+                
+                pelvis_pos = env.env.unwrapped.sim.data.body("pelvis").xpos.copy()
+                lookat_pos = camera_pos.copy()
+                lookat_pos[1] = pelvis_pos[1]
+                
+                free_cam.distance = 2.5
+                free_cam.azimuth = 90
+                free_cam.elevation = 0
+                free_cam.lookat = lookat_pos
+                
+                frame = env.env.unwrapped.sim.renderer.render_offscreen(
+                    camera_id=free_cam, width=1920, height=1080)
+            else:
+                if i % 10 == 0:
+                    env.env.sim.data.camera(4).xpos[2] = 2.181
+                    frame = env.env.sim.renderer.render_offscreen(camera_id=4)
+            
+            frames.append(frame)
+            
+            # Collect simulation data (for quick/full modes) - Skip first timestep to avoid scaling issues
+            if self.config.processing_mode in ["quick", "full"] and i > 0:
+                try:
+                    # Get plot data from environment
+                    plot_data = env.get_plot_data()
+                    
+                    # Store time
+                    simulation_data['time'].append(i * env.dt)
+                    
+                    # Store joint angles and torques for both legs
+                    for leg in ['r_leg', 'l_leg']:
+                        if leg in plot_data and isinstance(plot_data[leg], dict):
+                            # Safe access with fallback values
+                            joint_data = plot_data[leg].get('joint', {})
+                            torque_data = plot_data[leg].get('joint_torque', {})
+                            
+                            simulation_data[leg]['joint']['hip'].append(joint_data.get('hip', 0.0))
+                            simulation_data[leg]['joint']['knee'].append(joint_data.get('knee', 0.0))
+                            simulation_data[leg]['joint']['ankle'].append(joint_data.get('ankle', 0.0))
+                            
+                            simulation_data[leg]['joint_torque']['hip'].append(torque_data.get('hip', 0.0))
+                            simulation_data[leg]['joint_torque']['knee'].append(torque_data.get('knee', 0.0))
+                            simulation_data[leg]['joint_torque']['ankle'].append(torque_data.get('ankle', 0.0))
+                            
+                            simulation_data[leg]['load_ipsi'].append(plot_data[leg].get('load_ipsi', 0.0))
+                            
+                            # Collect muscle data for full mode
+                            if self.config.processing_mode == "full":
+                                for muscle in simulation_data[leg]['mus'].keys():
+                                    mus_data = plot_data[leg].get('mus', {})
+                                    mus_force_data = plot_data[leg].get('mus_force', {})
+                                    mus_vel_data = plot_data[leg].get('mus_vel', {})
+                                    
+                                    simulation_data[leg]['mus'][muscle].append(mus_data.get(muscle, 0.1))
+                                    simulation_data[leg]['mus_force'][muscle].append(mus_force_data.get(muscle, 0.0))
+                                    simulation_data[leg]['mus_vel'][muscle].append(mus_vel_data.get(muscle, 0.0))
+                        else:
+                            # Fill with default values if leg data not available
+                            if i == 1:  # Only print warning once
+                                print(f"    Warning: {leg} data not available in plot_data, using defaults")
+                            simulation_data[leg]['joint']['hip'].append(0.0)
+                            simulation_data[leg]['joint']['knee'].append(0.0)
+                            simulation_data[leg]['joint']['ankle'].append(0.0)
+                            simulation_data[leg]['joint_torque']['hip'].append(0.0)
+                            simulation_data[leg]['joint_torque']['knee'].append(0.0)
+                            simulation_data[leg]['joint_torque']['ankle'].append(0.0)
+                            simulation_data[leg]['load_ipsi'].append(0.0)
+                            
+                            if self.config.processing_mode == "full":
+                                for muscle in simulation_data[leg]['mus'].keys():
+                                    simulation_data[leg]['mus'][muscle].append(0.1)
+                                    simulation_data[leg]['mus_force'][muscle].append(0.0)
+                                    simulation_data[leg]['mus_vel'][muscle].append(0.0)
+                    
+                    # Store trunk/pelvis data
+                    body_data = plot_data.get('body', {})
+                    simulation_data['trunk'].append(body_data.get('theta', 0.0))
+                    
+                except Exception as e:
+                    if i <= 5:  # Only print warnings for first few timesteps
+                        print(f"    Warning: Error collecting simulation data at timestep {i}: {e}")
+                    # Continue simulation even if data collection fails
+                    simulation_data['time'].append(i * env.dt)
+                    # Fill with default values
+                    for leg in ['r_leg', 'l_leg']:
+                        simulation_data[leg]['joint']['hip'].append(0.0)
+                        simulation_data[leg]['joint']['knee'].append(0.0)
+                        simulation_data[leg]['joint']['ankle'].append(0.0)
+                        simulation_data[leg]['joint_torque']['hip'].append(0.0)
+                        simulation_data[leg]['joint_torque']['knee'].append(0.0)
+                        simulation_data[leg]['joint_torque']['ankle'].append(0.0)
+                        simulation_data[leg]['load_ipsi'].append(0.0)
+                    simulation_data['trunk'].append(0.0)
+            
+            # Run simulation step
+            _, _, is_done = env.run_reflex_step_Cost()
+            
+            if is_done:
+                print(f"    Simulation terminated early at timestep {i}")
+                break
+        
+        # Ensure progress bar completes
+        print_progress_bar(timesteps, timesteps, prefix='  Progress:', suffix=f'({timesteps}/{timesteps})', length=30)
+        
+        # Save video
+        video_filename = f"{base_filename}.mp4"
+        video_path = os.path.join(self.config.output_dir, video_filename)
+        
+        skvideo.io.vwrite(video_path, 
+                         np.asarray(frames),
+                         inputdict={"-r": "100"}, 
+                         outputdict={"-r": "100", "-pix_fmt": "yuv420p"})
+        
+        # Store simulation data for use by analysis functions
+        self._simulation_data = simulation_data
+        
+        return video_path
+    
+    def _generate_quick_analysis(self, env, base_filename):
+        """Generate quick kinematics analysis with actual joint angle data"""
+        
+        if not hasattr(self, '_simulation_data'):
+            print("  Warning: No simulation data available for quick analysis")
+            return
+        
+        data = self._simulation_data
+        
+        # Check data completeness
+        print(f"  Collected {len(data['time'])} timesteps of data (first timestep filtered out)")
+        
+        # Check if we have sufficient data
+        if len(data['time']) < 10:
+            print(f"  Warning: Insufficient data collected ({len(data['time'])} timesteps), skipping analysis")
+            return
+        
+        # Verify data ranges to ensure realistic values
+        for leg in ['r_leg', 'l_leg']:
+            hip_data = np.array(data[leg]['joint']['hip']) * 180/np.pi
+            if len(hip_data) > 0:
+                print(f"  {leg.replace('_', ' ').title()} hip angle range: {np.min(hip_data):.1f}° to {np.max(hip_data):.1f}°")
+        
+        # Convert data to numpy arrays
+        time_array = np.array(data['time'])
+        
+        # Prepare data arrays for both legs, applying plotting conventions from MyoReport/user image
+        rad_to_deg = 180 / np.pi
+        joint_data = {}
+        for leg in ['r_leg', 'l_leg']:
+            # Ensure data is numpy array before processing
+            hip_raw = np.array(data[leg]['joint']['hip'])
+            knee_raw = np.array(data[leg]['joint']['knee'])
+            ankle_raw = np.array(data[leg]['joint']['ankle'])
+
+            joint_data[leg] = {
+                # Convention from MyoReport reference data processing block
+                'hip': -1 * hip_raw * rad_to_deg + 180,
+                'knee': -1 * knee_raw * rad_to_deg + 180,
+                'ankle': -1 * ankle_raw * rad_to_deg + 90
+            }
+        
+        # Create comparison plot for both legs
+        fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+        fig.suptitle(f"Quick Kinematics Analysis: {base_filename}", fontsize=16, fontweight='bold')
+        
+        joint_names = ['Hip', 'Knee', 'Ankle']
+        joint_keys = ['hip', 'knee', 'ankle']
+        colors = {'r_leg': '#50aaab', 'l_leg': '#215258'}
+        leg_labels = {'r_leg': 'Right Leg', 'l_leg': 'Left Leg'}
+        
+        for i, (joint_name, joint_key) in enumerate(zip(joint_names, joint_keys)):
+            for leg in ['r_leg', 'l_leg']:
+                axes[i].plot(time_array, joint_data[leg][joint_key], 
+                           color=colors[leg], linewidth=2, 
+                           label=f'{leg_labels[leg]} {joint_name}')
+            
+            axes[i].set_ylabel(f'{joint_name} Angle (degrees)', fontsize=12)
+            axes[i].legend(fontsize=10)
+            axes[i].grid(True, alpha=0.3)
+            axes[i].set_title(f'{joint_name} Joint Angles', fontsize=12, fontweight='bold')
+            
+            # Add some basic stats to the plot
+            for leg in ['r_leg', 'l_leg']:
+                data_mean = np.mean(joint_data[leg][joint_key])
+                data_std = np.std(joint_data[leg][joint_key])
+                data_range = np.max(joint_data[leg][joint_key]) - np.min(joint_data[leg][joint_key])
+                
+                # Add text box with stats
+                stats_text = f'{leg_labels[leg]}:\nMean: {data_mean:.1f}°\nStd: {data_std:.1f}°\nRange: {data_range:.1f}°'
+                axes[i].text(0.02 if leg == 'r_leg' else 0.5, 0.98, stats_text,
+                           transform=axes[i].transAxes, fontsize=8,
+                           verticalalignment='top', 
+                           bbox=dict(boxstyle='round', facecolor=colors[leg], alpha=0.1))
+        
+        axes[-1].set_xlabel('Time (seconds)', fontsize=12)
+        
+        # Add simulation info
+        info_text = (f"Model: {self.config.model} | Mode: {self.config.mode} | "
+                    f"Sim Time: {self.config.sim_time}s | Slope: {self.config.slope_deg}°")
+        fig.text(0.5, 0.02, info_text, ha='center', fontsize=10, style='italic')
+        
+        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.1) # Add padding to bottom
+        
+        # Save plot
+        plot_path = os.path.join(self.config.output_dir, f"{base_filename}_kinematics.png")
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"  Kinematics plot saved to {plot_path}")
+        
+        # Save a simple summary statistics file
+        stats_path = os.path.join(self.config.output_dir, f"{base_filename}_stats.txt")
+        with open(stats_path, 'w') as f:
+            f.write(f"Quick Kinematics Analysis Summary\n")
+            f.write(f"===================================\n")
+            f.write(f"Simulation: {base_filename}\n")
+            f.write(f"Duration: {self.config.sim_time}s\n")
+            f.write(f"Timesteps: {len(time_array)}\n\n")
+            
+            for leg in ['r_leg', 'l_leg']:
+                f.write(f"{leg_labels[leg]} Statistics:\n")
+                for joint_name, joint_key in zip(joint_names, joint_keys):
+                    data_vals = joint_data[leg][joint_key]
+                    f.write(f"  {joint_name:5} - Mean: {np.mean(data_vals):6.1f}° | "
+                           f"Std: {np.std(data_vals):5.1f}° | "
+                           f"Min: {np.min(data_vals):6.1f}° | "
+                           f"Max: {np.max(data_vals):6.1f}°\n")
+                f.write("\n")
+        
+        print(f"  Statistics saved to {stats_path}")
+
+        # If exoskeleton enabled, also produce exo+cost figure
+        if self.config.exo_bool:
+            try:
+                cost_file = self._find_cost_file(base_filename)
+            except Exception:
+                cost_file = None
+            try:
+                self._generate_exo_cost_plot(env, base_filename, cost_file)
+            except Exception as e:
+                print(f"  Warning: Could not create exo/cost plot: {e}")
+    
+    def _generate_full_report(self, env, base_filename, param_file):
+        """Generate full MyoReport analysis"""
+        
+        if not hasattr(self, '_simulation_data'):
+            print("  Warning: No simulation data available for full report generation")
+            return
+        
+        # Initialize report generator with reference data
+        if self.report_generator is None:
+            ref_kinematics_path = os.path.join('ref_data', 'ref_kinematics_radians.csv')
+            ref_emg_path = os.path.join('ref_data', 'ref_EMG.csv')
+            
+            # Use default paths if reference data exists
+            if not os.path.exists(ref_kinematics_path):
+                ref_kinematics_path = 'ref_kinematics_radians_mod.csv'
+            if not os.path.exists(ref_emg_path):
+                ref_emg_path = 'ref_EMG.csv'
+            
+            try:
+                self.report_generator = MyoReport(
+                    ref_kinematics_path=ref_kinematics_path,
+                    ref_emg_path=ref_emg_path
+                )
+            except Exception as e:
+                print(f"  Warning: Could not initialize MyoReport generator: {e}")
+                print(f"  Falling back to quick analysis...")
+                self._generate_quick_analysis(env, base_filename)
+                return
+        
+        # Convert simulation data to MyoReport format
+        try:
+            unpacked_dict = self._convert_to_myoreport_format(self._simulation_data)
+            
+            # Create metadata for the report
+            metadata = {
+                'parameter_file': param_file,
+                'model': self.config.model,
+                'mode': self.config.mode,
+                'simulation_time': self.config.sim_time,
+                'slope_deg': self.config.slope_deg,
+                'delayed': self.config.delayed,
+                'exo_bool': self.config.exo_bool,
+                'processing_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'timesteps': unpacked_dict.get('timesteps', len(self._simulation_data['time'])),
+                'dt': unpacked_dict.get('dt', self._simulation_data['dt'])
+            }
+            
+            # Generate muscle labels (default from MyoReport)
+            muscle_labels = self.report_generator.default_muscle_labels
+            
+            # Generate the full PDF report
+            print(f"  Generating full MyoReport PDF...")
+            report_path = os.path.join(self.config.output_dir, f"{base_filename}_report.pdf")
+            
+            # Use MyoReport's saveToPDF method directly
+            self.report_generator.saveToPDF(
+                unpacked_dict=unpacked_dict,
+                muscle_labels=muscle_labels,
+                ref_angle=self.report_generator.ref_kinematics,
+                ref_emg=self.report_generator.ref_emg,
+                metadata=metadata,
+                savepath=self.config.output_dir,
+                filename=base_filename
+            )
+            
+            print(f"  Full report saved to: {report_path}")
+            
+        except Exception as e:
+            print(f"  Error generating full report: {e}")
+            print(f"  Falling back to quick analysis...")
+            self._generate_quick_analysis(env, base_filename)
+    
+    def _convert_to_myoreport_format(self, simulation_data):
+        """Convert simulation data to MyoReport expected format"""
+        
+        # Initialize the main dictionary structure
+        unpacked_dict = {
+            'timesteps': len(simulation_data['time']),
+            'dt': simulation_data['dt'],
+            'trunk': np.array(simulation_data['trunk']),
+            'l_leg': {},
+            'r_leg': {},
+            'actuator_data': {
+                'Exo_L': {'force': [], 'ctrl': []},
+                'Exo_R': {'force': [], 'ctrl': []}
+            }
+        }
+        
+        # Convert leg data
+        for leg in ['r_leg', 'l_leg']:
+            unpacked_dict[leg] = {
+                'joint': {
+                    'hip': np.array(simulation_data[leg]['joint']['hip']),
+                    'knee': np.array(simulation_data[leg]['joint']['knee']),
+                    'ankle': np.array(simulation_data[leg]['joint']['ankle'])
+                },
+                'joint_torque': {
+                    'hip': np.array(simulation_data[leg]['joint_torque']['hip']),
+                    'knee': np.array(simulation_data[leg]['joint_torque']['knee']),
+                    'ankle': np.array(simulation_data[leg]['joint_torque']['ankle'])
+                },
+                'load_ipsi': np.ravel(np.array(simulation_data[leg]['load_ipsi'])),
+                'muscles': {}  # Crucial: This is the key MyoReport is looking for
+            }
+            
+            # Restructure muscle data into the format MyoReport expects
+            # MyoReport uses: 'act' (activation), 'f' (force), 'v' (velocity)
+            if self.config.processing_mode == 'full':
+                # Updated muscle mapping to match new interface
+                muscle_mapping = {
+                    'GLU': 'glutmax',
+                    'VAS': 'vasti',
+                    'SOL': 'soleus',
+                    'GAS': 'gastroc',
+                    'HAM': 'hamstrings',
+                    'HAB': 'abd',
+                    'HFL': 'iliopsoas',
+                    'RF': 'rectfem',
+                    'BFSH': 'bifemsh',
+                    'TA': 'tibant',
+                    'FDL': 'fdl'
+                }
+                
+                for muscle, mujoco_name in muscle_mapping.items():
+                    if muscle in simulation_data[leg]['mus']:
+                        unpacked_dict[leg]['muscles'][muscle] = {
+                            'act': np.array(simulation_data[leg]['mus'][muscle]),
+                            'f': np.array(simulation_data[leg]['mus_force'][muscle]),
+                            'v': np.array(simulation_data[leg]['mus_vel'][muscle])
+                        }
+        
+        # Add exoskeleton data if available
+        if hasattr(simulation_data, 'exo_data'):
+            for leg, exo_key in zip(['l_leg', 'r_leg'], ['Exo_L', 'Exo_R']):
+                if exo_key in simulation_data.exo_data:
+                    unpacked_dict['actuator_data'][exo_key] = {
+                        'force': np.array(simulation_data.exo_data[exo_key]['force']),
+                        'ctrl': np.array(simulation_data.exo_data[exo_key]['ctrl'])
+                    }
+        
+        return unpacked_dict
+
+    # ------------------------------------------------------------
+    # Additional plots: Exoskeleton torque profile + cost table
+    # ------------------------------------------------------------
+
+    def _find_cost_file(self, base_filename):
+        """Return path to the cost file that matches the parameter file used to create base_filename."""
+        # base_filename includes original param name plus timestamp. We retrieve original param name.
+        orig_name = base_filename.split("_")[0]  # before first timestamp underscore
+        # Search in output_dir parent directory for files starting with orig_name and ending _Cost.txt
+        parent_dir = os.path.dirname(self.config.param_files[0]) if self.config.param_files else None
+        if parent_dir and os.path.isdir(parent_dir):
+            for fname in os.listdir(parent_dir):
+                if fname.startswith(orig_name) and fname.endswith('_Cost.txt'):
+                    return os.path.join(parent_dir, fname)
+        # Fallback: None
+        return None
+
+    def _generate_exo_cost_plot(self, env, base_filename, cost_file):
+        """Create figure with exoskeleton torque spline and cost table."""
+        # Colors same as quick analysis
+        spline_color = '#50aaab'  # lighter
+        point_color = '#215258'   # darker
+
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        fig.suptitle(f"Exoskeleton Control & Costs: {base_filename}", fontsize=14, fontweight='bold')
+
+        # --- Left: torque spline ---
+        ax_left = axes[0]
+        x = np.linspace(0, 100, 101)
+        try:
+            torque_vals = np.array([env.ExoCtrl_R.torque_spline(v) for v in x])
+        except Exception:
+            torque_vals = np.zeros_like(x)
+        ax_left.plot(x, torque_vals, color=spline_color, linewidth=2, label='Torque Spline')
+
+        # For n-point (non-legacy) plot control points
+        if not env.use_4param_spline:
+            try:
+                time_pts, torque_pts = env.ExoCtrl_R.get_control_points(include_endpoints=False)
+                ax_left.plot(time_pts, torque_pts, 'o', color=point_color, markersize=6, label='Control Points')
+            except Exception:
+                pass
+
+        ax_left.set_xlabel('Stance Phase (%)')
+        ax_left.set_ylabel('Torque (Nm)')
+        ax_left.set_title('Exoskeleton Torque Profile')
+        ax_left.grid(True, alpha=0.3)
+        ax_left.legend()
+
+        # --- Right: cost table ---
+        ax_right = axes[1]
+        ax_right.axis('off')
+
+        desired_terms = ['Effort_Cost', 'Symmetry_Cost', 'Velocity_Cost', 'Kinematic_Cost']
+        cost_dict = {k: 'N/A' for k in desired_terms}
+
+        if cost_file and os.path.exists(cost_file):
+            try:
+                with open(cost_file, 'r') as f:
+                    for line in f:
+                        parts = line.strip().split()
+                        if len(parts) >= 2:
+                            key = parts[0]
+                            val = parts[1]
+                            for term in desired_terms:
+                                if term.lower().startswith(key.lower()):
+                                    cost_dict[term] = val
+            except Exception:
+                pass
+
+        # Build table data
+        table_data = [[k.replace('_', ' '), cost_dict[k]] for k in desired_terms]
+        table = ax_right.table(cellText=table_data, colLabels=['Cost Term', 'Value'], loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1, 1.5)
+        ax_right.set_title('Cost Summary')
+
+        plt.tight_layout()
+        plot_path = os.path.join(self.config.output_dir, f"{base_filename}_exo_cost.png")
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"  Exo/Cost plot saved to {plot_path}")
+
+
+def prompt_to_continue():
+    """
+    Shows a styled dialog asking the user if they want to run another analysis.
+    Returns True for 'Yes', False for 'No'.
+    """
+    dialog = tk.Toplevel()
+    dialog.title("Continue")
+    dialog.geometry("300x150")
+    dialog.configure(bg="#F0F0F0")
+    dialog.resizable(False, False)
+
+    # Make dialog modal
+    dialog.transient()
+    dialog.grab_set()
+
+    # Style
+    style = ttk.Style(dialog)
+    style.theme_use('clam')
+    BG_COLOR = "#F0F0F0"
+    TEXT_COLOR = "#333333"
+    ACCENT_COLOR = "#50aaab"
+    BUTTON_TEXT_COLOR = "#FFFFFF"
+    LABEL_FONT = ("Segoe UI", 11)
+    NORMAL_FONT = ("Segoe UI", 10)
+
+    style.configure("TFrame", background=BG_COLOR)
+    style.configure("Continue.TLabel", font=(*LABEL_FONT, "bold"), background=BG_COLOR, foreground=TEXT_COLOR, anchor=tk.CENTER)
+    style.configure("Continue.TButton", font=(*NORMAL_FONT, "bold"), background=ACCENT_COLOR, foreground=BUTTON_TEXT_COLOR)
+    style.map("Continue.TButton", background=[('active', '#40898a')])
+
+    dialog.columnconfigure(0, weight=1)
+
+    # --- Widgets ---
+    main_frame = ttk.Frame(dialog, padding="20")
+    main_frame.pack(expand=True, fill=tk.BOTH)
+    main_frame.columnconfigure(0, weight=1)
+
+    # Message
+    label = ttk.Label(main_frame, text="Continue?", style="Continue.TLabel")
+    label.pack(pady=(10, 20), fill=tk.X)
+
+    # Button Frame
+    button_frame = ttk.Frame(main_frame)
+    button_frame.pack()
+
+    result = [False] # Use a list to make it mutable inside callbacks
+
+    def on_yes():
+        result[0] = True
+        dialog.destroy()
+
+    def on_no():
+        result[0] = False
+        dialog.destroy()
+
+    yes_button = ttk.Button(button_frame, text="Yes", command=on_yes, style="Continue.TButton", width=10)
+    yes_button.pack(side=tk.LEFT, padx=(0, 10))
+
+    no_button = ttk.Button(button_frame, text="No", command=on_no, style="Continue.TButton", width=10)
+    no_button.pack(side=tk.LEFT)
+
+    # Center the window
+    dialog.update_idletasks()
+    x = dialog.winfo_screenwidth() // 2 - dialog.winfo_width() // 2
+    y = dialog.winfo_screenheight() // 2 - dialog.winfo_height() // 2
+    dialog.geometry(f"+{x}+{y}")
+
+    dialog.wait_window() # Block until dialog is closed
+
+    return result[0]
+
+
+def parse_bat_file(bat_path):
+    """Parse a .bat configuration file and return settings"""
+    try:
+        with open(bat_path, 'r') as f:
+            lines = f.readlines()
+        
+        config_text = ' '.join(lines[1:]).replace('^', ' ').replace('\n', ' ')
+        
+        if 'python -m myoassist_reflex.train' not in config_text:
+            raise ValueError("Not a valid MyoAssist configuration file")
+        
+        # Parse arguments
+        args = config_text.split()[3:] 
+        settings = {
+            'model': "baseline",  # defaults
+            'mode': "2D",
+            'slope_deg': 0,
+            'delayed': False,
+            'exo_bool': False,
+            'fixed_exo': False,
+            'use_4param_spline': False,
+            'max_torque': 0,
+            'init_pose': "walk_left"
+        }
+        
+        # Process arguments
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            if arg == '--model':
+                settings['model'] = args[i+1]
+                i += 2
+            elif arg == '--move_dim':
+                settings['mode'] = '2D' if args[i+1] == '2' else '3D'
+                i += 2
+            elif arg == '--slope_deg':
+                settings['slope_deg'] = float(args[i+1])
+                i += 2
+            elif arg == '--delayed':
+                settings['delayed'] = bool(int(args[i+1]))
+                i += 2
+            elif arg == '--ExoOn':
+                settings['exo_bool'] = bool(int(args[i+1]))
+                i += 2
+            elif arg == '--fixed_exo':
+                settings['fixed_exo'] = bool(int(args[i+1]))
+                i += 2
+            elif arg == '--use_4param_spline':
+                settings['use_4param_spline'] = True
+                i += 1
+            elif arg == '--max_torque':
+                settings['max_torque'] = float(args[i+1])
+                i += 2
+            elif arg == '--init_pose':
+                settings['init_pose'] = args[i+1]
+                i += 2
+            elif arg == '--n_points':
+                settings['n_points'] = int(args[i+1])
+                i += 2
+            else:
+                i += 1
+        
+        return settings
+        
+    except Exception as e:
+        raise ValueError(f"Error parsing .bat file: {e}")
+
+def find_param_files(results_dir):
+    """Find parameter files in the results directory"""
+    if not os.path.exists(results_dir):
+        raise FileNotFoundError(f"Results directory not found: {results_dir}")
+        
+    # Look for .bat file first
+    bat_files = [f for f in os.listdir(results_dir) if f.endswith('.bat')]
+    if not bat_files:
+        raise FileNotFoundError(f"No .bat configuration file found in {results_dir}")
+    
+    # Look for parameter files. Include both _BestLast and _Best (if present).
+    param_files = []
+    bestlast_files = [f for f in os.listdir(results_dir) if f.endswith('_BestLast.txt')]
+    best_files = [f for f in os.listdir(results_dir) if f.endswith('_Best.txt') and not f.endswith('_BestLast.txt')]
+    
+    # Prioritise BestLast first, then Best
+    if bestlast_files:
+        param_files.extend([os.path.join(results_dir, f) for f in bestlast_files])
+
+    if best_files:
+        param_files.extend([os.path.join(results_dir, f) for f in best_files])
+
+    if not param_files:
+        raise FileNotFoundError(f"No parameter files found in {results_dir}")
+    
+    return os.path.join(results_dir, bat_files[0]), param_files
+
+def get_module_dir():
+    """Get the directory containing the processing module"""
+    return os.path.dirname(os.path.abspath(__file__))
+
+def resolve_path(path, base_dir=None):
+    """Resolve a path relative to the base directory"""
+    if base_dir is None:
+        base_dir = get_module_dir()
+    
+    if os.path.isabs(path):
+        return path
+    return os.path.normpath(os.path.join(base_dir, '..', path))
+
+def main():
+    """Main function to run the processing pipeline"""
+    parser = argparse.ArgumentParser(
+        description="MyoAssist Processing Pipeline - Run simulations from training results",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=textwrap.dedent("""
+            Examples:
+              # Run with GUI interface (default):
+              python -m myoassist_reflex.processing
+              
+              # Run with config file:
+              python -m myoassist_reflex.processing -c example_config.json
+              python -m myoassist_reflex.processing --config path/to/config.json
+            """)
+    )
+    parser.add_argument(
+        '-c', '--config',
+        type=str,
+        help='Path to a JSON config file to run in non-GUI mode. If not provided, launches GUI interface.'
+    )
+    args = parser.parse_args()
+
+    if args.config:
+        # Non-GUI mode
+        try:
+            config_path = args.config
+            if not os.path.isabs(config_path):
+                # Try relative to current working directory
+                if os.path.exists(config_path):
+                    config_path = os.path.abspath(config_path)
+                else:
+                    # Try relative to module directory
+                    module_config_path = os.path.join(get_module_dir(), config_path)
+                    if os.path.exists(module_config_path):
+                        config_path = module_config_path
+                    else:
+                        raise FileNotFoundError(f"Config file not found at '{args.config}' or '{module_config_path}'")
+
+            print(f"\nRunning with config file: {config_path}")
+            
+            # Load and validate config file
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+            
+            # Support either 'results_dir' (single) or 'results_dirs' (list)
+            has_multiple = 'results_dirs' in config_data
+            if has_multiple:
+                # Ensure list type
+                if not isinstance(config_data['results_dirs'], list):
+                    raise ValueError("'results_dirs' must be a list of paths")
+                config_data['results_dirs'] = [resolve_path(p) for p in config_data['results_dirs']]
+            else:
+                if 'results_dir' not in config_data:
+                    raise ValueError("Config file must contain 'results_dir' or 'results_dirs'")
+                config_data['results_dir'] = resolve_path(config_data['results_dir'])
+
+            # Resolve output dir root
+            config_data['output_dir'] = resolve_path(config_data['output_dir'])
+            
+            # Validate required fields
+            required_fields = {
+                'processing_mode': str,
+                'output_dir': str
+            }
+            
+            # Validate all required fields are present and of correct type
+            missing_fields = []
+            invalid_types = []
+            
+            for field, expected_type in required_fields.items():
+                if field not in config_data:
+                    missing_fields.append(field)
+                elif not isinstance(config_data[field], expected_type):
+                    invalid_types.append(f"{field} (expected {expected_type}, got {type(config_data[field])})")
+            
+            if missing_fields:
+                raise ValueError(f"Missing required fields in config file: {', '.join(missing_fields)}")
+            if invalid_types:
+                raise ValueError(f"Invalid field types in config file: {', '.join(invalid_types)}")
+            
+            # Validate processing_mode
+            if config_data['processing_mode'] not in ['debug', 'quick', 'full']:
+                raise ValueError("Processing mode must be one of: debug, quick, full")
+            
+            # Collect all results dirs to iterate
+            batch_dirs = config_data['results_dirs'] if has_multiple else [config_data['results_dir']]
+
+            configs_to_run = []
+
+            for results_dir in batch_dirs:
+                # Find .bat and parameter files for this results dir
+                bat_file, param_files = find_param_files(results_dir)
+
+                # Parse settings from .bat
+                settings = parse_bat_file(bat_file)
+
+                cfg = SimulationConfig()
+                for key, value in settings.items():
+                    setattr(cfg, key, value)
+
+                cfg.processing_mode = config_data['processing_mode']
+                cfg.config_file = bat_file
+                # Output dir per run: root_output / folder_name_of_results
+                run_folder_name = os.path.basename(results_dir.rstrip(os.sep))
+                cfg.output_dir = os.path.join(config_data['output_dir'], run_folder_name)
+                cfg.param_files = param_files
+
+                # sim_time
+                if cfg.processing_mode == 'debug':
+                    cfg.sim_time = 5
+                elif cfg.processing_mode == 'quick':
+                    cfg.sim_time = 10
+                else:
+                    cfg.sim_time = 20
+
+                # Apply Best / BestLast filter based on user choice
+                filtered = []
+                for pf in cfg.param_files:
+                    if pf.endswith('_BestLast.txt') and self.include_bestlast_var.get():
+                        filtered.append(pf)
+                    elif pf.endswith('_Best.txt') and not pf.endswith('_BestLast.txt') and self.include_best_var.get():
+                        filtered.append(pf)
+
+                cfg.param_files = filtered
+
+                # Update parameter listbox for single-run mode only (if no configs previously)
+                if not self.configs:
+                    self.param_listbox.delete(0, tk.END)
+                    for pf in cfg.param_files:
+                        self.param_listbox.insert(tk.END, os.path.basename(pf))
+
+                configs_to_run.append(cfg)
+
+                # Print run summary
+                print("\nConfiguration loaded successfully:")
+                print(f"{'='*60}")
+                print(f"Results Directory: {results_dir}")
+                print(f"Found .bat file: {os.path.basename(bat_file)}")
+                print("Found parameter files:")
+                for pf in param_files:
+                    print(f"  - {os.path.basename(pf)}")
+                print("Settings from .bat file:")
+                for key, value in settings.items():
+                    print(f"  {key}: {value}")
+                print(f"{'='*60}\n")
+
+            # Execute all collected configurations sequentially
+            for cfg in configs_to_run:
+                processor = SimulationProcessor(cfg)
+                processor.process_all_parameters()
+
+        except Exception as e:
+            print(f"\nError in non-GUI mode: {e}")
+            sys.exit(1)
+    else:
+        # GUI mode
+        while True:
+            selector = ParameterSelector()
+            configs = selector.select_parameters()
+
+            if configs:
+                for cfg in configs:
+                    processor = SimulationProcessor(cfg)
+                    processor.process_all_parameters()
+
+                print("\nProcessing finished.")
+                if not prompt_to_continue():
+                    break
+            else:
+                break
+
+
+if __name__ == "__main__":
+    main() 
