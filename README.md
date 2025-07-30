@@ -61,27 +61,18 @@ This execution file is just for testing the environment. If you want to actually
      myoassist_rl/rl_train/train_configs/test_imitation_tutorial_22_flat.sh
      ```
 
-### Running Reflex Control Optimization
+### Running Reflex Control Optimization 
+( **[Running_Optimizations](./Running_Optimizations.md)**)
 
 1. **Basic optimization:**
    - **Windows (PowerShell/CMD)**
      ```powershell
      cd myoassist_reflex
-     run_training.bat baseline
-     ```
-   - **macOS / Linux (bash)**
-     ```bash
-     cd myoassist_reflex
-     run_training.sh baseline
-     ```
-
-2. **Exoskeleton-assisted optimization:**
-   - **Windows (PowerShell/CMD)**
-     ```powershell
      run_training.bat tutorial
      ```
    - **macOS / Linux (bash)**
      ```bash
+     cd myoassist_reflex
      run_training.sh tutorial
      ```
 
@@ -110,21 +101,21 @@ This execution file is just for testing the environment. If you want to actually
 | Model Type | Variant | File Name | Location | Description |
 |------------|---------|-----------|----------|-------------|
 | **22-muscle 2D** | BASELINE | `myoLeg22_2D_BASELINE.xml` | `models/22muscle_2D/` | Basic 2D leg model without exoskeleton |
-| | DEPHY | `myoLeg22_2D_DEPHY.xml` | `models/22muscle_2D/` | Integration with Dephy exoskeleton   |
-| | HMEDI | `myoLeg22_2D_HMEDI.xml` | `models/22muscle_2D/` | Integration with HMEDI exoskeleton   |
-| | HUMOTECH | `myoLeg22_2D_HUMOTECH.xml` | `models/22muscle_2D/` | Integration with Humotech exoskeleton   |
-| | OSL_A | `myoLeg22_2D_OSL_A.xml` | `models/22muscle_2D/` | Integration with OSL exoskeleton   |
+| | DEPHY | `myoLeg22_2D_DEPHY.xml` | `models/22muscle_2D/` | Baseline with Dephy exoskeleton   |
+| | HMEDI | `myoLeg22_2D_HMEDI.xml` | `models/22muscle_2D/` | Baseline with HMEDI exoskeleton   |
+| | HUMOTECH | `myoLeg22_2D_HUMOTECH.xml` | `models/22muscle_2D/` | Baseline with Humotech exoskeleton   |
+| | OSL_A | `myoLeg22_2D_OSL_A.xml` | `models/22muscle_2D/` | Baseline with OSL exoskeleton   |
 | | TUTORIAL | `myoLeg22_2D_TUTORIAL.xml` | `models/22muscle_2D/` | Tutorial model for learning purposes |
 | **26-muscle 3D** | BASELINE | `myoLeg26_BASELINE.xml` | `models/26muscle_3D/` | Basic 3D leg model without exoskeleton |
-| | DEPHY | `myoLeg26_DEPHY.xml` | `models/26muscle_3D/` | 3D integration with Dephy exoskeleton |
-| | HMEDI | `myoLeg26_HMEDI.xml` | `models/26muscle_3D/` | 3D integration with HMEDI exoskeleton |
-| | HUMOTECH | `myoLeg26_HUMOTECH.xml` | `models/26muscle_3D/` | 3D integration with Humotech exoskeleton |
-| | OSL_A | `myoLeg26_OSL_A.xml` | `models/26muscle_3D/` | 3D integration with OSL exoskeleton |
+| | DEPHY | `myoLeg26_DEPHY.xml` | `models/26muscle_3D/` | 3D Baseline with Dephy exoskeleton |
+| | HMEDI | `myoLeg26_HMEDI.xml` | `models/26muscle_3D/` | 3D Baseline with HMEDI exoskeleton |
+| | HUMOTECH | `myoLeg26_HUMOTECH.xml` | `models/26muscle_3D/` | 3D Baseline with Humotech exoskeleton |
+| | OSL_A | `myoLeg26_OSL_A.xml` | `models/26muscle_3D/` | 3D Baseline with OSL exoskeleton |
 | | TUTORIAL | `myoLeg26_TUTORIAL.xml` | `models/26muscle_3D/` | 3D tutorial model |
-| **80-muscle High-Fidelity** | DEPHY | `myolegs_DEPHY.xml` | `models/80muscle/myoLeg80_DEPHY/` | High-fidelity model with Dephy exoskeleton |
-| | HMEDI | `myolegs_HMEDI.xml` | `models/80muscle/myoLeg80_HMEDI/` | High-fidelity model with HMEDI exoskeleton |
-| | HUMOTECH | `myolegs_HUMOTECH.xml` | `models/80muscle/myoLeg80_HUMOTECH/` | High-fidelity model with Humotech exoskeleton |
-| | OSL_KA | `myolegs_OSL_KA.xml` | `models/80muscle/myoLeg80_OSL_KA/` | High-fidelity model with OSL exoskeleton |
+| **80-muscle High-Fidelity** | DEPHY | `myolegs_DEPHY.xml` | `models/80muscle/myoLeg80_DEPHY/` | Full myoLegs model with Dephy exoskeleton |
+| | HMEDI | `myolegs_HMEDI.xml` | `models/80muscle/myoLeg80_HMEDI/` | Full myoLegs model with HMEDI exoskeleton |
+| | HUMOTECH | `myolegs_HUMOTECH.xml` | `models/80muscle/myoLeg80_HUMOTECH/` | Full myoLegs model with Humotech exoskeleton |
+| | OSL_KA | `myolegs_OSL_KA.xml` | `models/80muscle/myoLeg80_OSL_KA/` | Full myoLegs model with OSL exoskeleton |
 
 ### Mesh Assets
 
@@ -151,7 +142,7 @@ myoassist/
 │   ├── models/
 │   │   ├── 22muscle_2D/      # 2D musculoskeletal models
 │   │   ├── 26muscle_3D/      # 3D musculoskeletal models
-│   │   ├── 80muscle/         # High-fidelity models
+│   │   ├── 80muscle/         # Full myoLegs models
 │   │   └── mesh/             # 3D mesh assets
 │   └── terrain_config.xml    # Terrain configuration
 │
@@ -207,6 +198,7 @@ myoassist_reflex/
 ├── config/                  # Configuration and argument parsing
 ├── cost_functions/          # Cost evaluation logic
 ├── optimization/            # CMA-ES optimizer utilities
+├── preoptimized/            # Preoptimized control parameters
 ├── reflex/                  # Core reflex controller
 ├── exo/                     # Exoskeleton controllers
 ├── processing/              # Result analysis tools
@@ -249,7 +241,6 @@ This project is licensed under the Apache License 2.0 - see [LICENSE](LICENSE) f
 
 - **MyoSuite**: Base musculoskeletal simulation framework
 - **MuJoCo**: Physics simulation engine
-- **Stable-Baselines3**: Reinforcement learning algorithms
 
 ---
 
