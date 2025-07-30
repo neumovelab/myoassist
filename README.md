@@ -41,11 +41,6 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
    pip install -e .
    ```
 
-3. Initialize MyoSuite (downloads simulation assets):
-   ```bash
-   python myosuite_init.py
-   ```
-
 ## Quick Start
 
 ### Running Reinforcement Learning Training
