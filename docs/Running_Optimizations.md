@@ -40,9 +40,9 @@ The `training_configs/` directory contains both `.bat` (Windows) and `.sh` (Linu
 
 | Example Configuration         | Description                                                                                             |
 |-----------------------|---------------------------------------------------------------------------------------------------------|
-| `baseline`            | A standard optimization for the 11-muscle model without an exoskeleton. A good starting point.          |
+| `baseline`            | A standard optimization for the 22-muscle model without an exoskeleton. A good starting point.          |
 | `debug`               | A small, quick run with few iterations, designed for testing and debugging the optimization pipeline.   |
-| `exo_4param`          | Optimizes the controller with an exoskeleton using the legacy 4-parameter spline for its torque profile. |
+| `exo_4param`          | Optimizes the controller with an exoskeleton using the 4-parameter spline for its torque profile. |
 | `exo_4param_kine`     | Similar to `exo_4param`, but uses a kinematics-focused cost function (`-kine`).                           |
 | `exo_npoint`          | Optimizes with an exoskeleton using the modern n-point spline controller.                                 |
 | `exo_npoint_cont`     | An example of a continued optimization, starting from the results of a previous run.                      |
@@ -58,7 +58,7 @@ The `training_configs/` directory contains both `.bat` (Windows) and `.sh` (Linu
 cd myoassist_reflex
 
 # Run using .bat files
-run_training.bat baseline
+run_training.bat tutorial
 ```
 
 ### Linux/Mac Users
@@ -72,7 +72,7 @@ cd myoassist_reflex
 chmod +x run_training.sh
 
 # Run using .sh files
-./run_training.sh baseline
+./run_training.sh tutorial
 ```
 
 ### Cluster/Remote Execution
@@ -80,13 +80,12 @@ chmod +x run_training.sh
 For cluster environments, use the `.sh` configurations:
 
 ```bash
-./run_training.sh baseline
-./run_training.sh debug
+./run_training.sh tutorial
 ```
 
 ## Configuration File Formats
 
-**Example `debug.bat`:**
+**Example `tutorial.bat`:**
 ```batch
 python -m myoassist_reflex.train ^
     --musc_model 22 ^
@@ -104,13 +103,13 @@ python -m myoassist_reflex.train ^
     --tgt_grf_th 1.5 ^
     -kine ^
     --ExoOn 1 ^
-    --n_points 6 ^
-    --max_torque 10.0 ^
+    --use_4param_spline ^
+    --max_torque 100.0 ^
     --popsize 8 ^
     --maxiter 50 ^
     --threads 8 ^
     --sigma_gain 10 ^
-    --save_path results/debug
+    --save_path results/tutorial
 ```
 
 ## Arguments
