@@ -45,7 +45,6 @@ def ppo_evaluate_with_rendering(config):
 
     obs, info = env.reset()
     for _ in range(1000):
-        env.step(np.zeros(env.action_space.shape))
         action, _states = model.predict(obs, deterministic=True)
         obs, rewards, done, truncated, info = env.step(action)
         if done or truncated:
