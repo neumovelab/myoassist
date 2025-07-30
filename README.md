@@ -25,7 +25,7 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
 ## Installation
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.11+
 - MuJoCo 3.1.5
 - Git
 
@@ -46,10 +46,62 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
    python myosuite_init.py
    ```
 
-4. Install additional requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Quick Start
+
+### Running Reinforcement Learning Training
+
+1. **Imitation learning:**
+This execution file is just for testing the environment. If you want to actually train the model try to use `train_imitation_tutorial_22_flat_full.<bat|sh>`.
+   - **Windows (PowerShell/CMD)**
+     ```powershell
+     myoassist_rl\rl_train\train_configs\test_imitation_tutorial_22_flat.bat
+     ```
+   - **macOS / Linux (bash)**
+     ```bash
+     myoassist_rl/rl_train/train_configs/test_imitation_tutorial_22_flat.sh
+     ```
+
+### Running Reflex Control Optimization
+
+1. **Basic optimization:**
+   - **Windows (PowerShell/CMD)**
+     ```powershell
+     cd myoassist_reflex
+     run_training.bat baseline
+     ```
+   - **macOS / Linux (bash)**
+     ```bash
+     cd myoassist_reflex
+     run_training.sh baseline
+     ```
+
+2. **Exoskeleton-assisted optimization:**
+   - **Windows (PowerShell/CMD)**
+     ```powershell
+     run_training.bat tutorial
+     ```
+   - **macOS / Linux (bash)**
+     ```bash
+     run_training.sh tutorial
+     ```
+
+## Documentations
+
+### Reinforcement Learning
+- **[RL Tutorial](./docs/RL_MYOASSIST_TUTORIAL.md)**: Comprehensive RL guide
+- **[Modeling Guide](./docs/Modeling.md)**: Musculoskeletal modeling details
+
+### Interactive Tutorials
+- `rl_imitation_tutorial.ipynb`: Imitation learning tutorial
+- `rl_analyze_tutorial.ipynb`: Result analysis tutorial
+- `rl_terrain_tutorial.ipynb`: Terrain adaptation tutorial
+
+### Reflex Control
+- **[Running Simulations](./docs/Running_Simulations.md)**: Model loading and visualization
+- **[Running Optimizations](./docs/Running_Optimizations.md)**: Optimization configuration and execution
+- **[Understanding Cost Functions](./docs/Understanding_Cost.md)**: Cost function design and evaluation
+- **[Exoskeleton Controllers](./docs/Exoskeleton_Controllers.md)**: Controller architecture and implementation
+- **[Processing Results](./docs/Processing_Results.md)**: Result analysis and visualization
 
 ## Available Models
 
@@ -182,52 +234,6 @@ myosuite/
 └── agents/                  # Baseline controllers
 ```
 
-## Quick Start
-
-### Running Reinforcement Learning Training
-
-1. **Imitation learning:**
-   ```bash
-   cd myoassist_rl/rl_train
-   python train_ppo.py --config train_configs/imitation_dephy_uni_net.json
-   ```
-
-2. **Terrain adaptation:**
-   ```bash
-   python train_ppo.py --config train_configs/terrain_adaptation.json
-   ```
-
-### Running Reflex Control Optimization
-
-1. **Basic optimization:**
-   ```bash
-   cd myoassist_reflex
-   run_training.bat baseline
-   ```
-
-2. **Exoskeleton-assisted optimization:**
-   ```bash
-   run_training.bat exo_4param_tutorial
-   ```
-
-## Documentation
-
-### Reinforcement Learning
-- **[RL Tutorial](./docs/RL_MYOASSIST_TUTORIAL.md)**: Comprehensive RL guide
-- **[Modeling Guide](./docs/Modeling.md)**: Musculoskeletal modeling details
-
-### Interactive Tutorials
-- `rl_imitation_tutorial.ipynb`: Imitation learning tutorial
-- `rl_analyze_tutorial.ipynb`: Result analysis tutorial
-- `rl_terrain_tutorial.ipynb`: Terrain adaptation tutorial
-
-### Reflex Control
-- **[Running Simulations](./docs/Running_Simulations.md)**: Model loading and visualization
-- **[Running Optimizations](./docs/Running_Optimizations.md)**: Optimization configuration and execution
-- **[Understanding Cost Functions](./docs/Understanding_Cost.md)**: Cost function design and evaluation
-- **[Exoskeleton Controllers](./docs/Exoskeleton_Controllers.md)**: Controller architecture and implementation
-- **[Processing Results](./docs/Processing_Results.md)**: Result analysis and visualization
-
 ## Contributing
 
 We welcome contributions! 
@@ -238,7 +244,6 @@ We welcome contributions!
 ## License
 
 This project is licensed under the Apache License 2.0 - see [LICENSE](LICENSE) for details.
-
 
 ## Related Projects
 
