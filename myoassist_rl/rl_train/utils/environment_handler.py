@@ -135,7 +135,7 @@ class EnvironmentHandler:
             # when should I reset the (value)network?
             model = stable_baselines3.PPO.load(config.env_params.prev_trained_policy_path,
                                             env=env,
-                                            policy_kwargs=DictionableDataclass.to_dict(config.policy_params),
+                                            # policy_kwargs=DictionableDataclass.to_dict(config.policy_params),
                                             verbose=2,
                                             **DictionableDataclass.to_dict(config.ppo_params),
                                             )

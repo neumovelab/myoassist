@@ -177,6 +177,9 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
         return sorted(idxs)
     def reset_network(self, reset_shared_net: bool = False, reset_policy_net: bool = False, reset_value_net: bool = False):
         """Reset the networks if specified"""
-        if reset_shared_net or reset_policy_net or reset_value_net:
-            self.policy_network.reset_networks()
-
+        if reset_policy_net:
+            print(f"Resetting policy network")
+            self.policy_network.reset_policy_networks()
+        if reset_value_net:
+            print(f"Resetting value network")
+            self.policy_network.reset_value_network()
