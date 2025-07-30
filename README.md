@@ -62,7 +62,7 @@ This execution file is just for testing the environment. If you want to actually
      ```
 
 ### Running Reflex Control Optimization 
-( **[Running_Optimizations](./Running_Optimizations.md)**)
+( **[Running_Optimizations](./docs/Running_Optimizations.md)**)
 
 1. **Basic optimization:**
    - **Windows (PowerShell/CMD)**
