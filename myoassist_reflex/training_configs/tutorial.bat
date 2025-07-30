@@ -22,4 +22,4 @@ python -m myoassist_reflex.train ^
     --threads 8 ^
     --sigma_gain 10 ^
     --param_path results/exo_4param_tutorial ^
-    --save_path results/exo_4param
+    --save_path results/tutorial
