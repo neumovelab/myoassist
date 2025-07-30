@@ -62,7 +62,7 @@ This execution file is just for testing the environment. If you want to actually
      ```
 
 ### Running Reflex Control Optimization 
-( **[Running_Optimizations](./Running_Optimizations.md)**)
+( **[Running_Optimizations](./docs/Running_Optimizations.md)**)
 
 1. **Basic optimization:**
    - **Windows (PowerShell/CMD)**
@@ -104,18 +104,18 @@ This execution file is just for testing the environment. If you want to actually
 | | DEPHY | `myoLeg22_2D_DEPHY.xml` | `models/22muscle_2D/` | Baseline with Dephy exoskeleton   |
 | | HMEDI | `myoLeg22_2D_HMEDI.xml` | `models/22muscle_2D/` | Baseline with HMEDI exoskeleton   |
 | | HUMOTECH | `myoLeg22_2D_HUMOTECH.xml` | `models/22muscle_2D/` | Baseline with Humotech exoskeleton   |
-| | OSL_A | `myoLeg22_2D_OSL_A.xml` | `models/22muscle_2D/` | Baseline with OSL exoskeleton   |
+| | OSL_A | `myoLeg22_2D_OSL_A.xml` | `models/22muscle_2D/` | Baseline with OSL ankle prosthetic   |
 | | TUTORIAL | `myoLeg22_2D_TUTORIAL.xml` | `models/22muscle_2D/` | Tutorial model for learning purposes |
 | **26-muscle 3D** | BASELINE | `myoLeg26_BASELINE.xml` | `models/26muscle_3D/` | Basic 3D leg model without exoskeleton |
 | | DEPHY | `myoLeg26_DEPHY.xml` | `models/26muscle_3D/` | 3D Baseline with Dephy exoskeleton |
 | | HMEDI | `myoLeg26_HMEDI.xml` | `models/26muscle_3D/` | 3D Baseline with HMEDI exoskeleton |
 | | HUMOTECH | `myoLeg26_HUMOTECH.xml` | `models/26muscle_3D/` | 3D Baseline with Humotech exoskeleton |
-| | OSL_A | `myoLeg26_OSL_A.xml` | `models/26muscle_3D/` | 3D Baseline with OSL exoskeleton |
+| | OSL_A | `myoLeg26_OSL_A.xml` | `models/26muscle_3D/` | 3D Baseline with OSL ankle prosthetic |
 | | TUTORIAL | `myoLeg26_TUTORIAL.xml` | `models/26muscle_3D/` | 3D tutorial model |
-| **80-muscle High-Fidelity** | DEPHY | `myolegs_DEPHY.xml` | `models/80muscle/myoLeg80_DEPHY/` | Full myoLegs model with Dephy exoskeleton |
+| **80-muscle 3D** | DEPHY | `myolegs_DEPHY.xml` | `models/80muscle/myoLeg80_DEPHY/` | Full myoLegs model with Dephy exoskeleton |
 | | HMEDI | `myolegs_HMEDI.xml` | `models/80muscle/myoLeg80_HMEDI/` | Full myoLegs model with HMEDI exoskeleton |
 | | HUMOTECH | `myolegs_HUMOTECH.xml` | `models/80muscle/myoLeg80_HUMOTECH/` | Full myoLegs model with Humotech exoskeleton |
-| | OSL_KA | `myolegs_OSL_KA.xml` | `models/80muscle/myoLeg80_OSL_KA/` | Full myoLegs model with OSL exoskeleton |
+| | OSL_KA | `myolegs_OSL_KA.xml` | `models/80muscle/myoLeg80_OSL_KA/` | Full myoLegs model with OSL knee-ankle prosthetic |
 
 ### Mesh Assets
 
@@ -125,7 +125,7 @@ This execution file is just for testing the environment. If you want to actually
 | **Exoskeleton Meshes** | `models/mesh/Dephy/` | Dephy exoskeleton components |
 | | `models/mesh/HMEDI/` | HMEDI exoskeleton components |
 | | `models/mesh/Humotech/` | Humotech exoskeleton components |
-| | `models/mesh/OSL/` | OSL exoskeleton components |
+| | `models/mesh/OSL/` | OSL ankle prosthetic components. Knee components in MyoSuite directory. |
 | | `models/mesh/Tutorial/` | Tutorial exoskeleton components |
 
 ## Project Structure

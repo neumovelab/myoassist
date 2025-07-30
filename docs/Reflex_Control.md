@@ -104,7 +104,7 @@ The control system is organized into 10 distinct reflex modules (M1-M10), each r
 
 ## Phase Switching Logic
 
-The system implements the original paper's switching mechanisms (Sw1-Sw4):
+The control also implements switching mechanisms (Sw1-Sw4):
 
 - **Sw1**: Knee flexion reaches threshold (`knee_sw_tgt`)
 - **Sw2**: Leg angle reaches `α_target + α_delta`  
@@ -141,9 +141,10 @@ sign_frontal = 1 if leg == 'r_leg' else -1
 
 ### Control Parameters
 
-- **2D control**: 51 parameters
-- **3D control**: 63 parameters  
-- **Additional pose parameters**: 26 parameters (total 77 without exoskeleton)
+- **2D control**: 51 parameters (reflex control gains and targets)
+- **3D control**: 63 parameters (includes frontal plane hip abductor/adductor control)
+- **Additional pose parameters**: 26 parameters (8 joint angles + 18 initial muscle activations for starting pose)
+- **Total without exoskeleton**: 77 parameters (2D) or 97 parameters (3D)
 
 Parameter categories:
 - **Target angles**: `theta_tgt`, `knee_tgt`, `ankle_tgt`, `mtp_tgt`
