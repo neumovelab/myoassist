@@ -1,0 +1,53 @@
+title: MyoAssist Documentation
+description: Documentation for MyoAssist - A musculoskeletal simulation framework with reinforcement learning and reflex control
+theme: just-the-docs
+
+# Site settings
+url: https://your-github-username.github.io/myoassist
+baseurl: ""
+
+logo: "/assets/myoassist_logo.png"
+
+# Just the Docs theme settings
+just_the_docs:
+
+  color_scheme: myoassist_custom
+  
+  # Enable search
+  search: true
+  
+  # Enable back to top button
+  back_to_top: true
+  
+  # Enable copy button on code blocks
+  copy_buttons: true
+  
+  # Enable heading anchors
+  heading_anchors: true
+  
+  # Enable search header button
+  search_header_button: true
+  
+  # Enable search footer button  
+  search_footer_button: true
+
+# Collections - configure to handle the current docs folder structure
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+    # Include all subdirectories
+    include: ["**/*"]
+
+# Defaults - this handles the docs collection properly
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "page"
+
+# Auxiliary links
+aux_links:
+  "MyoAssist Repository": https://github.com/neumovelab/myoassist
+  "Issues": https://github.com/neumovelab/myoassist/issues

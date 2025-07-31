@@ -1,4 +1,4 @@
-# Author(s): Chun Kwang Tan <cktan.neumove@gmail.com>, Calder Robbins <robbins.cal@northeastern.edu>
+# Author(s): Chun Kwang Tan <cktan.neumove@gmail.com>
 """
 implemented from:
 - Song and Geyer. "A neural circuitry that emphasizes

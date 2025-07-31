@@ -1,3 +1,9 @@
+---
+title: Home
+layout: home
+nav_order: 1
+---
+
 # MyoAssist
 
 A comprehensive Python framework for neuromechanical simulation and control, built for assistive device research. Built on top of MyoSuite, this project provides tools for reinforcement learning, reflex-based control optimization, and exoskeleton integration.
