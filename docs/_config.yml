@@ -1,6 +1,6 @@
 title: MyoAssist Documentation
 description: Documentation for MyoAssist - A musculoskeletal simulation framework with reinforcement learning and reflex control
-remote_theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
 
 # Site settings
 url: https://your-github-username.github.io/myoassist
@@ -51,3 +51,6 @@ defaults:
 aux_links:
   "MyoAssist Repository": https://github.com/neumovelab/myoassist
   "Issues": https://github.com/neumovelab/myoassist/issues
+
+plugins:
+  - jekyll-remote-theme
