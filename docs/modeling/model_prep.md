@@ -1,4 +1,11 @@
-# Model Preparation Guide for Exoskeleton Integration
+---
+title: Model Preparation
+parent: Modeling
+nav_order: 2
+layout: home
+---
+
+# Model Preparation
 
 This doc provides copy-paste code blocks for integrating exoskeleton components into MyoAssist musculoskeletal models. Use this as a "sticker sheet" for adding additional exoskeleton bodies to your models. Mass, inertia, and positioning is specific to these .stl files and will need to be updated for your specific device.
 

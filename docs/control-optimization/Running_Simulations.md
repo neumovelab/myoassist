@@ -1,4 +1,11 @@
-# Running a Simulation
+---
+title: Running Simulations
+parent: Control & Optimization
+nav_order: 1
+layout: home
+---
+
+# Running Simulations
 
 This document explains how to use the `sample_run.ipynb` Jupyter notebook to load a neuromuscular reflex model, configure a simulation environment, and render a video of the resulting locomotion.
 

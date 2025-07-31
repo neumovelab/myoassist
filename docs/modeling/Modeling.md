@@ -1,4 +1,11 @@
-# MyoAssist Modeling Guide
+---
+title: Modeling Guide
+parent: Modeling
+nav_order: 3
+layout: home
+---
+
+# Modeling Guide
 
 This document provides a guide for researchers and developers on how to modify the base musculoskeletal model to integrate custom exoskeletons, prosthetics, or other wearable devices within the MyoAssist framework. For more details on the MuJoCo XML structure, please see the official [MuJoCo Documentation](https://mujoco.readthedocs.io/en/stable/XMLreference.html).
 
@@ -12,7 +19,7 @@ Before you begin, ensure you have the following tools and resources:
 - **MuJoCo Visualizer:** The standalone MuJoCo simulator, which can be downloaded from the [MuJoCo GitHub releases](https://github.com/google-deepmind/mujoco/releases).
 
 <div align="center">
-<img src="./assets/materials.png" width="400"/>
+<img src="../assets/materials.png" width="400"/>
 </div>
 <div align="center">
 <i>Example programs and materials; not sponsored</i>
@@ -33,7 +40,7 @@ The MuJoCo models in this framework are built at a 1:1000 scale. If your device 
 The MuJoCo world frame uses a **(+x forward, +y left, +z up)** coordinate system. However, due to the quaternion that rotates the model's root `pelvis` body, the subsequent musculoskeletal bodies operate in a rotated frame: **(+x forward, +y up, +z right)**. Thus, we have to account for this transformation and coordinate frame when exporting .stl files, and when positioning bodies later. Saving your .stl files positioned correctly in this frame will save significant time later (this is where slicers can make quick work of the necessary transformations). The figure below illustrates the difference: the life-sized rubber duck on the left is defined in the world frame, while the correctly scaled duck on the right is attached to the model's hand and oriented in the model's coordinate system. 
 
 <div align="center">
-<img src="./assets/ducks.png" width="600"/>
+<img src="../assets/ducks.png" width="600"/>
 </div>
 <div align="center">
 </div>
@@ -148,7 +155,7 @@ For each keyframe pose, check for reasonable contact points and forces.
 When adding devices to the feet (e.g., shoes), you must update the model's initial height (`pelvis_ty` position) to prevent it from starting inside the terrain geometry. You must also reposition the contact sites (`r_foot_touch`, `r_toes_touch`) to account for the new geometry.
 
 <div align="center">
-<img src="./assets/contacts.png" width="600"/>
+<img src="../assets/contacts.png" width="600"/>
 </div>
 <div align="center">
 </div>

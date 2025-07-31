@@ -1,3 +1,10 @@
+---
+title: Exoskeleton Controllers
+parent: Control & Optimization
+nav_order: 5
+layout: home
+---
+
 # Exoskeleton Controllers
 
 This document details the architecture, implementation, and optimization of the provided exoskeleton controllers within the MyoAssist Reflex framework.

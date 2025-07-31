@@ -1,4 +1,11 @@
-# Processing and Visualizing Results
+---
+title: Processing Results
+parent: Control & Optimization
+nav_order: 6
+layout: home
+---
+
+# Processing Results
 
 This guide explains how to use the processing pipeline located in `myoassist_reflex/processing/` to analyze and visualize the results of your optimization runs.
 

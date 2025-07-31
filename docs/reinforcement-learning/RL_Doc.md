@@ -1,3 +1,12 @@
+---
+title: RL Documentation
+parent: Reinforcement Learning
+nav_order: 1
+layout: home
+---
+
+# Reinforcement Learning Documentation
+
 # Installation
 ```
 pip install -e .

@@ -1,4 +1,11 @@
-# Reflex Control System
+---
+title: Reflex Control
+parent: Control & Optimization
+nav_order: 4
+layout: home
+---
+
+# Reflex Control
 
 This document describes the neuromuscular reflex control system implemented in MyoAssist, based on the neural circuitry proposed by Song and Geyer (2015) for human locomotion.
 
@@ -213,3 +220,4 @@ The reflex controller is integrated into the MyoAssist environment:
 - **Delayed mode**: Includes biological delays (default, requires 1ms timestep)
 - **Non-delayed mode**: Simplified for faster computation
 - **Debug mode**: Provides module-level output monitoring
+```

@@ -1,3 +1,10 @@
+---
+title: Running Optimizations
+parent: Control & Optimization
+nav_order: 2
+layout: home
+---
+
 # Running Optimizations
 
 This guide explains how to run optimizations for the neuromuscular reflex controller using the `train.py` script, covering everything from basic configurations to advanced settings.
