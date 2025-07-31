@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "myoassist0.1prepare"]
   pull_request:
 
 jobs:
