@@ -27,6 +27,7 @@ import shutil
 try:
     from reflex import myoLeg_reflex
     from processing.MyoReport import MyoReport
+    from processing.exo_visualization import ExoVisualizer
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please ensure you're running this script from the correct directory.")
@@ -61,9 +62,9 @@ class SimulationConfig:
         self.use_4param_spline = False
         self.max_torque = 0
         self.init_pose = "walk_left"
-        self.processing_mode = "quick"  # debug, quick, full
+        self.processing_mode = "short"  # short, long (full commented out)
         self.output_dir = "processing_outputs"
-        self.n_points = 4
+        self.n_points = 3
         self.result_dirs = []  # selected results folders
 
     def parse_bat_config(self, config_file):
@@ -410,9 +411,9 @@ class ParameterSelector:
         processing_frame.grid(row=9, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         self.mode_desc = {
-            "debug": "5s simulation, video only",
-            "quick": "10s simulation, kinematics + video",
-            "full": "20s simulation, video + full report"
+            "short": "5s simulation, video + kinematics",
+            "long": "10s simulation, video + kinematics",
+            # "full": "20s simulation, video + full report"  # Commented out
         }
         
         self.processing_var = tk.StringVar(value=self.config.processing_mode)
@@ -455,8 +456,14 @@ class ParameterSelector:
 
     def _add_config_files(self):
         """Allow user to select one or more .bat configuration files for batch processing."""
+        # Set initial directory to myoassist_reflex/results
+        initial_dir = os.path.join(parent_dir, 'results')
+        if not os.path.exists(initial_dir):
+            initial_dir = os.getcwd()  # Fallback to current directory
+            
         bat_paths = filedialog.askopenfilenames(
             title="Select Configuration Files",
+            initialdir=initial_dir,
             filetypes=[("Batch files", "*.bat"), ("All files", "*.*")]
         )
 
@@ -482,13 +489,12 @@ class ParameterSelector:
 
             # Processing mode is taken from GUI selection for all runs
             cfg.processing_mode = self.processing_var.get()
-            cfg.config_file = bat_path
-            if cfg.processing_mode == "debug":
+            if cfg.processing_mode == "short":
                 cfg.sim_time = 5
-            elif cfg.processing_mode == "quick":
+            elif cfg.processing_mode == "long":
                 cfg.sim_time = 10
-            else:
-                cfg.sim_time = 20
+            # else:
+                # cfg.sim_time = 20
 
             # Note: CLI mode includes all parameter files found
 
@@ -544,6 +550,13 @@ class ParameterSelector:
 
             # Assign distinct output sub-dir for each run
             for cfg in self.configs:
+                # FIX: Update processing mode from GUI for all configs
+                cfg.processing_mode = self.processing_var.get()
+                if cfg.processing_mode == "short":
+                    cfg.sim_time = 5
+                elif cfg.processing_mode == "long":
+                    cfg.sim_time = 10
+                
                 bat_name = os.path.splitext(os.path.basename(cfg.config_file))[0]
                 cfg.output_dir = os.path.join(root_output, bat_name)
                 os.makedirs(cfg.output_dir, exist_ok=True)
@@ -571,14 +584,16 @@ class ParameterSelector:
         self.config.fixed_exo = self.fixed_exo_var.get()
         self.config.use_4param_spline = self.legacy_var.get()
         self.config.processing_mode = self.processing_var.get()
+        
+        # Debug: Print the processing mode that was selected
+        print(f"DEBUG: GUI selected processing mode: {self.processing_var.get()}")
+        print(f"DEBUG: Config processing mode: {self.config.processing_mode}")
 
         # Set sim_time based on processing_mode
-        if self.config.processing_mode == "debug":
+        if self.config.processing_mode == "short":
             self.config.sim_time = 5
-        elif self.config.processing_mode == "quick":
+        elif self.config.processing_mode == "long":
             self.config.sim_time = 10
-        else:  # full
-            self.config.sim_time = 20
 
         # Add date and time to the output directory
         date_time_str = datetime.now().strftime('%m%d_%H%M')
@@ -603,8 +618,14 @@ class ParameterSelector:
 
     def _add_param_files(self):
         """Add parameter files to the list (single-run mode only)."""
+        # Set initial directory to myoassist_reflex/results
+        initial_dir = os.path.join(parent_dir, 'results')
+        if not os.path.exists(initial_dir):
+            initial_dir = os.getcwd()  # Fallback to current directory
+            
         files = filedialog.askopenfilenames(
             title="Select Parameter Files",
+            initialdir=initial_dir,
             filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
         )
         for file in files:
@@ -712,7 +733,16 @@ class ParameterSelector:
 
     def _add_result_folders(self):
         """Add one or more results directories for batch processing."""
-        folder = filedialog.askdirectory(title="Select Results Folder", mustexist=True)
+        # Set initial directory to myoassist_reflex/results
+        initial_dir = os.path.join(parent_dir, 'results')
+        if not os.path.exists(initial_dir):
+            initial_dir = os.getcwd()  # Fallback to current directory
+            
+        folder = filedialog.askdirectory(
+            title="Select Results Folder", 
+            mustexist=True,
+            initialdir=initial_dir
+        )
         if not folder:
             return
 
@@ -733,9 +763,16 @@ class ParameterSelector:
         for k, v in settings.items():
             setattr(cfg, k, v)
 
+        # FIX: Get processing mode from GUI and set sim_time accordingly
         cfg.processing_mode = self.processing_var.get()
         cfg.config_file = bat_file
         cfg.param_files = param_files
+
+        # Set simulation time based on processing mode
+        if cfg.processing_mode == "short":
+            cfg.sim_time = 5
+        elif cfg.processing_mode == "long":
+            cfg.sim_time = 10
 
         # Append and update GUI
         self.result_dirs.append(folder)
@@ -770,16 +807,21 @@ class SimulationProcessor:
     """Main simulation processing class"""
     
     def __init__(self, config: SimulationConfig):
+        """Initialize SimulationProcessor with better debugging"""
         self.config = config
         self.report_generator = None
         
+        # Add debug output
+        print(f"DEBUG: SimulationProcessor initialized with mode: {self.config.processing_mode}")
+        print(f"DEBUG: SimulationProcessor sim_time: {self.config.sim_time}")
+        
         # Ensure sim_time matches processing_mode (safety against earlier mis-set)
-        if self.config.processing_mode == 'debug':
+        if self.config.processing_mode == 'short':
             self.config.sim_time = 5
-        elif self.config.processing_mode == 'quick':
+        elif self.config.processing_mode == 'long':
             self.config.sim_time = 10
-        else:
-            self.config.sim_time = 20
+        
+        print(f"DEBUG: After correction - mode: {self.config.processing_mode}, sim_time: {self.config.sim_time}")
         
         # Create output directory
         os.makedirs(self.config.output_dir, exist_ok=True)
@@ -795,6 +837,8 @@ class SimulationProcessor:
         print(f"Simulation Time: {self.config.sim_time}s")
         print(f"Output Directory: {self.config.output_dir}")
         print(f"Parameter Files: {len(self.config.param_files)}")
+        print(f"DEBUG: Processing mode value: '{self.config.processing_mode}'")
+        print(f"DEBUG: Sim time value: {self.config.sim_time}")
         print(f"{'='*60}\n")
         
         for i, param_file in enumerate(self.config.param_files, 1):
@@ -823,47 +867,67 @@ class SimulationProcessor:
             env = self._create_exo_env(params)
         
         # Run simulation and generate outputs
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_filename = f"{os.path.splitext(os.path.basename(param_file))[0]}_{timestamp}_{file_index:03d}"
+        # Clean filename: just the original parameter name + file index
+        param_name = os.path.splitext(os.path.basename(param_file))[0]
+        base_filename = f"{param_name}_{file_index:03d}"
         
-        # Generate video
+        # Generate main video
         video_path = self._run_simulation(env, base_filename)
         
-        # Process based on mode
-        if self.config.processing_mode == "debug":
-            print(f"  Debug mode: Video saved to {video_path}")
-            
-        elif self.config.processing_mode == "quick":
-            print(f"  Quick mode: Generating kinematics plot...")
+        # Process based on mode - both modes generate the same kinematics plot
+        if self.config.processing_mode in ["short", "long"]:
+            print(f"  {self.config.processing_mode.title()} mode: Generating kinematics plot...")
             self._generate_quick_analysis(env, base_filename)
-            print(f"  Video saved to {video_path}")
+            print(f"  ✓ Main video saved: {os.path.basename(video_path)}")
             
-        elif self.config.processing_mode == "full":
-            print(f"  Full mode: Generating complete report...")
-            self._generate_full_report(env, base_filename, param_file)
-            print(f"  Video saved to {video_path}")
-    
+            # Generate exoskeleton video if exoskeleton is enabled
+            if self.config.exo_bool:
+                try:
+                    exo_video_path = self._generate_exoskeleton_video(env, base_filename, None)
+                    if exo_video_path:
+                        print(f"  ✓ Exoskeleton video saved: {os.path.basename(exo_video_path)}")
+                    else:
+                        print(f"  ⚠ Exoskeleton video generation failed")
+                except Exception as e:
+                    print(f"  ⚠ Could not generate exoskeleton video: {e}")
+                    import traceback
+                    traceback.print_exc()
+
     def _create_barefoot_env(self, params):
         """Create barefoot environment using ReflexInterface"""
         return self._create_exo_env(params)
     
     def _create_exo_env(self, params):
         """Create exoskeleton environment using Reflex_EXO_Interface"""
-        return myoLeg_reflex(
-            sim_time=self.config.sim_time,
-            mode=self.config.mode,
-            init_pose=self.config.init_pose,
-            control_params=params,
-            slope_deg=self.config.slope_deg,
-            delayed=self.config.delayed,
-            exo_bool=self.config.exo_bool,
-            fixed_exo=self.config.fixed_exo,
-            use_4param_spline=self.config.use_4param_spline,
-            max_torque=self.config.max_torque,
-            model=self.config.model,
-            n_points=self.config.n_points
-        )
-    
+        # Save current working directory
+        original_cwd = os.getcwd()
+        
+        # Change to the myoassist_reflex directory so relative paths work correctly
+        # The reflex_interface.py uses relative paths like '../models/...' and expects to be run from myoassist_reflex
+        processing_dir = os.path.dirname(os.path.abspath(__file__))
+        reflex_dir = os.path.dirname(processing_dir)  # Go up one level to myoassist_reflex
+        os.chdir(reflex_dir)
+        
+        try:
+            return myoLeg_reflex(
+                sim_time=self.config.sim_time,
+                mode=self.config.mode,
+                init_pose=self.config.init_pose,
+                control_params=params,
+                slope_deg=self.config.slope_deg,
+                delayed=self.config.delayed,
+                exo_bool=self.config.exo_bool,
+                fixed_exo=self.config.fixed_exo,
+                use_4param_spline=self.config.use_4param_spline,
+                max_torque=self.config.max_torque,
+                model=self.config.model,
+                n_points=self.config.n_points
+            )
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
+
+
     def _run_simulation(self, env, base_filename):
         """Run the simulation and generate video with data collection"""
         env.reset()
@@ -897,6 +961,8 @@ class SimulationProcessor:
         }
         
         print(f"  Running {timesteps} timesteps...")
+        print(f"  DEBUG: Processing mode: {self.config.processing_mode}")
+        print(f"  DEBUG: Simulation time: {self.config.sim_time}s")
         
         # Initialize muscle data structures if full mode
         if self.config.processing_mode == "full":
@@ -907,12 +973,12 @@ class SimulationProcessor:
                     simulation_data[leg]['mus_force'][muscle] = []
                     simulation_data[leg]['mus_vel'][muscle] = []
         
-        # Set up renderer
+        # Set up renderer with higher resolution
         env.env.sim.renderer.render_offscreen(camera_id=4)
         env.env.sim.renderer._scene_option.flags[0] = 0  # Remove convex hull
         env.env.sim.renderer._scene_option.flags[4] = 0
         
-        # Camera setup for video
+        # Camera setup for video with higher resolution
         free_cam = mujoco.MjvCamera()
         camera_speed = 1.25
         slope_angle_rad = np.radians(env.slope_deg)
@@ -920,6 +986,10 @@ class SimulationProcessor:
         
         camera_pos = start_position.copy()
         camera_pos[2] = 0.8
+        
+        # Higher resolution for video
+        video_width, video_height = 2560, 1440
+        print(f"  DEBUG: Rendering at {video_width}x{video_height} resolution")
         
         for i in range(timesteps):
             # Show progress bar every 10%
@@ -945,19 +1015,32 @@ class SimulationProcessor:
                 free_cam.lookat = lookat_pos
                 
                 frame = env.env.unwrapped.sim.renderer.render_offscreen(
-                    camera_id=free_cam, width=1920, height=1080)
+                    camera_id=free_cam, width=video_width, height=video_height)
             else:
                 if i % 10 == 0:
                     env.env.sim.data.camera(4).xpos[2] = 2.181
-                    frame = env.env.sim.renderer.render_offscreen(camera_id=4)
+                    frame = env.env.sim.renderer.render_offscreen(camera_id=4, width=video_width, height=video_height)
             
             frames.append(frame)
             
-            # Collect simulation data (for quick/full modes) - Skip first timestep to avoid scaling issues
-            if self.config.processing_mode in ["quick", "full"] and i > 0:
+            # Collect simulation data using your original method
+            if self.config.processing_mode in ["short", "long"] and i > 0:
                 try:
-                    # Get plot data from environment
+                    # Get plot data from environment (your original method)
                     plot_data = env.get_plot_data()
+                    
+                    # Debug first few timesteps to see what we get
+                    if i <= 3:
+                        print(f"  DEBUG timestep {i}: plot_data keys: {list(plot_data.keys()) if isinstance(plot_data, dict) else type(plot_data)}")
+                        if isinstance(plot_data, dict):
+                            for leg in ['r_leg', 'l_leg']:
+                                if leg in plot_data:
+                                    leg_data = plot_data[leg]
+                                    if isinstance(leg_data, dict):
+                                        print(f"    {leg} keys: {list(leg_data.keys())}")
+                                        if 'joint' in leg_data:
+                                            joint_data = leg_data['joint']
+                                            print(f"    {leg} joints: {joint_data}")
                     
                     # Store time
                     simulation_data['time'].append(i * env.dt)
@@ -979,7 +1062,7 @@ class SimulationProcessor:
                             
                             simulation_data[leg]['load_ipsi'].append(plot_data[leg].get('load_ipsi', 0.0))
                             
-                            # Collect muscle data for full mode
+                            # Collect muscle data for full mode (with HAB error handling)
                             if self.config.processing_mode == "full":
                                 for muscle in simulation_data[leg]['mus'].keys():
                                     mus_data = plot_data[leg].get('mus', {})
@@ -1012,8 +1095,17 @@ class SimulationProcessor:
                     simulation_data['trunk'].append(body_data.get('theta', 0.0))
                     
                 except Exception as e:
-                    if i <= 5:  # Only print warnings for first few timesteps
-                        print(f"    Warning: Error collecting simulation data at timestep {i}: {e}")
+                    # Enhanced error handling for HAB and other issues
+                    error_msg = str(e)
+                    if 'HAB' in error_msg:
+                        # Suppress HAB warnings after first few timesteps
+                        if i <= 5:
+                            print(f"    DEBUG: HAB muscle issue at timestep {i} (will suppress further HAB warnings)")
+                    else:
+                        # Print other errors for first few timesteps
+                        if i <= 5:
+                            print(f"    Warning: Error collecting simulation data at timestep {i}: {e}")
+                    
                     # Continue simulation even if data collection fails
                     simulation_data['time'].append(i * env.dt)
                     # Fill with default values
@@ -1037,65 +1129,300 @@ class SimulationProcessor:
         # Ensure progress bar completes
         print_progress_bar(timesteps, timesteps, prefix='  Progress:', suffix=f'({timesteps}/{timesteps})', length=30)
         
-        # Save video
+        # Check what data we actually collected
+        if self.config.processing_mode in ["short", "long"] and simulation_data['time']:
+            print(f"  DEBUG: Collected {len(simulation_data['time'])} data points")
+            if len(simulation_data['time']) > 10:
+                mid_idx = len(simulation_data['time']) // 2
+                r_hip_mid = simulation_data['r_leg']['joint']['hip'][mid_idx]
+                r_knee_mid = simulation_data['r_leg']['joint']['knee'][mid_idx]
+                l_hip_mid = simulation_data['l_leg']['joint']['hip'][mid_idx]
+                l_knee_mid = simulation_data['l_leg']['joint']['knee'][mid_idx]
+                print(f"  DEBUG: Mid-simulation values:")
+                print(f"    R hip: {r_hip_mid:.6f}, R knee: {r_knee_mid:.6f}")
+                print(f"    L hip: {l_hip_mid:.6f}, L knee: {l_knee_mid:.6f}")
+                
+                # Check ranges
+                all_r_knee = np.array(simulation_data['r_leg']['joint']['knee'])
+                all_l_knee = np.array(simulation_data['l_leg']['joint']['knee'])
+                all_r_hip = np.array(simulation_data['r_leg']['joint']['hip'])
+                all_l_hip = np.array(simulation_data['l_leg']['joint']['hip'])
+                
+                print(f"  DEBUG: Joint ranges:")
+                print(f"    R hip: {np.min(all_r_hip):.6f} to {np.max(all_r_hip):.6f} (std: {np.std(all_r_hip):.6f})")
+                print(f"    R knee: {np.min(all_r_knee):.6f} to {np.max(all_r_knee):.6f} (std: {np.std(all_r_knee):.6f})")
+                print(f"    L hip: {np.min(all_l_hip):.6f} to {np.max(all_l_hip):.6f} (std: {np.std(all_l_hip):.6f})")
+                print(f"    L knee: {np.min(all_l_knee):.6f} to {np.max(all_l_knee):.6f} (std: {np.std(all_l_knee):.6f})")
+        
+        # Save video using imageio (your preferred method)
         video_filename = f"{base_filename}.mp4"
         video_path = os.path.join(self.config.output_dir, video_filename)
         
-        skvideo.io.vwrite(video_path, 
-                         np.asarray(frames),
-                         inputdict={"-r": "100"}, 
-                         outputdict={"-r": "100", "-pix_fmt": "yuv420p"})
+        print(f"  DEBUG: Saving video...")
+        print(f"  DEBUG: Frames collected: {len(frames)}")
+        print(f"  DEBUG: Video path: {video_path}")
+        
+        try:
+            import imageio
+            
+            # Convert frames to proper format
+            frames_array = np.asarray(frames)
+            if frames_array.dtype != np.uint8:
+                if frames_array.max() <= 1.0:
+                    frames_array = (frames_array * 255).astype(np.uint8)
+                else:
+                    frames_array = frames_array.astype(np.uint8)
+            
+            # Use imageio for reliable video generation
+            with imageio.get_writer(video_path, fps=100, codec='libx264', quality=9, macro_block_size=1) as writer:
+                for frame in frames_array:
+                    writer.append_data(frame)
+            
+            if os.path.exists(video_path):
+                file_size = os.path.getsize(video_path)
+                print(f"  ✓ Video created: {os.path.basename(video_path)} ({file_size} bytes)")
+                print(f"    Resolution: {video_width}x{video_height}")
+            else:
+                print(f"  ✗ Video file was not created")
+                
+        except Exception as e:
+            print(f"  ✗ Video generation failed: {e}")
         
         # Store simulation data for use by analysis functions
         self._simulation_data = simulation_data
         
         return video_path
+
+
+    def _generate_exoskeleton_video(self, env, base_filename, regular_frames):
+        """Generate exoskeleton visualization video using imageio."""
+        if not self.config.exo_bool:
+            return None
+            
+        print(f"  DEBUG: Generating exoskeleton video...")
+            
+        # Initialize exo visualizer
+        try:
+            from processing.exo_visualization import ExoVisualizer
+            exo_visualizer = ExoVisualizer()
+        except ImportError as e:
+            print(f"  ⚠ Could not import ExoVisualizer: {e}")
+            return None
+        
+        # Create exoskeleton frames with overlay
+        exo_frames = []
+        
+        # Calculate timesteps
+        timesteps = int(self.config.sim_time / env.dt)
+        
+        # Reset environment to replay simulation
+        env.reset()
+        
+        # Set up camera for exo video (same as regular video)
+        free_cam = mujoco.MjvCamera()
+        camera_speed = 1.25
+        slope_angle_rad = np.radians(env.slope_deg)
+        start_position = env.env.unwrapped.sim.data.body("pelvis").xpos.copy()
+        
+        camera_pos = start_position.copy()
+        camera_pos[2] = 0.8
+        
+        # Same high resolution as main video
+        video_width, video_height = 2560, 1440
+        print(f"  DEBUG: Exo video rendering at {video_width}x{video_height} resolution")
+        
+        for i in range(timesteps):
+            if i % max(1, timesteps // 10) == 0:
+                print_progress_bar(i, timesteps, prefix='  Exo video:', suffix=f'({i}/{timesteps})', length=30)
+            
+            # Update camera position for following
+            if not env.delayed:
+                distance_traveled = camera_speed * env.dt * i
+                camera_pos[0] = start_position[0] + distance_traveled
+                
+                slope_correction = 0.2
+                height_increase = (camera_pos[0] - start_position[0]) * np.tan(slope_angle_rad) * slope_correction
+                camera_pos[2] = 0.8 + height_increase
+                
+                pelvis_pos = env.env.unwrapped.sim.data.body("pelvis").xpos.copy()
+                lookat_pos = camera_pos.copy()
+                lookat_pos[1] = pelvis_pos[1]
+                
+                free_cam.distance = 2.5
+                free_cam.azimuth = 90
+                free_cam.elevation = 0
+                free_cam.lookat = lookat_pos
+                
+                frame = env.env.unwrapped.sim.renderer.render_offscreen(
+                    camera_id=free_cam, width=video_width, height=video_height)
+            else:
+                if i % 10 == 0:
+                    env.env.sim.data.camera(4).xpos[2] = 2.181
+                    frame = env.env.sim.renderer.render_offscreen(camera_id=4, width=video_width, height=video_height)
+            
+            try:
+                # Get exoskeleton control data
+                exo_control_data = exo_visualizer.get_exo_control_data(env)
+                
+                # Create overlay
+                overlay = exo_visualizer.create_overlay(
+                    env, 
+                    exo_control_data['torque_r'], 
+                    exo_control_data['torque_l'],
+                    exo_control_data['stance_percent_r'], 
+                    exo_control_data['stance_percent_l'],
+                    exo_control_data['state_r'], 
+                    exo_control_data['state_l']
+                )
+                
+                # Apply overlay to frame
+                frame_with_overlay = exo_visualizer.overlay_on_frame(frame, overlay)
+                exo_frames.append(frame_with_overlay)
+                
+            except Exception as e:
+                # If overlay fails, just use the regular frame
+                if i <= 5:  # Only print warning for first few frames
+                    print(f"    WARNING: Exo overlay failed at frame {i}: {e}")
+                exo_frames.append(frame)
+            
+            # Step simulation
+            _, _, is_done = env.run_reflex_step_Cost()
+            if is_done:
+                break
+        
+        print_progress_bar(timesteps, timesteps, prefix='  Exo video:', suffix=f'({timesteps}/{timesteps})', length=30)
+        
+        # Save exoskeleton video using imageio (same method as regular video)
+        exo_video_filename = f"{base_filename}_exo.mp4"
+        exo_video_path = os.path.join(self.config.output_dir, exo_video_filename)
+        
+        try:
+            import imageio
+            
+            # Convert frames to proper format
+            frames_array = np.asarray(exo_frames)
+            if frames_array.dtype != np.uint8:
+                if frames_array.max() <= 1.0:
+                    frames_array = (frames_array * 255).astype(np.uint8)
+                else:
+                    frames_array = frames_array.astype(np.uint8)
+            
+            print(f"  DEBUG: Exo frames array shape: {frames_array.shape}")
+            
+            # Use imageio with 50 FPS (0.5x speed like original) and higher quality
+            with imageio.get_writer(exo_video_path, fps=50, codec='libx264', quality=9, macro_block_size=1) as writer:
+                for frame in frames_array:
+                    writer.append_data(frame)
+            
+            if os.path.exists(exo_video_path):
+                file_size = os.path.getsize(exo_video_path)
+                print(f"  ✓ Exoskeleton video created: {os.path.basename(exo_video_path)} ({file_size} bytes)")
+                print(f"    Resolution: {video_width}x{video_height}")
+                return exo_video_path
+            else:
+                print(f"  ✗ Exoskeleton video file was not created")
+                return None
+                
+        except Exception as e:
+            print(f"  ✗ Exoskeleton video generation failed: {e}")
+            return None
     
     def _generate_quick_analysis(self, env, base_filename):
-        """Generate quick kinematics analysis with actual joint angle data"""
+        """Generate quick kinematics analysis using MyoReport-style data processing"""
         
         if not hasattr(self, '_simulation_data'):
-            print("  Warning: No simulation data available for quick analysis")
+            print("  WARNING: No simulation data available for quick analysis")
             return
         
         data = self._simulation_data
         
         # Check data completeness
-        print(f"  Collected {len(data['time'])} timesteps of data (first timestep filtered out)")
+        print(f"  DEBUG: Collected {len(data['time'])} timesteps of data")
         
         # Check if we have sufficient data
         if len(data['time']) < 10:
-            print(f"  Warning: Insufficient data collected ({len(data['time'])} timesteps), skipping analysis")
+            print(f"  WARNING: Insufficient data collected ({len(data['time'])} timesteps), skipping analysis")
             return
         
-        # Verify data ranges to ensure realistic values
+        # Enhanced data verification - check raw values before conversion
+        print(f"  DEBUG: Raw data analysis:")
         for leg in ['r_leg', 'l_leg']:
-            hip_data = np.array(data[leg]['joint']['hip']) * 180/np.pi
+            hip_data = np.array(data[leg]['joint']['hip'])
+            knee_data = np.array(data[leg]['joint']['knee'])
+            ankle_data = np.array(data[leg]['joint']['ankle'])
+            
             if len(hip_data) > 0:
-                print(f"  {leg.replace('_', ' ').title()} hip angle range: {np.min(hip_data):.1f}° to {np.max(hip_data):.1f}°")
+                print(f"    {leg.replace('_', ' ').title()} raw values:")
+                print(f"      Hip:   min={np.min(hip_data):8.6f}, max={np.max(hip_data):8.6f}, std={np.std(hip_data):8.6f}")
+                print(f"      Knee:  min={np.min(knee_data):8.6f}, max={np.max(knee_data):8.6f}, std={np.std(knee_data):8.6f}")
+                print(f"      Ankle: min={np.min(ankle_data):8.6f}, max={np.max(ankle_data):8.6f}, std={np.std(ankle_data):8.6f}")
+        
+        # If all data is exactly zero, there's a fundamental data collection problem
+        all_zeros = True
+        for leg in ['r_leg', 'l_leg']:
+            for joint in ['hip', 'knee', 'ankle']:
+                joint_data = np.array(data[leg]['joint'][joint])
+                if np.any(np.abs(joint_data) > 1e-10):  # Any non-zero values
+                    all_zeros = False
+                    break
+            if not all_zeros:
+                break
+        
+        if all_zeros:
+            print("  ERROR: All joint angle data is zero - simulation data collection is not working!")
+            print("  This suggests the joint mapping or data extraction method needs adjustment.")
+            # Still create plots but with a warning
         
         # Convert data to numpy arrays
         time_array = np.array(data['time'])
         
-        # Prepare data arrays for both legs, applying plotting conventions from MyoReport/user image
+        # Apply MyoReport-style data processing for kinematics
         rad_to_deg = 180 / np.pi
         joint_data = {}
+        
+        # Create kinematics matrix like MyoReport does
+        extract_kine = np.zeros((len(time_array), 4))
+        
         for leg in ['r_leg', 'l_leg']:
-            # Ensure data is numpy array before processing
+            # Extract raw data
             hip_raw = np.array(data[leg]['joint']['hip'])
-            knee_raw = np.array(data[leg]['joint']['knee'])
+            knee_raw = np.array(data[leg]['joint']['knee']) 
             ankle_raw = np.array(data[leg]['joint']['ankle'])
-
+            trunk_raw = np.array(data['trunk'])
+            
+            # Apply MyoReport processing style
+            if leg == 'r_leg':
+                # MyoReport processing for right leg
+                extract_kine[:, 0] = trunk_raw * rad_to_deg  # Trunk
+                extract_kine[:, 1] = hip_raw * rad_to_deg    # Hip
+                extract_kine[:, 2] = -1 * knee_raw * rad_to_deg  # Knee (negated)
+                extract_kine[:, 3] = ankle_raw * rad_to_deg  # Ankle
+            
+            # Apply MyoReport angle conversions (from createAngleReport method)
             joint_data[leg] = {
-                # Convention from MyoReport reference data processing block
-                'hip': -1 * hip_raw * rad_to_deg + 180,
-                'knee': -1 * knee_raw * rad_to_deg + 180,
-                'ankle': -1 * ankle_raw * rad_to_deg + 90
+                # MyoReport uses these conversions for display:
+                'hip': hip_raw * rad_to_deg,           # Direct conversion
+                'knee': -1 * knee_raw * rad_to_deg,    # Negated for display
+                'ankle': ankle_raw * rad_to_deg        # Direct conversion
             }
+        
+        # Verify converted data
+        for leg in ['r_leg', 'l_leg']:
+            hip_converted = joint_data[leg]['hip']
+            knee_converted = joint_data[leg]['knee']
+            ankle_converted = joint_data[leg]['ankle']
+            if len(hip_converted) > 0:
+                print(f"    {leg.replace('_', ' ').title()} converted ranges (MyoReport style):")
+                print(f"      Hip:   {np.min(hip_converted):6.1f}° to {np.max(hip_converted):6.1f}° (range: {np.max(hip_converted)-np.min(hip_converted):5.1f}°)")
+                print(f"      Knee:  {np.min(knee_converted):6.1f}° to {np.max(knee_converted):6.1f}° (range: {np.max(knee_converted)-np.min(knee_converted):5.1f}°)")
+                print(f"      Ankle: {np.min(ankle_converted):6.1f}° to {np.max(ankle_converted):6.1f}° (range: {np.max(ankle_converted)-np.min(ankle_converted):5.1f}°)")
         
         # Create comparison plot for both legs
         fig, axes = plt.subplots(3, 1, figsize=(14, 12))
-        fig.suptitle(f"Quick Kinematics Analysis: {base_filename}", fontsize=16, fontweight='bold')
+        
+        # Add data collection status to title
+        title_suffix = " (DATA COLLECTION ISSUE - ALL ZEROS)" if all_zeros else " (MyoReport-style Processing)"
+        fig.suptitle(f"Quick Kinematics Analysis: {base_filename}{title_suffix}", fontsize=16, fontweight='bold')
         
         joint_names = ['Hip', 'Knee', 'Ankle']
         joint_keys = ['hip', 'knee', 'ankle']
@@ -1105,8 +1432,8 @@ class SimulationProcessor:
         for i, (joint_name, joint_key) in enumerate(zip(joint_names, joint_keys)):
             for leg in ['r_leg', 'l_leg']:
                 axes[i].plot(time_array, joint_data[leg][joint_key], 
-                           color=colors[leg], linewidth=2, 
-                           label=f'{leg_labels[leg]} {joint_name}')
+                        color=colors[leg], linewidth=2, 
+                        label=f'{leg_labels[leg]} {joint_name}')
             
             axes[i].set_ylabel(f'{joint_name} Angle (degrees)', fontsize=12)
             axes[i].legend(fontsize=10)
@@ -1122,220 +1449,250 @@ class SimulationProcessor:
                 # Add text box with stats
                 stats_text = f'{leg_labels[leg]}:\nMean: {data_mean:.1f}°\nStd: {data_std:.1f}°\nRange: {data_range:.1f}°'
                 axes[i].text(0.02 if leg == 'r_leg' else 0.5, 0.98, stats_text,
-                           transform=axes[i].transAxes, fontsize=8,
-                           verticalalignment='top', 
-                           bbox=dict(boxstyle='round', facecolor=colors[leg], alpha=0.1))
+                        transform=axes[i].transAxes, fontsize=8,
+                        verticalalignment='top', 
+                        bbox=dict(boxstyle='round', facecolor=colors[leg], alpha=0.1))
         
         axes[-1].set_xlabel('Time (seconds)', fontsize=12)
         
         # Add simulation info
         info_text = (f"Model: {self.config.model} | Mode: {self.config.mode} | "
-                    f"Sim Time: {self.config.sim_time}s | Slope: {self.config.slope_deg}°")
+                    f"Sim Time: {self.config.sim_time}s | Slope: {self.config.slope_deg}° | MyoReport-style processing")
         fig.text(0.5, 0.02, info_text, ha='center', fontsize=10, style='italic')
         
         plt.tight_layout()
-        plt.subplots_adjust(bottom=0.1) # Add padding to bottom
+        plt.subplots_adjust(bottom=0.1)
         
         # Save plot
         plot_path = os.path.join(self.config.output_dir, f"{base_filename}_kinematics.png")
         plt.savefig(plot_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"  Kinematics plot saved to {plot_path}")
+        print(f"  ✓ Kinematics plot saved to {os.path.basename(plot_path)}")
         
-        # Save a simple summary statistics file
+        # Save detailed statistics file
         stats_path = os.path.join(self.config.output_dir, f"{base_filename}_stats.txt")
         with open(stats_path, 'w') as f:
-            f.write(f"Quick Kinematics Analysis Summary\n")
-            f.write(f"===================================\n")
+            f.write(f"Quick Kinematics Analysis Summary (MyoReport-style)\n")
+            f.write(f"===================================================\n")
             f.write(f"Simulation: {base_filename}\n")
             f.write(f"Duration: {self.config.sim_time}s\n")
-            f.write(f"Timesteps: {len(time_array)}\n\n")
+            f.write(f"Timesteps: {len(time_array)}\n")
+            if all_zeros:
+                f.write(f"WARNING: All joint data was zero - data collection issue!\n")
+            f.write(f"\n")
             
             for leg in ['r_leg', 'l_leg']:
                 f.write(f"{leg_labels[leg]} Statistics:\n")
                 for joint_name, joint_key in zip(joint_names, joint_keys):
                     data_vals = joint_data[leg][joint_key]
                     f.write(f"  {joint_name:5} - Mean: {np.mean(data_vals):6.1f}° | "
-                           f"Std: {np.std(data_vals):5.1f}° | "
-                           f"Min: {np.min(data_vals):6.1f}° | "
-                           f"Max: {np.max(data_vals):6.1f}°\n")
+                        f"Std: {np.std(data_vals):5.1f}° | "
+                        f"Min: {np.min(data_vals):6.1f}° | "
+                        f"Max: {np.max(data_vals):6.1f}°\n")
                 f.write("\n")
         
-        print(f"  Statistics saved to {stats_path}")
+        print(f"  ✓ Statistics saved to {os.path.basename(stats_path)}")
 
         # If exoskeleton enabled, also produce exo+cost figure
         if self.config.exo_bool:
             try:
-                cost_file = self._find_cost_file(base_filename)
-            except Exception:
-                cost_file = None
-            try:
-                self._generate_exo_cost_plot(env, base_filename, cost_file)
+                self._generate_exo_cost_plot(env, base_filename)
             except Exception as e:
-                print(f"  Warning: Could not create exo/cost plot: {e}")
+                print(f"  ⚠ Could not create exo/cost plot: {e}")
     
-    def _generate_full_report(self, env, base_filename, param_file):
-        """Generate full MyoReport analysis"""
-        
-        if not hasattr(self, '_simulation_data'):
-            print("  Warning: No simulation data available for full report generation")
-            return
-        
-        # Initialize report generator with reference data
-        if self.report_generator is None:
-            ref_kinematics_path = os.path.join('ref_data', 'ref_kinematics_radians.csv')
-            ref_emg_path = os.path.join('ref_data', 'ref_EMG.csv')
-            
-            # Use default paths if reference data exists
-            if not os.path.exists(ref_kinematics_path):
-                ref_kinematics_path = 'ref_kinematics_radians_mod.csv'
-            if not os.path.exists(ref_emg_path):
-                ref_emg_path = 'ref_EMG.csv'
-            
-            try:
-                self.report_generator = MyoReport(
-                    ref_kinematics_path=ref_kinematics_path,
-                    ref_emg_path=ref_emg_path
-                )
-            except Exception as e:
-                print(f"  Warning: Could not initialize MyoReport generator: {e}")
-                print(f"  Falling back to quick analysis...")
-                self._generate_quick_analysis(env, base_filename)
-                return
-        
-        # Convert simulation data to MyoReport format
-        try:
-            unpacked_dict = self._convert_to_myoreport_format(self._simulation_data)
-            
-            # Create metadata for the report
-            metadata = {
-                'parameter_file': param_file,
-                'model': self.config.model,
-                'mode': self.config.mode,
-                'simulation_time': self.config.sim_time,
-                'slope_deg': self.config.slope_deg,
-                'delayed': self.config.delayed,
-                'exo_bool': self.config.exo_bool,
-                'processing_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'timesteps': unpacked_dict.get('timesteps', len(self._simulation_data['time'])),
-                'dt': unpacked_dict.get('dt', self._simulation_data['dt'])
-            }
-            
-            # Generate muscle labels (default from MyoReport)
-            muscle_labels = self.report_generator.default_muscle_labels
-            
-            # Generate the full PDF report
-            print(f"  Generating full MyoReport PDF...")
-            report_path = os.path.join(self.config.output_dir, f"{base_filename}_report.pdf")
-            
-            # Use MyoReport's saveToPDF method directly
-            self.report_generator.saveToPDF(
-                unpacked_dict=unpacked_dict,
-                muscle_labels=muscle_labels,
-                ref_angle=self.report_generator.ref_kinematics,
-                ref_emg=self.report_generator.ref_emg,
-                metadata=metadata,
-                savepath=self.config.output_dir,
-                filename=base_filename
-            )
-            
-            print(f"  Full report saved to: {report_path}")
-            
-        except Exception as e:
-            print(f"  Error generating full report: {e}")
-            print(f"  Falling back to quick analysis...")
-            self._generate_quick_analysis(env, base_filename)
-    
-    def _convert_to_myoreport_format(self, simulation_data):
-        """Convert simulation data to MyoReport expected format"""
-        
-        # Initialize the main dictionary structure
-        unpacked_dict = {
-            'timesteps': len(simulation_data['time']),
-            'dt': simulation_data['dt'],
-            'trunk': np.array(simulation_data['trunk']),
-            'l_leg': {},
-            'r_leg': {},
-            'actuator_data': {
-                'Exo_L': {'force': [], 'ctrl': []},
-                'Exo_R': {'force': [], 'ctrl': []}
-            }
-        }
-        
-        # Convert leg data
-        for leg in ['r_leg', 'l_leg']:
-            unpacked_dict[leg] = {
-                'joint': {
-                    'hip': np.array(simulation_data[leg]['joint']['hip']),
-                    'knee': np.array(simulation_data[leg]['joint']['knee']),
-                    'ankle': np.array(simulation_data[leg]['joint']['ankle'])
-                },
-                'joint_torque': {
-                    'hip': np.array(simulation_data[leg]['joint_torque']['hip']),
-                    'knee': np.array(simulation_data[leg]['joint_torque']['knee']),
-                    'ankle': np.array(simulation_data[leg]['joint_torque']['ankle'])
-                },
-                'load_ipsi': np.ravel(np.array(simulation_data[leg]['load_ipsi'])),
-                'muscles': {}  # Crucial: This is the key MyoReport is looking for
-            }
-            
-            # Restructure muscle data into the format MyoReport expects
-            # MyoReport uses: 'act' (activation), 'f' (force), 'v' (velocity)
-            if self.config.processing_mode == 'full':
-                # Updated muscle mapping to match new interface
-                muscle_mapping = {
-                    'GLU': 'glutmax',
-                    'VAS': 'vasti',
-                    'SOL': 'soleus',
-                    'GAS': 'gastroc',
-                    'HAM': 'hamstrings',
-                    'HAB': 'abd',
-                    'HFL': 'iliopsoas',
-                    'RF': 'rectfem',
-                    'BFSH': 'bifemsh',
-                    'TA': 'tibant',
-                    'FDL': 'fdl'
-                }
-                
-                for muscle, mujoco_name in muscle_mapping.items():
-                    if muscle in simulation_data[leg]['mus']:
-                        unpacked_dict[leg]['muscles'][muscle] = {
-                            'act': np.array(simulation_data[leg]['mus'][muscle]),
-                            'f': np.array(simulation_data[leg]['mus_force'][muscle]),
-                            'v': np.array(simulation_data[leg]['mus_vel'][muscle])
-                        }
-        
-        # Add exoskeleton data if available
-        if hasattr(simulation_data, 'exo_data'):
-            for leg, exo_key in zip(['l_leg', 'r_leg'], ['Exo_L', 'Exo_R']):
-                if exo_key in simulation_data.exo_data:
-                    unpacked_dict['actuator_data'][exo_key] = {
-                        'force': np.array(simulation_data.exo_data[exo_key]['force']),
-                        'ctrl': np.array(simulation_data.exo_data[exo_key]['ctrl'])
-                    }
-        
-        return unpacked_dict
+    # def _generate_full_report(self, env, base_filename, param_file):  # Commented out
+    #     """Generate full MyoReport analysis"""
+    #     
+    #     if not hasattr(self, '_simulation_data'):
+    #         print("  Warning: No simulation data available for full report generation")
+    #         return
+    #     
+    #     # Initialize report generator with reference data
+    #     if self.report_generator is None:
+    #         ref_kinematics_path = os.path.join('ref_data', 'ref_kinematics_radians.csv')
+    #         ref_emg_path = os.path.join('ref_data', 'ref_EMG.csv')
+    #         
+    #         # Use default paths if reference data exists
+    #         if not os.path.exists(ref_kinematics_path):
+    #             ref_kinematics_path = 'ref_kinematics_radians_mod.csv'
+    #         if not os.path.exists(ref_emg_path):
+    #             ref_emg_path = 'ref_EMG.csv'
+    #         
+    #         try:
+    #             self.report_generator = MyoReport(
+    #                 ref_kinematics_path=ref_kinematics_path,
+    #                 ref_emg_path=ref_emg_path
+    #             )
+    #         except Exception as e:
+    #             print(f"  Warning: Could not initialize MyoReport generator: {e}")
+    #             print(f"  Falling back to quick analysis...")
+    #             self._generate_quick_analysis(env, base_filename)
+    #             return
+    #     
+    #     # Convert simulation data to MyoReport format
+    #     try:
+    #         unpacked_dict = self._convert_to_myoreport_format(self._simulation_data)
+    #         
+    #         # Create metadata for the report
+    #         metadata = {
+    #             'parameter_file': param_file,
+    #             'model': self.config.model,
+    #             'mode': self.config.mode,
+    #             'simulation_time': self.config.sim_time,
+    #             'slope_deg': self.config.slope_deg,
+    #             'delayed': self.config.delayed,
+    #             'exo_bool': self.config.exo_bool,
+    #             'processing_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    #             'timesteps': unpacked_dict.get('timesteps', len(self._simulation_data['time'])),
+    #             'dt': unpacked_dict.get('dt', self._simulation_data['dt'])
+    #         }
+    #         
+    #         # Generate muscle labels (default from MyoReport)
+    #         muscle_labels = self.report_generator.default_muscle_labels
+    #         
+    #         # Generate the full PDF report
+    #         print(f"  Generating full MyoReport PDF...")
+    #         report_path = os.path.join(self.config.output_dir, f"{base_filename}_report.pdf")
+    #         
+    #         # Use MyoReport's saveToPDF method directly
+    #         self.report_generator.saveToPDF(
+    #             unpacked_dict=unpacked_dict,
+    #             muscle_labels=muscle_labels,
+    #             ref_angle=self.report_generator.ref_kinematics,
+    #             ref_emg=self.report_generator.ref_emg,
+    #             metadata=metadata,
+    #             savepath=self.config.output_dir,
+    #             filename=base_filename
+    #         )
+    #         
+    #         print(f"  Full report saved to: {report_path}")
+    #         
+    #     except Exception as e:
+    #         print(f"  Error generating full report: {e}")
+    #         print(f"  Falling back to quick analysis...")
+    #         self._generate_quick_analysis(env, base_filename)
+    #     
+    # def _convert_to_myoreport_format(self, simulation_data):  # Commented out
+    #     """Convert simulation data to MyoReport expected format"""
+    #     
+    #     # Initialize the main dictionary structure
+    #     unpacked_dict = {
+    #         'timesteps': len(simulation_data['time']),
+    #         'dt': simulation_data['dt'],
+    #         'trunk': np.array(simulation_data['trunk']),
+    #         'l_leg': {},
+    #         'r_leg': {},
+    #         'actuator_data': {
+    #             'Exo_L': {'force': [], 'ctrl': []},
+    #             'Exo_R': {'force': [], 'ctrl': []}
+    #         }
+    #     }
+    #     
+    #     # Convert leg data
+    #     for leg in ['r_leg', 'l_leg']:
+    #         unpacked_dict[leg] = {
+    #             'joint': {
+    #             'hip': np.array(simulation_data[leg]['joint']['hip']),
+    #             'knee': np.array(simulation_data[leg]['joint']['knee']),
+    #             'ankle': np.array(simulation_data[leg]['joint']['ankle'])
+    #         },
+    #         'joint_torque': {
+    #             'hip': np.array(simulation_data[leg]['joint_torque']['hip']),
+    #             'knee': np.array(simulation_data[leg]['joint_torque']['knee']),
+    #             'ankle': np.array(simulation_data[leg]['joint_torque']['ankle'])
+    #         },
+    #         'load_ipsi': np.ravel(np.array(simulation_data[leg]['load_ipsi'])),
+    #         'muscles': {}  # Crucial: This is the key MyoReport is looking for
+    #     }
+    #     
+    #     # Restructure muscle data into the format MyoReport expects
+    #     # MyoReport uses: 'act' (activation), 'f' (force), 'v' (velocity)
+    #     if self.config.processing_mode == 'full':
+    #         # Updated muscle mapping to match new interface
+    #         muscle_mapping = {
+    #             'GLU': 'glutmax',
+    #             'VAS': 'vasti',
+    #             'SOL': 'soleus',
+    #             'GAS': 'gastroc',
+    #             'HAM': 'hamstrings',
+    #             'HAB': 'abd',
+    #             'HFL': 'iliopsoas',
+    #             'RF': 'rectfem',
+    #             'BFSH': 'bifemsh',
+    #             'TA': 'tibant',
+    #             'FDL': 'fdl'
+    #         }
+    #         
+    #         for muscle, mujoco_name in muscle_mapping.items():
+    #             if muscle in simulation_data[leg]['mus']:
+    #                     unpacked_dict[leg]['muscles'][muscle] = {
+    #                         'act': np.array(simulation_data[leg]['mus'][muscle]),
+    #                         'f': np.array(simulation_data[leg]['mus_force'][muscle]),
+    #                         'v': np.array(simulation_data[leg]['mus_vel'][muscle])
+    #                     }
+    #     
+    #     # Add exoskeleton data if available
+    #     if hasattr(simulation_data, 'exo_data'):
+    #         for leg, exo_key in zip(['l_leg', 'r_leg'], ['Exo_L', 'Exo_R']):
+    #             if exo_key in simulation_data.exo_data:
+    #                     unpacked_dict['actuator_data'][exo_key] = {
+    #                         'force': np.array(simulation_data.exo_data[exo_key]['force']),
+    #                         'ctrl': np.array(simulation_data.exo_data[exo_key]['ctrl'])
+    #                     }
+    #     
+    #     return unpacked_dict
 
     # ------------------------------------------------------------
     # Additional plots: Exoskeleton torque profile + cost table
     # ------------------------------------------------------------
 
     def _find_cost_file(self, base_filename):
-        """Return path to the cost file that matches the parameter file used to create base_filename."""
-        # base_filename includes original param name plus timestamp. We retrieve original param name.
-        orig_name = base_filename.split("_")[0]  # before first timestamp underscore
-        # Search in output_dir parent directory for files starting with orig_name and ending _Cost.txt
-        parent_dir = os.path.dirname(self.config.param_files[0]) if self.config.param_files else None
-        if parent_dir and os.path.isdir(parent_dir):
-            for fname in os.listdir(parent_dir):
-                if fname.startswith(orig_name) and fname.endswith('_Cost.txt'):
-                    return os.path.join(parent_dir, fname)
-        # Fallback: None
+        """Find cost file by matching the parameter name correctly"""
+        
+        # The base_filename is now clean: "myorfl_Kine_2D_1_25_2025Aug01_1203_None_Best_001"
+        # We need to extract: "myorfl_Kine_2D_1_25_2025Aug01_1203_None_Best"
+        # Just remove the "_001" index at the end
+        
+        # Split by underscore and remove the last part (which is the file index)
+        parts = base_filename.split('_')
+        if len(parts) > 1 and parts[-1].isdigit() and len(parts[-1]) == 3:
+            # Remove the 3-digit index at the end
+            param_base = '_'.join(parts[:-1])
+        else:
+            param_base = base_filename
+        
+        # Search in the results directory where parameter files are located
+        search_dirs = []
+        if self.config.param_files:
+            param_dir = os.path.dirname(self.config.param_files[0])
+            if param_dir and os.path.exists(param_dir):
+                search_dirs.append(param_dir)
+        
+        print(f"  DEBUG: Looking for cost file for param base: '{param_base}'")
+        
+        for search_dir in search_dirs:
+            # The cost file will be exactly: param_base + "_Cost.txt"
+            cost_file_name = f"{param_base}_Cost.txt"
+            cost_path = os.path.join(search_dir, cost_file_name)
+            
+            print(f"  DEBUG: Trying: {cost_file_name}")
+            if os.path.exists(cost_path):
+                print(f"  DEBUG: ✓ Found cost file: {cost_path}")
+                return cost_path
+        
+        print(f"  DEBUG: ✗ No cost file found for '{param_base}_Cost.txt'")
         return None
 
-    def _generate_exo_cost_plot(self, env, base_filename, cost_file):
+    def _generate_exo_cost_plot(self, env, base_filename, cost_file=None):
         """Create figure with exoskeleton torque spline and cost table."""
+        
+        print(f"  DEBUG: Generating exo/cost plot for {base_filename}")
+        
+        # Find cost file if not provided
+        if cost_file is None:
+            cost_file = self._find_cost_file(base_filename)
+        
         # Colors same as quick analysis
         spline_color = '#50aaab'  # lighter
         point_color = '#215258'   # darker
@@ -1346,19 +1703,37 @@ class SimulationProcessor:
         # --- Left: torque spline ---
         ax_left = axes[0]
         x = np.linspace(0, 100, 101)
+        
         try:
-            torque_vals = np.array([env.ExoCtrl_R.torque_spline(v) for v in x])
-        except Exception:
+            print(f"  DEBUG: Checking for exoskeleton controller...")
+            if hasattr(env, 'ExoCtrl_R') and env.ExoCtrl_R is not None:
+                print(f"  DEBUG: ExoCtrl_R found: {type(env.ExoCtrl_R)}")
+                if hasattr(env.ExoCtrl_R, 'torque_spline'):
+                    print(f"  DEBUG: torque_spline method found")
+                    torque_vals = np.array([env.ExoCtrl_R.torque_spline(v) for v in x])
+                    print(f"  DEBUG: Torque range: {np.min(torque_vals):.2f} to {np.max(torque_vals):.2f}")
+                else:
+                    print(f"  DEBUG: No torque_spline method found")
+                    torque_vals = np.zeros_like(x)
+            else:
+                print(f"  DEBUG: No ExoCtrl_R found or it's None")
+                torque_vals = np.zeros_like(x)
+        except Exception as e:
+            print(f"  DEBUG: Error getting torque spline: {e}")
             torque_vals = np.zeros_like(x)
+            
         ax_left.plot(x, torque_vals, color=spline_color, linewidth=2, label='Torque Spline')
 
         # For n-point (non-legacy) plot control points
-        if not env.use_4param_spline:
-            try:
-                time_pts, torque_pts = env.ExoCtrl_R.get_control_points(include_endpoints=False)
-                ax_left.plot(time_pts, torque_pts, 'o', color=point_color, markersize=6, label='Control Points')
-            except Exception:
-                pass
+        try:
+            if (hasattr(env, 'use_4param_spline') and not env.use_4param_spline and 
+                hasattr(env, 'ExoCtrl_R') and env.ExoCtrl_R is not None):
+                if hasattr(env.ExoCtrl_R, 'get_control_points'):
+                    time_pts, torque_pts = env.ExoCtrl_R.get_control_points(include_endpoints=False)
+                    ax_left.plot(time_pts, torque_pts, 'o', color=point_color, markersize=6, label='Control Points')
+                    print(f"  DEBUG: Added {len(time_pts)} control points")
+        except Exception as e:
+            print(f"  DEBUG: Error getting control points: {e}")
 
         ax_left.set_xlabel('Stance Phase (%)')
         ax_left.set_ylabel('Torque (Nm)')
@@ -1374,32 +1749,94 @@ class SimulationProcessor:
         cost_dict = {k: 'N/A' for k in desired_terms}
 
         if cost_file and os.path.exists(cost_file):
+            print(f"  DEBUG: Parsing cost file: {cost_file}")
             try:
                 with open(cost_file, 'r') as f:
-                    for line in f:
-                        parts = line.strip().split()
-                        if len(parts) >= 2:
-                            key = parts[0]
-                            val = parts[1]
-                            for term in desired_terms:
-                                if term.lower().startswith(key.lower()):
-                                    cost_dict[term] = val
-            except Exception:
-                pass
+                    lines = f.readlines()
+                
+                print(f"  DEBUG: Cost file has {len(lines)} lines")
+                
+                for line_num, line in enumerate(lines[:15]):  # Show first 15 lines
+                    line = line.strip()
+                    if not line:
+                        continue
+                        
+                    print(f"  DEBUG: Line {line_num}: '{line}'")
+                    
+                    # Handle the format: "Cost_Name : value"
+                    if ':' in line:
+                        parts = line.split(':', 1)  # Split on first colon only
+                        if len(parts) == 2:
+                            key = parts[0].strip()
+                            val = parts[1].strip()
+                            
+                            print(f"  DEBUG: Parsed - Key: '{key}', Value: '{val}'")
+                            
+                            # Direct matching for the exact cost terms we want
+                            if key in desired_terms:
+                                cost_dict[key] = val
+                                print(f"  DEBUG: Direct match '{key}': {val}")
+                            else:
+                                # Flexible matching for variations
+                                for term in desired_terms:
+                                    key_clean = key.lower().replace('_', '').replace('-', '')
+                                    term_clean = term.lower().replace('_', '').replace('-', '')
+                                    
+                                    if key_clean == term_clean:
+                                        cost_dict[term] = val
+                                        print(f"  DEBUG: Flexible match '{key}' -> '{term}': {val}")
+                                        break
+                                
+            except Exception as e:
+                print(f"  DEBUG: Error parsing cost file: {e}")
+        else:
+            print(f"  DEBUG: No cost file to parse (file: {cost_file})")
+
+        print(f"  DEBUG: Final cost values: {cost_dict}")
 
         # Build table data
-        table_data = [[k.replace('_', ' '), cost_dict[k]] for k in desired_terms]
+        table_data = []
+        for term in desired_terms:
+            display_name = term.replace('_', ' ')
+            value = cost_dict[term]
+            
+            # Format the value nicely if it's a number
+            if value != 'N/A':
+                try:
+                    float_val = float(value)
+                    if float_val < 0.001:
+                        formatted_value = f"{float_val:.2e}"  # Scientific notation for very small numbers
+                    elif float_val < 1:
+                        formatted_value = f"{float_val:.4f}"  # 4 decimal places for small numbers
+                    elif float_val < 100:
+                        formatted_value = f"{float_val:.3f}"  # 3 decimal places for medium numbers
+                    else:
+                        formatted_value = f"{float_val:.2f}"  # 2 decimal places for large numbers
+                    value = formatted_value
+                except ValueError:
+                    pass  # Keep original value if it's not a number
+                    
+            table_data.append([display_name, value])
+
         table = ax_right.table(cellText=table_data, colLabels=['Cost Term', 'Value'], loc='center')
         table.auto_set_font_size(False)
         table.set_fontsize(10)
         table.scale(1, 1.5)
+        
+        # Color code the table cells based on whether we have data
+        for i, (term, value) in enumerate(zip(desired_terms, [cost_dict[k] for k in desired_terms])):
+            if value != 'N/A':
+                table[(i+1, 1)].set_facecolor('#E8F5E8')  # Light green for available data
+            else:
+                table[(i+1, 1)].set_facecolor('#FFF0F0')  # Light red for missing data
+        
         ax_right.set_title('Cost Summary')
 
         plt.tight_layout()
         plot_path = os.path.join(self.config.output_dir, f"{base_filename}_exo_cost.png")
         plt.savefig(plot_path, dpi=300, bbox_inches='tight')
         plt.close(fig)
-        print(f"  Exo/Cost plot saved to {plot_path}")
+        print(f"  ✓ Exo/Cost plot saved to {os.path.basename(plot_path)}")
 
 
 def prompt_to_continue():
@@ -1662,8 +2099,8 @@ def main():
                 raise ValueError(f"Invalid field types in config file: {', '.join(invalid_types)}")
             
             # Validate processing_mode
-            if config_data['processing_mode'] not in ['debug', 'quick', 'full']:
-                raise ValueError("Processing mode must be one of: debug, quick, full")
+            if config_data['processing_mode'] not in ['short', 'long']:
+                raise ValueError("Processing mode must be one of: short, long")
             
             # Collect all results dirs to iterate
             batch_dirs = config_data['results_dirs'] if has_multiple else [config_data['results_dir']]
@@ -1689,28 +2126,23 @@ def main():
                 cfg.param_files = param_files
 
                 # sim_time
-                if cfg.processing_mode == 'debug':
+                if cfg.processing_mode == 'short':
                     cfg.sim_time = 5
-                elif cfg.processing_mode == 'quick':
+                elif cfg.processing_mode == 'long':
                     cfg.sim_time = 10
-                else:
-                    cfg.sim_time = 20
 
-                # Apply Best / BestLast filter based on user choice
+                # FIX: Apply Best / BestLast filter - in non-GUI mode, include both by default
+                include_best = config_data.get('include_best', True)
+                include_bestlast = config_data.get('include_bestlast', True)
+                
                 filtered = []
                 for pf in cfg.param_files:
-                    if pf.endswith('_BestLast.txt') and self.include_bestlast_var.get():
+                    if pf.endswith('_BestLast.txt') and include_bestlast:
                         filtered.append(pf)
-                    elif pf.endswith('_Best.txt') and not pf.endswith('_BestLast.txt') and self.include_best_var.get():
+                    elif pf.endswith('_Best.txt') and not pf.endswith('_BestLast.txt') and include_best:
                         filtered.append(pf)
-
+                
                 cfg.param_files = filtered
-
-                # Update parameter listbox for single-run mode only (if no configs previously)
-                if not self.configs:
-                    self.param_listbox.delete(0, tk.END)
-                    for pf in cfg.param_files:
-                        self.param_listbox.insert(tk.END, os.path.basename(pf))
 
                 configs_to_run.append(cfg)
 
