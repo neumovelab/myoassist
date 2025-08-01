@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 @dataclass
 class TrainSessionConfigBase:
+    total_timesteps: int = 1000
     @dataclass
     class LoggerParams:
         logging_frequency: int = int(1)
@@ -56,6 +57,19 @@ class TrainSessionConfigBase:
         
     env_params: EnvParams = field(default_factory=EnvParams)
     
+
+    """
+    used in TrainAnalyzer
+        total_timesteps: int = 300
+        min_target_velocity: float = 1.25
+        max_target_velocity: float = 1.25
+        target_velocity_period: float = 3
+        velocity_mode: str = "SINUSOIDAL"
+        cam_type: str = "follow"
+        cam_distance: float = 2.5
+        visualize_activation: bool = True
+    """
+    evaluate_param_list: list[dict] = field(default_factory=list[dict])
 
     @dataclass
     class PolicyParams:

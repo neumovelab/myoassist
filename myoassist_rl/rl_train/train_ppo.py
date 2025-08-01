@@ -104,7 +104,7 @@ if __name__ == '__main__':
         ppo_evaluate_with_rendering(config)
     else:
         ppo_train_with_parameters(config,
-                                train_time_step=1e7,
+                                train_time_step=config.total_timesteps,
                                 is_rendering_on=args.flag_rendering,
                                 train_log_handler=train_log_handler)
     

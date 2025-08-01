@@ -152,6 +152,10 @@ class BaseCustomLearningCallback(BaseCallback):
 
         if self.log_count % self.evaluate_freq == 0 and self.log_count != 0:
             # Create new pool each time to prevent memory leaks
+
+            # For debug:
+            # _analyze_process(self.train_log_handler.log_dir)
+            
             pool = Pool(processes=1)
             try:
                 pool.apply(
@@ -166,9 +170,3 @@ class BaseCustomLearningCallback(BaseCallback):
         self.log_count += 1
         
         return log_data
-
-
-#need refactoring
-def _analyze_process(log_dir):
-    train_analyzer = TrainAnalyzer()
-    train_analyzer.analyze_in_sequence(log_dir, show_plot=False)
