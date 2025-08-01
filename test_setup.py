@@ -133,14 +133,15 @@ class SetupTester:
             original_cwd = os.getcwd()
             
             try:
-                os.chdir("myoassist_rl")
+                os.chdir("./")
                 
-                env = gym.make("myoAssistLegImitation-v0", 
-                              num_envs=1, 
-                              seed=1234,
-                              safe_height=0.7,
-                              control_framerate=30,
-                              physics_sim_framerate=1200)
+                from myoassist_rl.rl_train.utils.environment_handler import EnvironmentHandler
+                from myoassist_rl.rl_train.utils.config_imiatation_exo import ExoImitationTrainSessionConfig
+
+                config_path = "myoassist_rl/rl_train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json"
+                default_config: ExoImitationTrainSessionConfig = EnvironmentHandler.get_session_config_from_path(config_path, ExoImitationTrainSessionConfig)
+                default_config.env_params.num_envs = 1
+                env = EnvironmentHandler.create_environment(default_config, is_rendering_on=False, is_evaluate_mode=False)
                 
                 obs, info = env.reset()
                 
