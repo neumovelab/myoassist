@@ -36,15 +36,8 @@ def ppo_evaluate_with_rendering(config):
 
     EnvironmentHandler.updateconfig_from_model_policy(config, model)
 
-    session_config_dict = DictionableDataclass.to_dict(config)
-    session_config_dict["env_params"].pop("reference_data", None)
-
-    session_config_dict["code_version"] = VERSION
-    with open(os.path.join(log_dir, 'session_config.json'), 'w', encoding='utf-8') as file:
-        json.dump(session_config_dict, file, ensure_ascii=False, indent=4)
-
     obs, info = env.reset()
-    for _ in range(1000):
+    for _ in range(config.evaluate_param_list[0]["num_timesteps"]):
         action, _states = model.predict(obs, deterministic=True)
         obs, rewards, done, truncated, info = env.step(action)
         if truncated:
