@@ -5,7 +5,7 @@ gymnasium==0.29.1
 termcolor
 flatten_dict
 h5py
-numpy
+numpy==2.2.6
 mujoco==3.3.3
 dm-control==1.0.31
 Pillow
