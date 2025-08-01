@@ -658,7 +658,8 @@ class GaitAnalyzer:
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,f"segmented_muscle_data{file_name_post_fix}.png"))
         plt.figure(fig.number)
-        plt.show()
+        if self.show_plot:
+            plt.show()
 
         # Plot mean and std separately
         fig_mean_std, axes_mean_std = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=300)

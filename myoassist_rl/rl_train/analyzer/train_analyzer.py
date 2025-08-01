@@ -40,7 +40,7 @@ class TrainAnalyzer:
                 #     print(f"{field.name}: {getattr(config.env_params.reward_keys_and_weights, field.name)}")
 
         for (eval_idx, evaluate_param) in enumerate(config.evaluate_param_list):
-            log_handler = TrainLogHandler(log_dir,"session_name")
+            log_handler = TrainLogHandler(log_dir)
             log_handler.load_log_data(ImitationTrainCheckpointData)
 
             train_analyzer_report = {
@@ -68,7 +68,7 @@ class TrainAnalyzer:
             config.env_params.max_target_velocity = evaluate_param["max_target_velocity"]
             from myoassist_rl.envs.myoassist_leg_base import MyoAssistLegBase
 
-            gait_data_name = f"{log_handler.session_name}_gait_evaluated_data_{eval_idx:02d}.json"
+            gait_data_name = f"gait_evaluated_data_{eval_idx:02d}.json"
 
             if os.path.exists(os.path.join(analyze_result_dir, gait_data_name)):
                 user_input = input(f"Regenerate evaluate data? ({gait_data_name}) (y/n(anything))")

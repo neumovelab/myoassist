@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     log_dir = os.path.join("myoassist_rl","train_logs", f"train_session_{datetime.now().strftime('%Y%m%d-%H%M%S')}")
     os.makedirs(log_dir, exist_ok=True)
-    train_log_handler = train_log_handler.TrainLogHandler(log_dir, 'session_name')
+    train_log_handler = train_log_handler.TrainLogHandler(log_dir)
 
     if args.flag_realtime_evaluate:
         ppo_evaluate_with_rendering(config)

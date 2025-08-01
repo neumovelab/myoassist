@@ -171,19 +171,19 @@ class GaitData:
                 data.append([0,0,0])
         return data
     def print_brief_data(self):
-        print("=====================Start of GaitData==================")
+        # print("=====================Start of GaitData==================")
         # print(f"{len(self.hip_flexion_r)=}, {self.hip_flexion_r[0]=}, {self.hip_flexion_r[-1]=}")
-        print("=====================Start of Series Data==================")
+        # print("=====================Start of Series Data==================")
         for j_key in self.series_data["joint_data"].keys():
             for property_key in self.series_data["joint_data"][j_key]:
                 current_data = self.series_data["joint_data"][j_key][property_key]
-                print(f"{j_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
+                # print(f"{j_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
         for a_key in self.series_data["actuator_data"].keys():
             current_data = self.series_data["actuator_data"][a_key]
             for property_key in self.series_data["actuator_data"][a_key]:
                 current_data = self.series_data["actuator_data"][a_key][property_key]
-                print(f"{a_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
-        print("=====================End of GaitData==================")
+                # print(f"{a_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
+        # print("=====================End of GaitData==================")
     def print_data_structure(self):
         def print_dict(d, indent=0):
             for key, value in d.items():

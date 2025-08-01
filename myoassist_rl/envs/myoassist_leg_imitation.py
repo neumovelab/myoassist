@@ -123,10 +123,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         self.reference_data_keys = env_params.reference_data_keys
         self._loop_reference_data = loop_reference_data
         self._reward_keys_and_weights:ImitationTrainSessionConfig.EnvParams.RewardWeights = env_params.reward_keys_and_weights
-        
-        print("===============================PARAMETERS=============================")
-        print(f"{self._reward_keys_and_weights=}")
-        print("===============================PARAMETERS=============================")
+
         self.setup_reference_data(data=reference_data)
 
         super()._setup(env_params=env_params,

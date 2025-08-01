@@ -104,9 +104,9 @@ class TrainLogAnalyzer:
         # print(f"{reward_dict_data=}")
         reward_error = np.array(original_total_reward) - np.array(total_rewards)
         # Print the max, min, and mean of reward_error
-        print(f"Max reward error: {np.max(reward_error)}")
-        print(f"Min reward error: {np.min(reward_error)}")
-        print(f"Mean reward error: {np.mean(reward_error)}")
+        # print(f"Max reward error: {np.max(reward_error)}")
+        # print(f"Min reward error: {np.min(reward_error)}")
+        # print(f"Mean reward error: {np.mean(reward_error)}")
         
         fig, ax = plt.subplots(figsize=(15, 10), dpi=300)
         

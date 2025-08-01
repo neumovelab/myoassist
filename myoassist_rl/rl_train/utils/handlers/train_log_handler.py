@@ -3,11 +3,10 @@ import os
 from myoassist_rl.rl_train.utils.handlers.train_checkpoint_data import TrainCheckpointData
 from myoassist_rl.rl_train.utils.data_types import DictionableDataclass
 class TrainLogHandler:
-    def __init__(self,log_dir:str, session_name:str):
+    def __init__(self,log_dir:str):
         self.log_dir = log_dir
-        self.session_name = session_name
-        self.model_dir = os.path.join(log_dir, f"{session_name}_models")
-        self.log_path = os.path.join(log_dir, f"{session_name}_log.json")
+        self.model_dir = os.path.join(log_dir, f"trained_models")
+        self.log_path = os.path.join(log_dir, f"train_log.json")
 
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
@@ -20,7 +19,7 @@ class TrainLogHandler:
     # def set_session_config(self,session_config:TrainSessionConfigBase):
     #     self.session_config = session_config
     def get_path2save_model(self,num_timesteps:int):
-        return os.path.join(self.model_dir,f"{self.session_name}_step_{num_timesteps}")
+        return os.path.join(self.model_dir,f"model_{num_timesteps}")
     def add_log_data(self,log_data:TrainCheckpointData):
         self.log_datas.append(log_data)
         # model.save(os.path.join(self.model_dir,f"step_{log_data.num_timesteps}"))

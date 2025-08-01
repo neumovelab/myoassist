@@ -8,7 +8,7 @@ import stable_baselines3
 import json
 from myoassist_rl.rl_train.utils import numpy_utils
 import dm_control
-from myoassist_rl.rl_train.analyzer.train_log_handler import TrainLogHandler
+from myoassist_rl.rl_train.utils.handlers.train_log_handler import TrainLogHandler
 from myoassist_rl.rl_train.utils.config import TrainSessionConfigBase
 import matplotlib.pyplot as plt
 import cv2
@@ -52,9 +52,9 @@ class GaitEvaluatorBase:
                  velocity_mode:MyoAssistLegBase.VelocityMode,
                  target_velocity_period:float,
                  ):
-        print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
+        # print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
         model = stable_baselines3.PPO.load(self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps), env=self.env)
-        print(f"model.num_timesteps: {model.num_timesteps}")
+        # print(f"model.num_timesteps: {model.num_timesteps}")
 
         self.env.mujoco_render_frames = False
 
@@ -89,9 +89,9 @@ class GaitEvaluatorBase:
         gait_data.save_json_data(gait_data_path)
         gait_data_read = GaitData()
         gait_data_read.read_json_data(gait_data_path)
-        print("==============================READ DATA==================================")
+        # print("==============================READ DATA==================================")
         gait_data_read.print_brief_data()
-        print("==============================READ DATA==================================")
+        # print("==============================READ DATA==================================")
         
         self.env.close()
         print("Evaluate done!")
@@ -299,11 +299,11 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
                  velocity_mode:MyoAssistLegBase.VelocityMode,
                  target_velocity_period:float,
                  ):
-        print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
+        # print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
         model = stable_baselines3.PPO.load(self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps),
                                            env=self.env, 
                                            device=self.session_config.ppo_params.device)
-        print(f"model.num_timesteps: {model.num_timesteps}")
+        # print(f"model.num_timesteps: {model.num_timesteps}")
 
         self.env.mujoco_render_frames = False
 
@@ -339,9 +339,9 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
         gait_data.save_json_data(gait_data_path)
         gait_data_read = GaitData()
         gait_data_read.read_json_data(gait_data_path)
-        print("==============================READ DATA==================================")
+        # print("==============================READ DATA==================================")
         gait_data_read.print_brief_data()
-        print("==============================READ DATA==================================")
+        # print("==============================READ DATA==================================")
         
         self.env.close()
         print("Evaluate done!")

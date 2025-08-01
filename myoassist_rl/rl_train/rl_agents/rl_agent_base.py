@@ -92,7 +92,6 @@ class BaseCustomActorCriticPolicy(BasePolicy):
             *args,
             **kwargs,
         )
-        print(f"{custom_policy_params=}")
         self.policy_network = self._build_policy_network(observation_space,
                                                     action_space,
                                                     custom_policy_params)
