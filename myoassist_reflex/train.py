@@ -111,7 +111,7 @@ def main():
     if input_args.param_path is not None:
         print('Loading parameters from file')
         files = os.listdir(input_args.param_path)
-        files_txt = [i for i in files if i.endswith('.txt')]
+        files_txt = [i for i in files if i.endswith('_BestLast.txt')]
         loaded_params = np.loadtxt(os.path.join(input_args.param_path, files_txt[0]))
         
         # Check if we need to add exo parameters
