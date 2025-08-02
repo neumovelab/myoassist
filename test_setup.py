@@ -99,7 +99,7 @@ class SetupTester:
     def test_myoassist_imports(self):
         """Test MyoAssist package imports"""
         try:
-            import myoassist_rl
+            import rl_train
             import myoassist_reflex
         except ImportError as e:
             raise ImportError(f"Failed to import MyoAssist packages: {e}")
@@ -135,10 +135,10 @@ class SetupTester:
             try:
                 os.chdir("./")
                 
-                from myoassist_rl.rl_train.utils.environment_handler import EnvironmentHandler
-                from myoassist_rl.rl_train.utils.config_imiatation_exo import ExoImitationTrainSessionConfig
+                from rl_train.envs.environment_handler import EnvironmentHandler
+                from rl_train.train.train_configs.config_imiatation_exo import ExoImitationTrainSessionConfig
 
-                config_path = "myoassist_rl/rl_train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json"
+                config_path = "rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json"
                 default_config: ExoImitationTrainSessionConfig = EnvironmentHandler.get_session_config_from_path(config_path, ExoImitationTrainSessionConfig)
                 default_config.env_params.num_envs = 1
                 env = EnvironmentHandler.create_environment(default_config, is_rendering_on=False, is_evaluate_mode=False)
@@ -246,9 +246,9 @@ class SetupTester:
     def test_rl_imports(self):
         """Test MyoAssist-RL specific imports"""
         try:
-            import myoassist_rl.rl_train.utils.config as myoassist_config
-            from myoassist_rl.rl_train.utils.environment_handler import EnvironmentHandler
-            from myoassist_rl.rl_train.utils.data_types import DictionableDataclass
+            import rl_train.train.train_configs.config as myoassist_config
+            from rl_train.envs.environment_handler import EnvironmentHandler
+            from rl_train.utils.data_types import DictionableDataclass
             
         except Exception as e:
             raise RuntimeError(f"RL imports test failed: {e}")
@@ -260,7 +260,7 @@ class SetupTester:
         original_cwd = os.getcwd()
         
         try:
-            os.chdir("myoassist_rl")
+            os.chdir("rl_train")
             rl_files = [
                 "reference_data/short_reference_gait.npz",
             ]
@@ -289,16 +289,16 @@ class SetupTester:
         original_cwd = os.getcwd()
         
         try:
-            os.chdir("myoassist_rl")
+            os.chdir("./")
             rl_configs = [
-                "rl_train/train_configs/imitation.json",
+                "rl_train/train/train_configs/imitation.json",
             ]
             
             for config_path in rl_configs:
                 if not os.path.exists(config_path):
                     raise FileNotFoundError(f"Required RL config file not found: {config_path}")
             
-            os.chdir("../myoassist_reflex")
+            os.chdir("./myoassist_reflex")
             reflex_configs = [
                 "training_configs/tutorial.bat",
             ]
@@ -371,7 +371,7 @@ class SetupTester:
             print(f"\n{Colors.GREEN}{Colors.BOLD}✓ All tests passed! Your MyoAssist setup is working correctly.{Colors.END}")
             print(f"\n{Colors.BLUE}Next steps:{Colors.END}")
             print("1. Try running a simple RL training session:")
-            print("   python -m myoassist_rl.rl_train.train_ppo --config_file_path myoassist_rl/rl_train/train_configs/imitation.json")
+            print("   python -m rl_train.rl_train.run_policy --config_file_path rl_train/rl_train/train_configs/imitation.json")
             print("2. Try running a CMA-ES optimization:")
             print("   python -m myoassist_reflex.train --model tutorial --sim_time 5 --maxiter 10")
         else:

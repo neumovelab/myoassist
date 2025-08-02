@@ -61,7 +61,7 @@
         "custom_max_episode_steps": 1000,
         "model_path": "models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml",
         "prev_trained_policy_path": null,
-        "reference_data_path": "myoassist_rl/reference_data/short_reference_gait.npz",
+        "reference_data_path": "rl_train/reference_data/short_reference_gait.npz",
         "enable_lumbar_joint": false,
         "lumbar_joint_fixed_angle": -0.13,
         "lumbar_joint_damping_value": 0.05,
