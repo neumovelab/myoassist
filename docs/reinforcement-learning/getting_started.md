@@ -39,11 +39,8 @@ See how to create a simulation environment and run for 150 frames(5sec):
 python rl_train/run_simulation.py
 ```
 
-![result of run_simulation.py](../assets/rl_random_action_tutorial_env.png)
+<!-- ![result of run_simulation.py](../assets/rl_random_action_tutorial_env.png)-->
 
-<!--
-Display the image at 50% width for better layout.
--->
 <p align="center">
   <img src="../assets/rl_random_action_tutorial_env.png" alt="result of run_simulation.py" width="50%">
 </p>
@@ -77,8 +74,10 @@ After training, check the results folder:
 # Results location
 rl_train/results/train_session_[date-time]/
 ```
-![Training session result example](/docs/assets/train_session_result.png)
-
+<!-- ![Training session result example](/docs/assets/train_session_result.png) -->
+<p align="center">
+  <img src="../assets/train_session_result.png" alt="Training session result example" width="50%">
+</p>
 
 **What you'll find:**
 - `analyze_results_[timesteps]_[evaluate_number]`: Training analysis results
@@ -128,8 +127,10 @@ For more details on how to customize these parameters, see the [Understanding Co
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
-![result of run_simulation.py](/docs/assets/realtime_eval_flat_tutorial.gif)
-
+<!-- ![result of run_simulation.py](/docs/assets/realtime_eval_flat_tutorial.gif) -->
+<p align="center">
+  <img src="../assets/realtime_eval_flat_tutorial.gif" alt="result of run_simulation.py" width="50%">
+</p>
 
 ```bash
 python rl_train/run_train.py --config_file_path [path/to/config.json] --config.env_params.prev_trained_policy_path [path/to/model_file] --flag_realtime_evaluate
@@ -138,8 +139,10 @@ python rl_train/run_train.py --config_file_path [path/to/config.json] --config.e
 **Parameters:**
 - `[path/to/config.json]`: Path to the JSON file in the train_session folder
 - `[path/to/model_file]`: Path to the model file (.zip) without extension. It is located in the train_models folder
-![trained model](/docs/assets/train_models.png)
-
+<!-- ![trained model](/docs/assets/train_models.png) -->
+<p align="center">
+  <img src="../assets/train_models.png" alt="trained model" width="50%">
+</p>
 **Example:**
 ```bash
 python rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/session_config.json --config.env_params.prev_trained_policy_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/trained_models/model_19939328 --flag_realtime_evaluate
