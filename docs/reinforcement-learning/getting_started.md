@@ -38,7 +38,8 @@ See how to create a simulation environment and run for 150 frames(5sec):
 ```bash
 python rl_train/run_simulation.py
 ```
-<img src="../assets/rl_random_action_tutorial_env.png" width="50%" alt="result of run_simulation.py">
+
+![result of run_simulation.py](/docs/assets/rl_random_action_tutorial_env.png)
 
 
 **What this does:**
@@ -119,8 +120,7 @@ For more details on how to customize these parameters, see the [Understanding Co
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
-<img src="../assets/realtime_eval_flat_tutorial.gif" width="80%" alt="result of run_simulation.py">
-
+![result of run_simulation.py](/docs/assets/realtime_eval_flat_tutorial.gif)
 
 
 ```bash
