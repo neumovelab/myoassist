@@ -16,6 +16,8 @@ import skvideo.io
 from  rl_train.envs.myoassist_leg_base import MyoAssistLegBase
 from rl_train.analyzer.gait_data import GaitData
 from rl_train.analyzer.gait_analyze import GaitAnalyzer
+from rl_train.envs.environment_handler import EnvironmentHandler
+
 class GaitEvaluatorBase:
     JOINT_LIMIT = {
         "HIP": (-30, 35),
@@ -52,8 +54,8 @@ class GaitEvaluatorBase:
                  velocity_mode:MyoAssistLegBase.VelocityMode,
                  target_velocity_period:float,
                  ):
-        # print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
-        model = stable_baselines3.PPO.load(self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps), env=self.env)
+        trained_model_path = self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)
+        model = EnvironmentHandler.get_stable_baselines3_model(self.session_config, self.env, trained_model_path)
         # print(f"model.num_timesteps: {model.num_timesteps}")
 
         self.env.mujoco_render_frames = False
@@ -300,9 +302,9 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
                  target_velocity_period:float,
                  ):
         # print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
-        model = stable_baselines3.PPO.load(self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps),
-                                           env=self.env, 
-                                           device=self.session_config.ppo_params.device)
+        # Use get_stable_baselines3_model from EnvironmentHandler to load the model
+        trained_model_path = self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)
+        model = EnvironmentHandler.get_stable_baselines3_model(self.session_config, self.env, trained_model_path=trained_model_path)
         # print(f"model.num_timesteps: {model.num_timesteps}")
 
         self.env.mujoco_render_frames = False

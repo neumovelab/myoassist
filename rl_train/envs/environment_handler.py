@@ -4,6 +4,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 from myosuite.utils import gym
 from rl_train.utils.data_types import DictionableDataclass
 import os
+from rl_train.train.train_configs.config import TrainSessionConfigBase
 class EnvironmentHandler:
     @staticmethod
     def create_environment(config, is_rendering_on:bool, is_evaluate_mode:bool = False):
@@ -128,7 +129,7 @@ class EnvironmentHandler:
 
         return custom_callback
     @staticmethod
-    def get_stable_baselines3_model(config, env):
+    def get_stable_baselines3_model(config:TrainSessionConfigBase, env, trained_model_path:str|None=None):
         import stable_baselines3
         from rl_train.train.policies.rl_agent_human import HumanActorCriticPolicy
         from rl_train.train.policies.rl_agent_exo import HumanExoActorCriticPolicy
@@ -138,7 +139,13 @@ class EnvironmentHandler:
         else:
             policy_class = HumanActorCriticPolicy
             print(f"Using HumanActorCriticPolicy")
-        if config.env_params.prev_trained_policy_path:
+        if trained_model_path is not None:
+            print(f"Loading trained model from {trained_model_path}")
+            model = stable_baselines3.PPO.load(trained_model_path,
+                                            env=env,
+                                            custom_objects = {"policy_class": policy_class},
+                                            )
+        elif config.env_params.prev_trained_policy_path:
             print(f"Loading previous trained policy from {config.env_params.prev_trained_policy_path}")
             # when should I reset the (value)network?
             model = stable_baselines3.PPO.load(config.env_params.prev_trained_policy_path,
