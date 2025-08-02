@@ -31,8 +31,8 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
 ## Installation
 
 ### Prerequisites
-- Python 3.11+
-- MuJoCo 3.1.5
+- Python 3.11
+- MuJoCo 3.3.3
 - Git
 
 ### Setup
@@ -60,11 +60,11 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
 This execution file is just for testing the environment. If you want to actually train the model try to use `train_imitation_tutorial_22_flat_full.<bat|sh>`.
    - **Windows (PowerShell/CMD)**
      ```powershell
-     myoassist_rl\rl_train\train_configs\test_imitation_tutorial_22_flat.bat
+     rl_train\rl_train\train_configs\test_imitation_tutorial_22_flat.bat
      ```
    - **macOS / Linux (bash)**
      ```bash
-     myoassist_rl/rl_train/train_configs/test_imitation_tutorial_22_flat.sh
+     rl_train/train_configs/test_imitation_tutorial_22_flat.sh
      ```
 
 ### Running Reflex Control Optimization 
@@ -140,7 +140,7 @@ This execution file is just for testing the environment. If you want to actually
 myoassist/
 ├── Core Framework
 │   ├── myoassist_reflex/     # Reflex control optimization
-│   ├── myoassist_rl/         # Reinforcement learning environments
+│   ├── rl_train/         # Reinforcement learning environments
 │   ├── myoassist_utils/      # Shared utilities
 │   └── myosuite/             # Base musculoskeletal simulation
 │
@@ -164,7 +164,7 @@ myoassist/
 
 ## Core Components
 
-### 1. MyoAssist RL (`myoassist_rl/`)
+### 1. MyoAssist RL (`rl_train/`)
 Reinforcement learning environments for musculoskeletal control.
 
 **Key Features:**
@@ -175,13 +175,13 @@ Reinforcement learning environments for musculoskeletal control.
 
 **Structure:**
 ```
-myoassist_rl/
+rl_train/
 ├── envs/                    # RL environments
 │   ├── myoassist_leg_base.py
 │   ├── myoassist_leg_imitation.py
 │   └── myoassist_leg_imitation_exo.py
 ├── rl_train/               # Training infrastructure
-│   ├── train_ppo.py        # PPO training script
+│   ├── run_train.py        # PPO training script
 │   ├── rl_agents/          # Agent implementations
 │   ├── train_configs/      # Training configurations
 │   └── analyzer/           # Result analysis tools

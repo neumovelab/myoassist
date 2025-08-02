@@ -58,7 +58,7 @@ This execution file is just for testing the environment. If you want to actually
      ```
    - **macOS / Linux (bash)**
      ```bash
-     rl_train/rl_train/train_configs/test_imitation_tutorial_22_flat.sh
+     rl_train/train_configs/test_imitation_tutorial_22_flat.sh
      ```
 
 ### Running Reflex Control Optimization 
@@ -175,7 +175,7 @@ rl_train/
 │   ├── myoassist_leg_imitation.py
 │   └── myoassist_leg_imitation_exo.py
 ├── rl_train/               # Training infrastructure
-│   ├── run_policy.py        # PPO training script
+│   ├── run_train.py        # PPO training script
 │   ├── rl_agents/          # Agent implementations
 │   ├── train_configs/      # Training configurations
 │   └── analyzer/           # Result analysis tools

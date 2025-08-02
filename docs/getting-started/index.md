@@ -18,8 +18,8 @@ Welcome to MyoAssist! This section will help you get up and running with the fra
 ## Prerequisites
 
 Before you begin, make sure you have:
-- Python 3.11+
-- MuJoCo 3.1.5
+- Python 3.11
+- MuJoCo 3.3.3
 - Git
 
 ## Installation
