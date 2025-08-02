@@ -371,7 +371,7 @@ class SetupTester:
             print(f"\n{Colors.GREEN}{Colors.BOLD}✓ All tests passed! Your MyoAssist setup is working correctly.{Colors.END}")
             print(f"\n{Colors.BLUE}Next steps:{Colors.END}")
             print("1. Try running a simple RL training session:")
-            print("   python -m rl_train.rl_train.run_policy --config_file_path rl_train/rl_train/train_configs/imitation.json")
+            print("   python -m rl_train.run_policy --config_file_path rl_train/train_configs/imitation.json")
             print("2. Try running a CMA-ES optimization:")
             print("   python -m myoassist_reflex.train --model tutorial --sim_time 5 --maxiter 10")
         else:
