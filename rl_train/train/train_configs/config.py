@@ -27,7 +27,7 @@ class TrainSessionConfigBase:
         reward_keys_and_weights: RewardWeights = field(default_factory=RewardWeights)
         
         env_id: str = ""
-        num_envs: int = 8
+        num_envs: int = 1
         seed: int = 0
         safe_height: float = 0.65
         control_framerate: int = 30
