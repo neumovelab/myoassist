@@ -39,7 +39,15 @@ See how to create a simulation environment and run for 150 frames(5sec):
 python rl_train/run_simulation.py
 ```
 
-![result of run_simulation.py](/docs/assets/rl_random_action_tutorial_env.png)
+![result of run_simulation.py](../assets/rl_random_action_tutorial_env.png)
+
+<!--
+Display the image at 50% width for better layout.
+-->
+<p align="center">
+  <img src="../assets/rl_random_action_tutorial_env.png" alt="result of run_simulation.py" width="50%">
+</p>
+
 
 
 **What this does:**
