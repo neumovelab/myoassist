@@ -1,3 +1,3 @@
 python ^
-rl_train\run_analyze.py ^
+rl_train\run_policy_eval.py ^
 docs\assets\tutorial_rl_models\train_session_20250728-161129_tutorial_partial_obs
