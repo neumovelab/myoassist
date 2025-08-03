@@ -93,7 +93,7 @@ python rl_train/run_train.py --config_file_path rl_train/train_configs/imitation
 ```
 
 This file is the default example configuration we provide.  
-For more details, see the [Understanding Configuration](configuration.md) section.
+For more details, see the [Understanding Configuration](./configuration.html) section.
 
 
 ## Policy Evaluation
@@ -123,7 +123,7 @@ This folder contains various plots and videos that visualize your agent's perfor
 
 The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
-For more details on how to customize these parameters, see the [Understanding Configuration](configuration.md) section.
+For more details on how to customize these parameters, see the [Understanding Configuration](./configuration.html) section.
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
@@ -150,6 +150,6 @@ python rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/t
 
 ## Next Steps
 
-- [Configuration Guide](configuration.md) - Understand all parameters
-- [Terrain Types](terrain-types.md) - Learn about different terrain options
-- [Network Index Handler](network-index-handler.md) - Understand network architecture
+- [Configuration Guide](./configuration.html) - Understand all parameters
+- [Terrain Types](./terrain-types.html) - Learn about different terrain options
+- [Network Index Handler](./network-index-handler.html) - Understand network architecture
