@@ -9,15 +9,22 @@ layout: home
 
 MyoAssist’s reinforcement learning (RL) pipeline is built on top of **Stable-Baselines3 (SB3) PPO** and a set of custom MuJoCo environments that simulate human–exoskeleton interaction. This page gives you a bird’s-eye view of how everything fits together and where to find more information.
 
-<p align="center">
-  <img src="../assets/train_session_20250728-161129_tutorial_partial_obs_replay.gif" alt="Training replay" width="100%">
-</p>
+<div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
+  <div style="flex: 1; text-align: center;">
+    <img src="../assets/train_session_20250728-161129_tutorial_partial_obs_replay.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
+    <!-- <div>Flat Terrain</div> -->
+  </div>
+  <div style="flex: 1; text-align: center;">
+    <img src="../assets/train_session_20250802-135821_rough_replay.gif" alt="Rough replay" style="max-width: 100%; height: auto;">
+    <!-- <div>Rough Terrain</div> -->
+  </div>
+</div>
 
 ---
 
 
 
-## Core Building Blocks
+<!-- ## Core Building Blocks
 
 | Layer | File / Doc | Description |
 |-------|------------|-------------|
@@ -25,7 +32,7 @@ MyoAssist’s reinforcement learning (RL) pipeline is built on top of **Stable-B
 | **Trainer** | [`run_train.py`](../../rl_train/run_train.py) · [Code Structure](code_structure.md) | Loads a JSON config, constructs vectorised envs and launches SB3 PPO. |
 | **Callback** | [`learning_callback.py`](../../rl_train/utils/learning_callback.py) | Handles logging, checkpoints, videos and curriculum switches. |
 | **Analyzer** | [`analyzer/`](../../rl_train/analyzer/) · [Network Index Handler](network-index-handler.md) | Post-hoc evaluation: plots, gait metrics and network indexing analysis. |
-| **Configuration** | [`train_configs/*.json`](../../rl_train/train/train_configs/) · [Configuration Guide](configuration.md) | Fully define terrain, reward weights, network indexing and SB3 hyper-parameters. |
+| **Configuration** | [`train_configs/*.json`](../../rl_train/train/train_configs/) · [Configuration Guide](configuration.md) | Fully define terrain, reward weights, network indexing and SB3 hyper-parameters. | -->
 
 ---
 
@@ -36,7 +43,7 @@ MyoAssist’s reinforcement learning (RL) pipeline is built on top of **Stable-B
    ```bash
    python rl_train/run_train.py --config_file_path rl_train/train_configs/my_config.json
    ```
-3. **Monitor progress** – tensorboard logs, live rendering (`--flag_rendering`) and JSON logs in `results/train_session_*`.
+3. **Monitor progress** – logs & results in `results/train_session_*`.
 4. **Evaluate policy** –
    ```bash
    python rl_train/run_policy_eval.py results/train_session_<timestamp>
