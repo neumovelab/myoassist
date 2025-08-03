@@ -2,6 +2,16 @@
     "total_timesteps": 3e7,
     "evaluate_param_list":[
         {
+            "num_timesteps": 120,
+            "min_target_velocity": 1.25,
+            "max_target_velocity": 1.25,
+            "target_velocity_period": 2,
+            "velocity_mode": "UNIFORM",
+            "cam_type": "average_speed",
+            "cam_distance": 2.5,
+            "visualize_activation": true
+        },
+        {
             "num_timesteps": 1000,
             "min_target_velocity": 1.25,
             "max_target_velocity": 1.25,
@@ -12,6 +22,7 @@
             "visualize_activation": true
         }
     ],
+    
     "logger_params": {
         "logging_frequency": 8,
         "evaluate_frequency": 64

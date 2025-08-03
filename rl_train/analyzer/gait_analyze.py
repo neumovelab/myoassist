@@ -473,7 +473,7 @@ class GaitAnalyzer:
         fig2, axes2 = plt.subplots(3,1,figsize=(20, 15),dpi=300)
         for joint, data in joint_data_mapped.items():
             data = np.array(data)
-            print(f"DEBUG:: {joint=}, {data.shape=}")
+            # print(f"DEBUG:: {joint=}, {data.shape=}")
             mean_data_degree = np.mean(data, axis=0)
             std_data_degree = np.std(data, axis=0)
             if "hip_flexion_l" in joint:
