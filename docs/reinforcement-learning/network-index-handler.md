@@ -7,14 +7,26 @@ layout: home
 
 # Network Index Handler
 
-The Network Index Handler enables selective observation input and targeted action output mapping for different networks in multi-actor systems. It allows specific networks to receive only parts of the full observation and maps their outputs to specific indices in the action space.
+The Network Index Handler enables selective observation input and targeted action output mapping for different networks in multi-actor reinforcement learning systems. This system allows specific networks to receive only relevant parts of the full observation and maps their outputs to specific indices in the action space.
 
 ## Overview
 
-Network Indexing is used when:
-- **Selective Observation Input**: A network needs only specific parts of the full observation
-- **Targeted Action Mapping**: A network's output should be mapped to specific action indices
-- **Multi-Actor Coordination**: Different actors control different parts of the action space
+Network Indexing is essential when working with:
+
+- **Selective Observation Input**: Networks that need only specific parts of the full observation
+- **Targeted Action Mapping**: Networks whose outputs should be mapped to specific action indices
+- **Multi-Actor Coordination**: Different actors controlling different parts of the action space
+
+<p align="center">
+  <img src="../assets/multiple_actor_observation.png" alt="Multiple Actor Structure" width="70%">
+</p>
+
+> **Note:**  
+The order of the observation vector can be checked in the `DEFAULT_OBS_KEYS` of the gym environment.([/rl_train/envs/](/rl_train/envs/))
+Within this, the order of `qpos` (joint position), `qvel` (joint velocity), and joint/sensor keys can be found in the configuration file (e.g., `observation_joint_pos_keys`, `observation_joint_vel_keys`, `observation_joint_sensor_keys`).  
+Each observation component is concatenated, so you can determine the index of each element in the full observation vector.  
+The number of activations corresponds to the number of muscles.
+
 
 ## Core Concepts
 
@@ -23,7 +35,7 @@ Network Indexing is used when:
 **Purpose**: Extract specific observation ranges for individual networks
 
 **When to Use**:
-- Different networks need different observation components
+- Different networks require different observation components
 - Reducing input complexity for specialized networks
 - Sharing observation data efficiently between networks
 
@@ -61,11 +73,11 @@ Network Indexing is used when:
 
 **Purpose**: Controls human muscle activations
 
-**Observation Strategy**: 
+**Observation**: 
 - Receives comprehensive state information
 - Processes full observation for coordinated muscle control
 
-**Action Strategy**:
+**Action**:
 - Outputs muscle activation commands
 - Maps to muscle action indices in the action space
 
@@ -73,11 +85,11 @@ Network Indexing is used when:
 
 **Purpose**: Controls exoskeleton assistance
 
-**Observation Strategy**:
+**Observation**:
 - Receives only essential information (e.g., ankle data)
 - Uses minimal observation for focused control
 
-**Action Strategy**:
+**Action**:
 - Outputs exoskeleton assistance commands
 - Maps to exoskeleton action indices in the action space
 
@@ -85,44 +97,84 @@ Network Indexing is used when:
 
 **Purpose**: Evaluates overall system performance
 
-**Observation Strategy**:
+**Observation**:
 - Receives full state information
 - Evaluates complete system state
 
-**Action Strategy**:
+**Action**:
 - No action output (critic only)
 - Focuses on state evaluation
 
-## Indexing Information Structure
+## Configuration Structure
+
+The network indexing configuration follows this structure:
 
 ```json
-{
-  "net_indexing_info": {
-    "human_actor": {
-      "observation": [
-        {"type": "range", "range": [start, end], "comment": "Joint position data"},
-        {"type": "range", "range": [start, end], "comment": "Muscle activation data"},
-        {"type": "range", "range": [start, end], "comment": "Contact force data"}
-      ],
-      "action": [
-        {"type": "range_mapping", "range_net": [start, end], "range_action": [start, end], "comment": "Right leg muscles"},
-        {"type": "range_mapping", "range_net": [start, end], "range_action": [start, end], "comment": "Left leg muscles"}
-      ]
-    },
-    "exo_actor": {
-      "observation": [
-        {"type": "range", "range": [start, end], "comment": "Ankle joint data only"}
-      ],
-      "action": [
-        {"type": "range_mapping", "range_net": [start, end], "range_action": [start, end], "comment": "Exoskeleton assistance"}
-      ]
-    },
-    "common_critic": {
-      "observation": [
-        {"type": "range", "range": [start, end], "comment": "Full state evaluation"}
-      ]
-    }
+"net_indexing_info": {
+  "human_actor": {
+    "observation": [...],
+    "action": [...]
+  },
+  "exo_actor": {
+    "observation": [...],
+    "action": [...]
+  },
+  "common_critic": {
+    "observation": [...]
   }
+}
+```
+
+### Actor Networks
+
+Actor networks require both observation and action indexing because they map observations to actions. Each actor network outputs actions based on its own observation subset.
+
+**Example Actor Configuration**:
+```json
+"human_actor": {
+  "observation": [
+    {
+      "type": "range",
+      "range": [0, 8],
+      "comment": "Joint position data"
+    },
+    {
+      "type": "range", 
+      "range": [8, 16],
+      "comment": "Joint velocity data"
+    }
+  ],
+  "action": [
+    {
+      "type": "range_mapping",
+      "range_net": [0, 11],
+      "range_action": [0, 11],
+      "comment": "Right leg muscles"
+    },
+    {
+      "type": "range_mapping",
+      "range_net": [11, 22],
+      "range_action": [11, 22],
+      "comment": "Left leg muscles"
+    }
+  ]
+}
+```
+
+### Critic Networks
+
+Critic networks only predict a single value (the value function) and do not output actions. Therefore, they require only observation indexing to specify which parts of the state they evaluate.
+
+**Example Critic Configuration**:
+```json
+"common_critic": {
+  "observation": [
+    {
+      "type": "range",
+      "range": [0, 50],
+      "comment": "Full state evaluation"
+    }
+  ]
 }
 ```
 
@@ -140,8 +192,17 @@ Network Indexing is used when:
 - Efficient data sharing between networks
 
 **Parameters**:
-- `range`: `[start, end]` - Inclusive range of indices to extract
+- `range`: `[start(inclusive), end(exclusive)]` - Inclusive range of indices to extract
 - `comment`: Description of the extracted data
+
+**Example**:
+```json
+{
+  "type": "range",
+  "range": [0, 2],
+  "comment": "Ankle angle data"
+}
+```
 
 ### Range Mapping
 
@@ -155,136 +216,53 @@ Network Indexing is used when:
 - Preventing conflicts between different actors
 
 **Parameters**:
-- `range_net`: `[start, end]` - Network output range
-- `range_action`: `[start, end]` - Action space range to map to
+- `range_net`: `[start(inclusive), end(exclusive)]` - Network output range
+- `range_action`: `[start(inclusive), end(exclusive)]` - Action space range to map to
 - `comment`: Description of the action mapping
 
-## Implementation Process
-
-### 1. Observation Extraction
-```python
-# Extract specific observation ranges for each network
-human_obs = extract_ranges(full_state, human_observation_ranges)
-exo_obs = extract_ranges(full_state, exo_observation_ranges)
-critic_obs = extract_ranges(full_state, critic_observation_ranges)
-```
-
-### 2. Network Processing
-```python
-# Each network processes its specific observation
-human_output = human_network(human_obs)
-exo_output = exo_network(exo_obs)
-critic_value = critic_network(critic_obs)
-```
-
-### 3. Action Mapping
-```python
-# Map network outputs to specific action indices
-action_vector = np.zeros(total_action_dim)
-action_vector[human_action_ranges] = human_output
-action_vector[exo_action_ranges] = exo_output
-```
-
-### 4. Combined Actions
-```python
-# Return the complete action vector
-return action_vector
-```
-
-## Design Principles
-
-### Selective Observation
-
-**Principle**: Each network receives only the observation data it needs
-
-**Benefits**:
-- **Efficiency**: Reduces unnecessary computation
-- **Specialization**: Networks can focus on their specific tasks
-- **Scalability**: Easy to add new observation components
-
 **Example**:
-- Human actor: Full state for comprehensive control
-- Exo actor: Only ankle data for focused assistance
-- Critic: Full state for complete evaluation
-
-### Targeted Action Mapping
-
-**Principle**: Each network controls specific parts of the action space
-
-**Benefits**:
-- **Coordination**: Multiple networks can work together
-- **Conflict Prevention**: Clear separation of responsibilities
-- **Modularity**: Easy to modify individual network roles
-
-**Example**:
-- Human actor: Controls muscle activations
-- Exo actor: Controls exoskeleton assistance
-- No overlap in action space
-
-## Customization Examples
-
-### Adding a New Network
-
 ```json
 {
-  "new_actor": {
-    "observation": [
-      {"type": "range", "range": [0, 4], "comment": "Specific observation data"}
-    ],
-    "action": [
-      {"type": "range_mapping", "range_net": [0, 2], "range_action": [24, 26], "comment": "New action components"}
-    ]
-  }
+  "type": "range_mapping",
+  "range_net": [0, 2],
+  "range_action": [22, 24],
+  "comment": "Exoskeleton left and right actuators"
 }
 ```
 
-### Modifying Observation Ranges
+## Example
+
+Here's a complete example of exoskeleton actor indexing:
+
+**Configuration File**: `imitation_tutorial_22_separated_net_partial_obs.json`
+<p align="center">
+  <img src="../assets/exo_network_indexing_example.png" alt="Exoskeleton network indexing example" width="90%">
+</p>
 
 ```json
-{
-  "human_actor": {
-    "observation": [
-      {"type": "range", "range": [0, 10], "comment": "Extended joint data"},
-      {"type": "range", "range": [20, 30], "comment": "Additional sensor data"}
-    ]
-  }
+"exo_actor": {
+  "observation": [
+    {
+      "type": "range",
+      "range": [0, 2],
+      "comment": "2 ankle angles in 8 qpos without lumbar_extension"
+    },
+    {
+      "type": "range",
+      "range": [8, 10],
+      "comment": "2 ankle angular velocities in 9 qvel without lumbar_extension"
+    }
+  ],
+  "action": [
+    {
+      "type": "range_mapping",
+      "range_net": [0, 2],
+      "range_action": [22, 24],
+      "comment": "2 actuators for exoskeleton left and right"
+    }
+  ]
 }
 ```
 
-### Changing Action Mappings
 
-```json
-{
-  "exo_actor": {
-    "action": [
-      {"type": "range_mapping", "range_net": [0, 3], "range_action": [22, 25], "comment": "Extended exoskeleton control"}
-    ]
-  }
-}
-```
 
-## Best Practices
-
-### Observation Design
-
-- **Minimal Sufficient**: Provide each network with minimal sufficient observation
-- **Relevant Data**: Ensure observation data is relevant to the network's task
-- **Efficient Extraction**: Use contiguous ranges when possible for efficiency
-
-### Action Mapping Design
-
-- **Clear Separation**: Ensure no overlap between different networks' action ranges
-- **Logical Grouping**: Group related actions together
-- **Extensible Design**: Leave room for future action components
-
-### Validation
-
-- **Range Validation**: Ensure all ranges are within valid bounds
-- **Dimension Matching**: Verify network output dimensions match action ranges
-- **Conflict Detection**: Check for overlapping action mappings
-
-### Performance
-
-- **Efficient Indexing**: Use direct array indexing for fast extraction
-- **Memory Management**: Consider memory usage for large observation spaces
-- **Modular Design**: Design for easy testing and modification 

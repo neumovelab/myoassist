@@ -17,21 +17,17 @@ Configuration files define training parameters for reinforcement learning experi
 python rl_train/run_train.py --config_file_path [path/to/config.json]
 ```
 
-### Accessing Configuration in Python
-
-```python
-config.total_timesteps
-config.env_params.num_envs
-config.ppo_params.learning_rate
-```
-
 ### Overriding Configuration Parameters
 
 You can override any configuration parameter using command-line arguments:
 
+example:
 ```bash
 python rl_train/run_train.py --config_file_path config.json --config.total_timesteps 1000 --config.env_params.num_envs 16
 ```
+This example overrides two configuration parameters via the command line:
+- Sets the total training timesteps to 1000
+- Sets the number of parallel training environments to 16
 
 ## Configuration Structure
 
@@ -39,8 +35,8 @@ python rl_train/run_train.py --config_file_path config.json --config.total_times
 
 Configuration files are located in `myoassist_rl/rl_train/train_configs/`:
 
-- `imitation_tutorial_22_separated_net_partial_obs.json` - Basic imitation learning
-- `imitation_tutorial_22_separated_net_full_obs.json` - Full observation imitation
+- `imitation_tutorial_22_separated_net_partial_obs.json` - Imitation learning using the "TUTORIAL" model, which provides only ankle angle and velocity to the exo
+- `imitation_tutorial_22_separated_net_full_obs.json` - Full Exo observation imitation
 
 ### Configuration Hierarchy
 
@@ -173,15 +169,3 @@ TrainSessionConfigBase
 ## Example Configuration
 
 [imitation_tutorial_22_separated_net_partial_obs.json](/rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json)
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Configuration not found**: Ensure the JSON file path is correct
-2. **Parameter override not working**: Check parameter hierarchy (e.g., `config.env_params.num_envs`)
-3. **Invalid parameter values**: Verify parameter types and ranges
-
-### Validation
-
-The system automatically validates configuration parameters. Invalid values will raise clear error messages indicating the problematic parameter.
