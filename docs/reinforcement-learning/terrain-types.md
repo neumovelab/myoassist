@@ -18,7 +18,6 @@ MyoAssist supports various terrain types for heightfield generation using the [H
 | `harmonic_sinusoidal` | Harmonic sinusoidal waves | `amplitude_row period_row amplitude_col period_col` | Complex terrain simulation |
 | `slope` | Inclined slope | `slope_angle` - Slope angle in degrees | Slope walking training |
 
-
 ## Terrain Parameters
 
 Parameters are space-separated values passed as strings:
@@ -58,6 +57,10 @@ terrain_params: "0.3"
 ```
 
 ### Random Terrain
+<p align="center">
+  <img src="../assets/terrain_random_02.png" alt="Random terrain example 1" width="45%">
+  <img src="../assets/terrain_random_04.png" alt="Random terrain example 2" width="45%">
+</p>
 
 **Type**: `random`
 
@@ -74,7 +77,13 @@ terrain_params: "0.3"
 }
 ```
 
+
+
 ### Harmonic Sinusoidal Terrain
+<p align="center">
+  <img src="../assets/terrain_harmonic_0.png" alt="Harmonic terrain example 1" width="45%">
+  <img src="../assets/terrain_harmonic_1.png" alt="Harmonic terrain example 2" width="45%">
+</p>
 
 **Type**: `harmonic_sinusoidal`
 
@@ -96,7 +105,12 @@ You can continue to add more sets of these four parameters (`amplitude_row`, `pe
 }
 ```
 
+
 ### Slope Terrain
+<p align="center">
+  <img src="../assets/terrain_slope_03.png" alt="Positive slope terrain" width="45%">
+  <img src="../assets/terrain_slope_neg03.png" alt="Negative slope terrain" width="45%">
+</p>
 
 **Type**: `slope`
 
@@ -113,13 +127,12 @@ You can continue to add more sets of these four parameters (`amplitude_row`, `pe
 }
 ```
 
+
 ## Safe Zone
 
 All terrain types include a safe zone around the starting position where terrain variations are minimized to prevent immediate falls or contact penation during training.
 
-
 ## Implementation Details
-
 
 Terrain generation is handled by the [HfieldManager](/myoassist_utils/hfield_manager.py) class which:
 
