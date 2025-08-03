@@ -18,9 +18,9 @@ Welcome to MyoAssist! This section will help you get up and running with the fra
 ## Prerequisites
 
 Before you begin, make sure you have:
-- Python 3.11
-- MuJoCo 3.3.3
-- Git
+- [Python 3.11](https://www.python.org/downloads/release/python-3119/)
+- [MuJoCo 3.3.3](https://github.com/google-deepmind/mujoco/releases/tag/3.3.3)
+- [Git](https://git-scm.com/downloads)
 
 ## Installation
 
@@ -35,15 +35,50 @@ cd myoassist
 pip install -e .
 ```
 
-### Step 3: Initialize MyoSuite
-```bash
-python myosuite_init.py
-```
+### step 3: set Virtual Environment(venv)
 
-## Next Steps
+> This step is not mandatory if you are already familiar with Python virtual environments and prefer to set up your own environment.
 
-Once installation is complete, you can:
-1. [Run your first simulation](quick-start)
-2. [Explore available models](available-models)
-3. [Start with reinforcement learning](../reinforcement-learning/)
-4. [Learn about reflex control](../control-optimization/) 
+
+Virtual environments (venv) are important because they allow you to create isolated Python environments for your projects. This means each project can have its own dependencies, regardless of what dependencies every other project has. This helps prevent version conflicts and makes your development process more reliable and reproducible.
+
+### How to set up a virtual environment
+
+1. **Create a virtual environment:**
+   ```bash
+   py -3.11 -m venv .my_venv
+   ```
+   This will create a new folder named `venv` in your project directory.
+
+2. **Activate the virtual environment:**
+   - On **Linux/macOS**:
+     ```bash
+     source .my_venv/bin/activate
+     ```
+   - On **Windows**:
+     ```bash
+     .my_venv\Scripts\activate
+     ```
+
+
+> **Note:**  
+>  
+> After activation, your command prompt will display `(.my_venv)` in front of the current directory.
+> The virtual environment must always be activated when working on this project. If you encounter issues while following the documentation, please double-check that your virtual environment is active.  
+>  
+> **Example:**  
+> ```bash
+> (.my_venv) D:\your\project\directory\myoassist
+> ```
+>  
+> This indicates that the virtual environment is currently active.
+
+
+
+3. **Deactivate the virtual environment:**
+   ```bash
+   deactivate
+   ```
+
+After creating and activating the virtual environment, you can install the required packages. This ensures that your dependencies are managed per project and do not affect your global Python installation.
+
