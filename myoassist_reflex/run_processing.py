@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyoAssist Processing Pipeline Launcher
+MyoAssist ReflexProcessing Pipeline Launcher
 This script allows running the processing pipeline directly from the myoassist_reflex directory.
 """
 
