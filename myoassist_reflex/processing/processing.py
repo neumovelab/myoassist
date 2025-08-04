@@ -557,6 +557,25 @@ class ParameterSelector:
                 elif cfg.processing_mode == "long":
                     cfg.sim_time = 10
                 
+                # FIXED: Apply parameter type filtering based on GUI checkboxes
+                include_best = self.include_best_var.get()
+                include_bestlast = self.include_bestlast_var.get()
+                
+                filtered_params = []
+                for param_file in cfg.param_files:
+                    if param_file.endswith('_BestLast.txt') and include_bestlast:
+                        filtered_params.append(param_file)
+                    elif param_file.endswith('_Best.txt') and not param_file.endswith('_BestLast.txt') and include_best:
+                        filtered_params.append(param_file)
+                
+                cfg.param_files = filtered_params
+                
+                if not cfg.param_files:
+                    messagebox.showwarning("Warning", 
+                        f"No parameter files selected for {os.path.basename(cfg.config_file)}. "
+                        "Please check your parameter type selection.")
+                    return
+                
                 bat_name = os.path.splitext(os.path.basename(cfg.config_file))[0]
                 cfg.output_dir = os.path.join(root_output, bat_name)
                 os.makedirs(cfg.output_dir, exist_ok=True)
@@ -568,9 +587,27 @@ class ParameterSelector:
             self.root.destroy()
             return
 
-        # -------------------- Single-run path (legacy) --------------------
+        # -------------------- Single-run path --------------------
         if not self.config.param_files:
             messagebox.showerror("Error", "Please select at least one parameter file.")
+            return
+
+        # FIXED: Apply parameter type filtering for single-run mode too
+        include_best = self.include_best_var.get()
+        include_bestlast = self.include_bestlast_var.get()
+        
+        filtered_params = []
+        for param_file in self.config.param_files:
+            if param_file.endswith('_BestLast.txt') and include_bestlast:
+                filtered_params.append(param_file)
+            elif param_file.endswith('_Best.txt') and not param_file.endswith('_BestLast.txt') and include_best:
+                filtered_params.append(param_file)
+        
+        self.config.param_files = filtered_params
+        
+        if not self.config.param_files:
+            messagebox.showwarning("Warning", 
+                "No parameter files selected. Please check your parameter type selection.")
             return
 
         # Update config from GUI widgets
@@ -585,10 +622,6 @@ class ParameterSelector:
         self.config.use_4param_spline = self.legacy_var.get()
         self.config.processing_mode = self.processing_var.get()
         
-        # Debug: Print the processing mode that was selected
-        # print(f"DEBUG: GUI selected processing mode: {self.processing_var.get()}")
-        # print(f"DEBUG: Config processing mode: {self.config.processing_mode}")
-
         # Set sim_time based on processing_mode
         if self.config.processing_mode == "short":
             self.config.sim_time = 5
@@ -710,7 +743,7 @@ class ParameterSelector:
         left_values.pack(side="left", padx=(0,40))
         ttk.Label(left_values, text=cfg.model, style="PreviewValue.TLabel").pack(anchor="w")
         ttk.Label(left_values, text=cfg.mode, style="PreviewValue.TLabel").pack(anchor="w")
-        ttk.Label(left_values, text=f"{cfg.slope_deg}°", style="PreviewValue.TLabel").pack(anchor="w")
+        ttk.Label(left_values, text=f"{cfg.slope_deg}deg", style="PreviewValue.TLabel").pack(anchor="w")
 
         # Right column
         right_frame = ttk.Frame(param_grid, style="Inner.TFrame")
@@ -827,7 +860,7 @@ class SimulationProcessor:
         os.makedirs(self.config.output_dir, exist_ok=True)
         
     def process_all_parameters(self):
-        """Process all selected parameter files"""
+        """Process all selected parameter files - FIXED: Create separate environments for each parameter file"""
         # Print header only once
         print(f"\n{'='*60}")
         print(f"MyoReflex Processing Pipeline")
@@ -837,8 +870,6 @@ class SimulationProcessor:
         print(f"Simulation Time: {self.config.sim_time}s")
         print(f"Output Directory: {self.config.output_dir}")
         print(f"Parameter Files: {len(self.config.param_files)}")
-        # print(f"DEBUG: Processing mode value: '{self.config.processing_mode}'")
-        # print(f"DEBUG: Sim time value: {self.config.sim_time}")
         print(f"{'='*60}\n")
         
         for i, param_file in enumerate(self.config.param_files, 1):
@@ -855,12 +886,12 @@ class SimulationProcessor:
         print(f"{'='*60}")
     
     def _process_single_parameter(self, param_file: str, file_index: int):
-        """Process a single parameter file"""
+        """Process a single parameter file - FIXED: Create fresh environment for each parameter file"""
         # Load parameters
         self._current_param_file = param_file
         params = np.loadtxt(param_file)
 
-        # Create environment based on model type
+        # FIXED: Create a fresh environment for each parameter file
         if self.config.model == "barefoot":
             env = self._create_barefoot_env(params)
         else:
@@ -870,8 +901,8 @@ class SimulationProcessor:
         param_name = os.path.splitext(os.path.basename(param_file))[0]
         base_filename = f"{param_name}_{file_index:03d}"
         
-        # Generate video
-        video_path = self._run_simulation(env, base_filename)
+        # FIXED: Generate video and store frames for reuse
+        video_path, frames, simulation_data = self._run_simulation_with_frame_storage(env, base_filename)
         
         # Process based on mode
         if self.config.processing_mode == "short":
@@ -879,10 +910,10 @@ class SimulationProcessor:
             self._generate_quick_analysis(env, base_filename)
             print(f"  Video saved to {video_path}")
             
-            # Generate exoskeleton video if enabled
+            # FIXED: Generate exoskeleton video using stored frames (no re-simulation)
             if self.config.exo_bool:
                 try:
-                    exo_video_path = self._generate_exoskeleton_video(env, base_filename, None)
+                    exo_video_path = self._generate_exoskeleton_video_from_frames(env, base_filename, frames, simulation_data)
                     if exo_video_path:
                         print(f"  Exoskeleton video saved to {os.path.basename(exo_video_path)}")
                 except Exception as e:
@@ -893,14 +924,22 @@ class SimulationProcessor:
             self._generate_quick_analysis(env, base_filename)
             print(f"  Video saved to {video_path}")
             
-            # Generate exoskeleton video if enabled
+            # FIXED: Generate exoskeleton video using stored frames (no re-simulation)
             if self.config.exo_bool:
                 try:
-                    exo_video_path = self._generate_exoskeleton_video(env, base_filename, None)
+                    exo_video_path = self._generate_exoskeleton_video_from_frames(env, base_filename, frames, simulation_data)
                     if exo_video_path:
                         print(f"  Exoskeleton video saved to {os.path.basename(exo_video_path)}")
                 except Exception as e:
                     print(f"  Warning: Could not generate exoskeleton video: {e}")
+        
+        # Clean up environment to free memory
+        try:
+            if hasattr(env, 'close'):
+                env.close()
+            del env
+        except:
+            pass
 
     def _create_barefoot_env(self, params):
         """Create barefoot environment using ReflexInterface"""
@@ -937,15 +976,15 @@ class SimulationProcessor:
             os.chdir(original_cwd)
 
 
-    def _run_simulation(self, env, base_filename):
-        """Run the simulation and generate video with data collection"""
+    def _run_simulation_with_frame_storage(self, env, base_filename):
+        """Run the simulation and generate video with data collection - FIXED: Restore original kinematics + proper frames"""
         env.reset()
         
         # Calculate timesteps
         timesteps = int(self.config.sim_time / env.dt)
         frames = []
         
-        # Initialize data collection for kinematics and full report modes
+        # Initialize data collection for kinematics and full report modes (SAME AS ORIGINAL)
         simulation_data = {
             'time': [],
             'r_leg': {
@@ -966,12 +1005,13 @@ class SimulationProcessor:
             },
             'trunk': [],  # pelvis tilt
             'timesteps': timesteps,
-            'dt': env.dt
+            'dt': env.dt,
+            'exo_data': {}  # NEW: Store exoskeleton control data for each timestep
         }
         
         print(f"  Running {timesteps} timesteps...")
         
-        # Initialize muscle data structures if full mode (exclude HAB in 2D)
+        # Initialize muscle data structures if full mode (exclude HAB in 2D) - SAME AS ORIGINAL
         if self.config.processing_mode == "full":
             muscle_names = ['GLU', 'VAS', 'SOL', 'GAS', 'HAM', 'HFL', 'RF', 'BFSH', 'TA', 'FDL']
             if self.config.mode == "3D":
@@ -983,12 +1023,12 @@ class SimulationProcessor:
                     simulation_data[leg]['mus_force'][muscle] = []
                     simulation_data[leg]['mus_vel'][muscle] = []
         
-        # Set up renderer with higher resolution
+        # Set up renderer with higher resolution - SAME AS ORIGINAL
         env.env.sim.renderer.render_offscreen(camera_id=4)
         env.env.sim.renderer._scene_option.flags[0] = 0  # Remove convex hull
         env.env.sim.renderer._scene_option.flags[4] = 0
         
-        # Camera setup for video with increased resolution
+        # Camera setup for video with increased resolution - SAME AS ORIGINAL
         free_cam = mujoco.MjvCamera()
         camera_speed = 1.25
         slope_angle_rad = np.radians(env.slope_deg)
@@ -997,14 +1037,25 @@ class SimulationProcessor:
         camera_pos = start_position.copy()
         camera_pos[2] = 0.8
         
-        # Increased video resolution for better quality
-        video_width, video_height = 2560, 1440  # Much higher than original 1920x1080
+        # FIXED: Keep original higher resolution but add fallback handling
+        video_width, video_height = 2560, 1440  # Same as original - we'll handle resize if needed
         
-        # Get all joint data structure once at the beginning
+        # NEW: Initialize ExoVisualizer for data collection if exoskeleton is enabled
+        exo_visualizer = None
+        if self.config.exo_bool:
+            try:
+                from processing.exo_visualization import ExoVisualizer
+                exo_visualizer = ExoVisualizer()
+                print(f"  ExoVisualizer initialized for data collection")
+            except ImportError as e:
+                print(f"  Warning: Could not import ExoVisualizer: {e}")
+                exo_visualizer = None
+        
+        # Get all joint data structure once at the beginning - SAME AS ORIGINAL
         mj_model = env.env.unwrapped.sim.model
         mj_data = env.env.unwrapped.sim.data
         
-        # Extract all joint information using comprehensive method
+        # Extract all joint information using comprehensive method - SAME AS ORIGINAL
         all_joint_data = {}
         joint_name_to_index = {}
         
@@ -1038,7 +1089,38 @@ class SimulationProcessor:
             if i % max(1, timesteps // 10) == 0 or i % 50 == 0:
                 print_progress_bar(i, timesteps, prefix='  Progress:', suffix=f'({i}/{timesteps})', length=30)
             
-            # Update camera position for following
+            # NEW: Store exoskeleton control data using ExoVisualizer (same as original method)
+            if self.config.exo_bool and exo_visualizer:
+                try:
+                    # Use the same method as the original _generate_exoskeleton_video
+                    exo_control_data = exo_visualizer.get_exo_control_data(env)
+                    
+                    # Store the complete exoskeleton data for this timestep
+                    simulation_data['exo_data'][i] = {
+                        'torque_r': exo_control_data.get('torque_r', 0.0),
+                        'torque_l': exo_control_data.get('torque_l', 0.0),
+                        'stance_percent_r': exo_control_data.get('stance_percent_r', 0.0),
+                        'stance_percent_l': exo_control_data.get('stance_percent_l', 0.0),
+                        'state_r': exo_control_data.get('state_r', 'swing'),
+                        'state_l': exo_control_data.get('state_l', 'swing')
+                    }
+                    
+                    # Debug first few timesteps
+                    if i < 3:
+                        print(f"      Timestep {i}: R_torque={simulation_data['exo_data'][i]['torque_r']:.3f}, "
+                            f"L_torque={simulation_data['exo_data'][i]['torque_l']:.3f}")
+                            
+                except Exception as e:
+                    if i < 3:
+                        print(f"      Warning: Error getting exo control data at timestep {i}: {e}")
+                    # Store defaults if extraction fails
+                    simulation_data['exo_data'][i] = {
+                        'torque_r': 0.0, 'torque_l': 0.0,
+                        'stance_percent_r': 0.0, 'stance_percent_l': 0.0,
+                        'state_r': 'swing', 'state_l': 'swing'
+                    }
+            
+            # Update camera position for following - SAME AS ORIGINAL
             if not env.delayed:
                 distance_traveled = camera_speed * env.dt * i
                 camera_pos[0] = start_position[0] + distance_traveled
@@ -1056,16 +1138,40 @@ class SimulationProcessor:
                 free_cam.elevation = 0
                 free_cam.lookat = lookat_pos
                 
-                frame = env.env.unwrapped.sim.renderer.render_offscreen(
-                    camera_id=free_cam, width=video_width, height=video_height)
+                # FIXED: Try original method first, then add width/height as fallback
+                try:
+                    frame = env.env.unwrapped.sim.renderer.render_offscreen(
+                        camera_id=free_cam, width=video_width, height=video_height)
+                except:
+                    # Fallback: try without explicit dimensions
+                    frame = env.env.unwrapped.sim.renderer.render_offscreen(camera_id=free_cam)
             else:
                 if i % 10 == 0:
                     env.env.sim.data.camera(4).xpos[2] = 2.181
+                    
+                # FIXED: Try original method first, then add width/height as fallback
+                try:
                     frame = env.env.sim.renderer.render_offscreen(camera_id=4, width=video_width, height=video_height)
+                except:
+                    # Fallback: try without explicit dimensions
+                    frame = env.env.sim.renderer.render_offscreen(camera_id=4)
+            
+            # FIXED: Handle frame resizing if needed
+            if frame is not None and len(frame.shape) == 3:
+                actual_height, actual_width = frame.shape[:2]
+                
+                # Report dimensions for first frame
+                if i == 0:
+                    print(f"    Actual frame dimensions: {actual_width}x{actual_height}")
+                    if actual_width != video_width or actual_height != video_height:
+                        print(f"    Frame size differs from requested {video_width}x{video_height}")
+                        # Update target dimensions to match actual
+                        video_width, video_height = actual_width, actual_height
+                        print(f"    Using actual dimensions: {video_width}x{video_height}")
             
             frames.append(frame)
             
-            # Collect comprehensive joint data
+            # EXACT COPY of original kinematic data collection
             if self.config.processing_mode in ["short", "long"] and i > 0:
                 try:
                     # Method 1: Try original env.get_plot_data() first
@@ -1199,7 +1305,7 @@ class SimulationProcessor:
                         simulation_data[leg]['load_ipsi'].append(0.0)
                     simulation_data['trunk'].append(0.0)
             
-            # Run simulation step
+            # Run simulation step - SAME AS ORIGINAL
             _, _, is_done = env.run_reflex_step_Cost()
             
             if is_done:
@@ -1209,7 +1315,16 @@ class SimulationProcessor:
         # Ensure progress bar completes
         print_progress_bar(timesteps, timesteps, prefix='  Progress:', suffix=f'({timesteps}/{timesteps})', length=30)
         
-        # Save video using imageio with higher resolution
+        # FIXED: Debug stored exoskeleton data
+        if self.config.exo_bool and simulation_data['exo_data']:
+            print(f"  Exoskeleton data summary:")
+            torque_r_values = [data['torque_r'] for data in simulation_data['exo_data'].values()]
+            torque_l_values = [data['torque_l'] for data in simulation_data['exo_data'].values()]
+            
+            print(f"    Right torque range: {min(torque_r_values):.3f} to {max(torque_r_values):.3f}")
+            print(f"    Left torque range: {min(torque_l_values):.3f} to {max(torque_l_values):.3f}")
+        
+        # Save video using imageio with higher resolution - SAME AS ORIGINAL
         video_filename = f"{base_filename}.mp4"
         video_path = os.path.join(self.config.output_dir, video_filename)
         
@@ -1246,15 +1361,15 @@ class SimulationProcessor:
         # Store simulation data for use by analysis functions
         self._simulation_data = simulation_data
         
-        return video_path
+        # Return frames and simulation data for reuse
+        return video_path, frames, simulation_data
 
-
-    def _generate_exoskeleton_video(self, env, base_filename, regular_frames):
-        """Generate exoskeleton visualization video with overlay."""
-        if not self.config.exo_bool:
+    def _generate_exoskeleton_video_from_frames(self, env, base_filename, frames, simulation_data):
+        """Generate exoskeleton visualization video using pre-rendered frames - MATCHES original method behavior"""
+        if not self.config.exo_bool or not frames:
             return None
             
-        # Initialize exo visualizer
+        # Initialize exo visualizer (same as original method)
         try:
             from processing.exo_visualization import ExoVisualizer
             exo_visualizer = ExoVisualizer()
@@ -1262,82 +1377,66 @@ class SimulationProcessor:
             print(f"  Warning: Could not import ExoVisualizer: {e}")
             return None
         
-        # Create exoskeleton frames with overlay
+        print(f"  Creating exoskeleton overlays for {len(frames)} frames...")
+        
+        # FIXED: Check if we have stored exoskeleton data
+        if 'exo_data' not in simulation_data or not simulation_data['exo_data']:
+            print(f"  WARNING: No exoskeleton data found in simulation_data!")
+            return None
+        
+        print(f"  Found exoskeleton data for {len(simulation_data['exo_data'])} timesteps")
+        
+        # Create exoskeleton frames with overlay using stored frames
         exo_frames = []
         
-        # Calculate timesteps
-        timesteps = int(self.config.sim_time / env.dt)
-        
-        # Reset environment to replay simulation
-        env.reset()
-        
-        # Set up camera for exo video (same as regular video)
-        free_cam = mujoco.MjvCamera()
-        camera_speed = 1.25
-        slope_angle_rad = np.radians(env.slope_deg)
-        start_position = env.env.unwrapped.sim.data.body("pelvis").xpos.copy()
-        
-        camera_pos = start_position.copy()
-        camera_pos[2] = 0.8
-        
-        # Same higher resolution as main video
-        video_width, video_height = 2560, 1440
-        
-        for i in range(timesteps):
-            # Update camera position for following
-            if not env.delayed:
-                distance_traveled = camera_speed * env.dt * i
-                camera_pos[0] = start_position[0] + distance_traveled
-                
-                slope_correction = 0.2
-                height_increase = (camera_pos[0] - start_position[0]) * np.tan(slope_angle_rad) * slope_correction
-                camera_pos[2] = 0.8 + height_increase
-                
-                pelvis_pos = env.env.unwrapped.sim.data.body("pelvis").xpos.copy()
-                lookat_pos = camera_pos.copy()
-                lookat_pos[1] = pelvis_pos[1]
-                
-                free_cam.distance = 2.5
-                free_cam.azimuth = 90
-                free_cam.elevation = 0
-                free_cam.lookat = lookat_pos
-                
-                frame = env.env.unwrapped.sim.renderer.render_offscreen(
-                    camera_id=free_cam, width=video_width, height=video_height)
-            else:
-                if i % 10 == 0:
-                    env.env.sim.data.camera(4).xpos[2] = 2.181
-                    frame = env.env.sim.renderer.render_offscreen(camera_id=4, width=video_width, height=video_height)
-            
+        for i, base_frame in enumerate(frames):
             try:
-                # Get exoskeleton control data
-                exo_control_data = exo_visualizer.get_exo_control_data(env)
-                
-                # Create overlay
-                overlay = exo_visualizer.create_overlay(
-                    env, 
-                    exo_control_data['torque_r'], 
-                    exo_control_data['torque_l'],
-                    exo_control_data['stance_percent_r'], 
-                    exo_control_data['stance_percent_l'],
-                    exo_control_data['state_r'], 
-                    exo_control_data['state_l']
-                )
-                
-                # Apply overlay to frame
-                frame_with_overlay = exo_visualizer.overlay_on_frame(frame, overlay)
-                exo_frames.append(frame_with_overlay)
-                
+                # FIXED: Use stored exoskeleton data (which was collected using exo_visualizer.get_exo_control_data)
+                if i in simulation_data['exo_data']:
+                    stored_exo_data = simulation_data['exo_data'][i]
+                    
+                    # FIXED: Create overlay using the same method as original (create_overlay)
+                    overlay = exo_visualizer.create_overlay(
+                        env, 
+                        stored_exo_data['torque_r'], 
+                        stored_exo_data['torque_l'],
+                        stored_exo_data['stance_percent_r'], 
+                        stored_exo_data['stance_percent_l'],
+                        stored_exo_data['state_r'], 
+                        stored_exo_data['state_l']
+                    )
+                    
+                    # Apply overlay to frame (same as original method)
+                    frame_with_overlay = exo_visualizer.overlay_on_frame(base_frame, overlay)
+                    exo_frames.append(frame_with_overlay)
+                    
+                    # Debug first few frames
+                    if i < 3:
+                        print(f"    Frame {i}: R_torque={stored_exo_data['torque_r']:.3f}, "
+                            f"L_torque={stored_exo_data['torque_l']:.3f}, "
+                            f"R_stance={stored_exo_data['stance_percent_r']:.1f}%, "
+                            f"R_state={stored_exo_data['state_r']}")
+                    
+                else:
+                    # If no stored data for this frame, just use the base frame
+                    exo_frames.append(base_frame)
+                    if i < 3:
+                        print(f"    Frame {i}: No stored data, using base frame")
+                    
             except Exception as e:
-                # If overlay fails, just use the regular frame
-                exo_frames.append(frame)
-            
-            # Step simulation
-            _, _, is_done = env.run_reflex_step_Cost()
-            if is_done:
-                break
+                # If overlay fails, just use the regular frame (same as original method)
+                exo_frames.append(base_frame)
+                if i < 3:
+                    print(f"    Warning: Overlay failed for frame {i}: {e}")
         
-        # Save exoskeleton video using imageio
+        # FIXED: Verify we have exo frames
+        if not exo_frames:
+            print(f"  ERROR: No exoskeleton frames were created!")
+            return None
+        
+        print(f"  Successfully created {len(exo_frames)} exoskeleton frames")
+        
+        # Save exoskeleton video (same as original method)
         exo_video_filename = f"{base_filename}_exo.mp4"
         exo_video_path = os.path.join(self.config.output_dir, exo_video_filename)
         
@@ -1357,12 +1456,18 @@ class SimulationProcessor:
                 for frame in frames_array:
                     writer.append_data(frame)
             
-            print(f"  Exo video saved: {os.path.basename(exo_video_path)} ({video_width}x{video_height})")
+            # Get frame dimensions for reporting
+            if exo_frames:
+                frame_shape = exo_frames[0].shape
+                print(f"  Exo video saved: {os.path.basename(exo_video_path)} ({frame_shape[1]}x{frame_shape[0]}, 50fps)")
+            else:
+                print(f"  Exo video saved: {os.path.basename(exo_video_path)}")
+            
             return exo_video_path
             
         except Exception as e:
             print(f"  Warning: Exoskeleton video generation failed: {e}")
-            # Fallback to skvideo
+            # Fallback to skvideo (same as original method)
             try:
                 skvideo.io.vwrite(exo_video_path, 
                                 np.asarray(exo_frames),
@@ -1373,19 +1478,6 @@ class SimulationProcessor:
             except Exception as e2:
                 print(f"  Warning: Both exo video methods failed: {e2}")
                 return None
-
-
-    # For displaying videos with increased width:
-    def show_video(video_path, video_width=1400):  # Increased from 1000 to 1400
-        """Display video in the notebook with higher width."""
-        video_file = open(video_path, "rb").read()
-        video_url = f"data:video/mp4;base64,{b64encode(video_file).decode()}"
-        return HTML(f'''
-        <video autoplay width="{video_width}" controls style="max-width: 100%;" controlsList="fullscreen">
-            <source src="{video_url}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        ''')
     
     def _generate_quick_analysis(self, env, base_filename):
         """Generate quick kinematics analysis using MyoReport-style data processing"""
@@ -1467,15 +1559,15 @@ class SimulationProcessor:
             }
         
         # Verify converted data
-        for leg in ['r_leg', 'l_leg']:
-            hip_converted = joint_data[leg]['hip']
-            knee_converted = joint_data[leg]['knee']
-            ankle_converted = joint_data[leg]['ankle']
-            if len(hip_converted) > 0:
-                print(f"    {leg.replace('_', ' ').title()} converted ranges (MyoReport style):")
-                print(f"      Hip:   {np.min(hip_converted):6.1f}° to {np.max(hip_converted):6.1f}° (range: {np.max(hip_converted)-np.min(hip_converted):5.1f}°)")
-                print(f"      Knee:  {np.min(knee_converted):6.1f}° to {np.max(knee_converted):6.1f}° (range: {np.max(knee_converted)-np.min(knee_converted):5.1f}°)")
-                print(f"      Ankle: {np.min(ankle_converted):6.1f}° to {np.max(ankle_converted):6.1f}° (range: {np.max(ankle_converted)-np.min(ankle_converted):5.1f}°)")
+        # for leg in ['r_leg', 'l_leg']:
+        #     hip_converted = joint_data[leg]['hip']
+        #     knee_converted = joint_data[leg]['knee']
+        #     ankle_converted = joint_data[leg]['ankle']
+        #     if len(hip_converted) > 0:
+        #         print(f"    {leg.replace('_', ' ').title()} converted ranges (MyoReport style):")
+        #         print(f"      Hip:   {np.min(hip_converted):6.1f}° to {np.max(hip_converted):6.1f}° (range: {np.max(hip_converted)-np.min(hip_converted):5.1f}°)")
+        #         print(f"      Knee:  {np.min(knee_converted):6.1f}° to {np.max(knee_converted):6.1f}° (range: {np.max(knee_converted)-np.min(knee_converted):5.1f}°)")
+        #         print(f"      Ankle: {np.min(ankle_converted):6.1f}° to {np.max(ankle_converted):6.1f}° (range: {np.max(ankle_converted)-np.min(ankle_converted):5.1f}°)")
         
         # Create comparison plot for both legs
         fig, axes = plt.subplots(3, 1, figsize=(14, 12))
@@ -1507,7 +1599,7 @@ class SimulationProcessor:
                 data_range = np.max(joint_data[leg][joint_key]) - np.min(joint_data[leg][joint_key])
                 
                 # Add text box with stats
-                stats_text = f'{leg_labels[leg]}:\nMean: {data_mean:.1f}°\nStd: {data_std:.1f}°\nRange: {data_range:.1f}°'
+                stats_text = f'{leg_labels[leg]}:\nMean: {data_mean:.1f}deg\nStd: {data_std:.1f}deg\nRange: {data_range:.1f}deg'
                 axes[i].text(0.02 if leg == 'r_leg' else 0.5, 0.98, stats_text,
                         transform=axes[i].transAxes, fontsize=8,
                         verticalalignment='top', 
@@ -1517,7 +1609,7 @@ class SimulationProcessor:
         
         # Add simulation info
         info_text = (f"Model: {self.config.model} | Mode: {self.config.mode} | "
-                    f"Sim Time: {self.config.sim_time}s | Slope: {self.config.slope_deg}°")
+                    f"Sim Time: {self.config.sim_time}s | Slope: {self.config.slope_deg}deg")
         fig.text(0.5, 0.02, info_text, ha='center', fontsize=10, style='italic')
         
         plt.tight_layout()
@@ -1546,10 +1638,10 @@ class SimulationProcessor:
                 f.write(f"{leg_labels[leg]} Statistics:\n")
                 for joint_name, joint_key in zip(joint_names, joint_keys):
                     data_vals = joint_data[leg][joint_key]
-                    f.write(f"  {joint_name:5} - Mean: {np.mean(data_vals):6.1f}° | "
-                        f"Std: {np.std(data_vals):5.1f}° | "
-                        f"Min: {np.min(data_vals):6.1f}° | "
-                        f"Max: {np.max(data_vals):6.1f}°\n")
+                    f.write(f"  {joint_name:5} - Mean: {np.mean(data_vals):6.1f}deg | "
+                        f"Std: {np.std(data_vals):5.1f}deg | "
+                        f"Min: {np.min(data_vals):6.1f}deg | "
+                        f"Max: {np.max(data_vals):6.1f}deg\n")
                 f.write("\n")
         
         print(f"  ✓ Statistics saved to {os.path.basename(stats_path)}")
