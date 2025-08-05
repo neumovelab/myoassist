@@ -29,6 +29,11 @@ class GaitAnalyzer:
         self.show_plot = show_plot
         self.fig_size_multiplier = 1
         self.dpi = 300
+
+        self.toe_off_color = "#000000"
+        self.toe_off_linestyle = "--"
+        self.toe_off_linewidth = 1
+        self.toe_off_alpha = 0.6
         plt.ioff()  # Turn off interactive mode
 
     def get_gait_segment_index(self, *, is_right_foot_based: bool):
@@ -170,6 +175,7 @@ class GaitAnalyzer:
 
         if self.show_plot:
             plt.show()
+        plt.close()
 
 
     def plot_exo_segmented_data(self, *,
@@ -187,6 +193,10 @@ class GaitAnalyzer:
             "Exo_L": [],
             "Exo_R": [],
         }
+
+        # Draw toe-off reference lines (average cycle percentage)
+        toe_off_r = self.get_toe_off_average(is_right_foot_based=True) * 100
+        toe_off_l = self.get_toe_off_average(is_right_foot_based=False) * 100
 
         for idx, (start_idx, toe_off_idx, end_idx) in enumerate(right_gait_segment_index):
             exo_r_data = [-v[0] for v in exo_data_r["force"][start_idx:end_idx]]
@@ -209,10 +219,14 @@ class GaitAnalyzer:
         axes[0].set_title("Exo L")
         axes[1].set_title("Exo R")
 
+        axes[0].axvline(toe_off_l, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+        axes[1].axvline(toe_off_r, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+
         max_ylim = max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])
         for ax in axes:
             ax.set_ylim(bottom=0, top=max_ylim)
             ax.set_xlim(0, 100)  # limit x-axis to data range
+            
 
         # for ax in axes:
         #     ax.legend()
@@ -221,6 +235,7 @@ class GaitAnalyzer:
         fig.savefig(os.path.join(result_dir, "exo_segmented_force.png"))
         if self.show_plot:
             plt.show()
+        plt.close()
 
         # Plot mean and std separately
         fig_mean_std, axes_mean_std = plt.subplots(1, 2, figsize=(3.5 *self.fig_size_multiplier, 2 *self.fig_size_multiplier), dpi=self.dpi)
@@ -241,10 +256,14 @@ class GaitAnalyzer:
         axes_mean_std[0].set_title("Exo L")
         axes_mean_std[1].set_title("Exo R")
 
+        axes_mean_std[0].axvline(toe_off_l, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+        axes_mean_std[1].axvline(toe_off_r, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+
         max_ylim_mean_std = max(axes_mean_std[0].get_ylim()[1], axes_mean_std[1].get_ylim()[1])
         for ax in axes_mean_std:
             ax.set_ylim(bottom=0, top=max_ylim_mean_std)
             ax.set_xlim(0, 100)  # limit x-axis to data range
+            
 
         # for ax in axes_mean_std:
         #     ax.legend()
@@ -253,10 +272,15 @@ class GaitAnalyzer:
         fig_mean_std.savefig(os.path.join(result_dir, "exo_mean_std_data.png"))
         if self.show_plot:
             plt.show()
+        plt.close()
     def plot_segmented_kinematics_result(self, *,
                     result_dir,
                     ) -> None:
         fig, axes = plt.subplots(3,2,figsize=(5 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
+
+        # Draw toe-off reference lines (average cycle percentage)
+        toe_off_r = self.get_toe_off_average(is_right_foot_based=True) * 100
+        toe_off_l = self.get_toe_off_average(is_right_foot_based=False) * 100
         
         joint_data = self.gait_data.series_data["joint_data"]
         gait_segment_index_r = self.get_gait_segment_index(is_right_foot_based=True)
@@ -338,10 +362,15 @@ class GaitAnalyzer:
         axes[1][1].set_ylim(*self.JOINT_LIMIT['KNEE'])
         axes[2][0].set_ylim(*self.JOINT_LIMIT['ANKLE'])
         axes[2][1].set_ylim(*self.JOINT_LIMIT['ANKLE'])
+        for idx in range(3):
+            axes[idx][0].axvline(toe_off_l, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+            axes[idx][1].axvline(toe_off_r, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
 
         for ax_row in axes:
             for ax in ax_row:
                 ax.set_xlim(0, 100)  # limit x-axis to data range
+
+        
 
         # for ax_row in axes:
         #     for ax in ax_row:
@@ -352,6 +381,7 @@ class GaitAnalyzer:
         if self.show_plot:
             plt.figure(fig.number)
             plt.show()
+        plt.close()
 
         # Average data
 
@@ -396,14 +426,25 @@ class GaitAnalyzer:
             for ax in ax_row:
                 ax.set_xlim(0, 100)  # limit x-axis to data range
 
+        for idx in range(3):
+            axes2[idx][0].axvline(toe_off_l, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+            axes2[idx][1].axvline(toe_off_r, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+
         fig2.tight_layout()
         fig2.savefig(os.path.join(result_dir,"segmented_joint_data_avg.png"))
         if self.show_plot:
             plt.figure(fig2.number)
             plt.show()
+        plt.close()
     def plot_left_right_comparison(self, *,
                     result_dir,
                     ) -> None:
+        
+        # Draw toe-off reference lines (average cycle percentage)
+        toe_off_r = self.get_toe_off_average(is_right_foot_based=True) * 100
+        toe_off_l = self.get_toe_off_average(is_right_foot_based=False) * 100
+
+
         joint_data = self.gait_data.series_data["joint_data"]
         gait_segment_index_r = self.get_gait_segment_index(is_right_foot_based=True)
         gait_segment_index_l = self.get_gait_segment_index(is_right_foot_based=False)
@@ -481,14 +522,23 @@ class GaitAnalyzer:
 
         for ax in axes2:
             ax.set_xlim(0, 100)  # limit x-axis to data range
+        for idx in range(3):
+            axes2[idx].axvline(toe_off_l, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+            axes2[idx].axvline(toe_off_r, color=self.toe_off_color, linestyle="-", linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
 
         fig2.tight_layout()
         fig2.savefig(os.path.join(result_dir,"left_right_comparison_avg.png"))
         if self.show_plot:
             plt.figure(fig2.number)
             plt.show()
+        plt.close()
     def plot_right_ref_comparison(self, *,
                     result_dir):
+        # Draw toe-off reference lines (average cycle percentage)
+        toe_off_r = self.get_toe_off_average(is_right_foot_based=True) * 100
+        toe_off_l = self.get_toe_off_average(is_right_foot_based=False) * 100
+
+
         joint_data = self.gait_data.series_data["joint_data"]
         gait_segment_index_r = self.get_gait_segment_index(is_right_foot_based=True)
         x_mapped = np.linspace(0, 100, num=100)
@@ -557,12 +607,14 @@ class GaitAnalyzer:
 
         for ax in axes:
             ax.set_xlim(0, 100)  # limit x-axis to data range
+            ax.axvline(toe_off_r, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
 
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,"right_ref_comparison_avg.png"))
         if self.show_plot:
             plt.figure(fig.number)
             plt.show()
+        plt.close()
     def plot_contact_data(self, *,
                     result_dir,
                     geom_pairs:list[tuple[str, str]] = [("calcn_l_geom_1", "terrain"), ("calcn_r_geom_1", "terrain")],
@@ -596,12 +648,17 @@ class GaitAnalyzer:
         if self.show_plot:
             plt.figure(fig.number)
             plt.show()
+        plt.close()
 
     def plot_segmented_muscle_data(self, *,
                         result_dir,
                         is_plot_right:bool
                         ):
-        
+        toe_off_r = self.get_toe_off_average(is_right_foot_based=True) * 100
+        toe_off_l = self.get_toe_off_average(is_right_foot_based=False) * 100
+
+        toe_off = toe_off_r if is_plot_right else toe_off_l
+
         post_fix = ['_r', '_R'] if is_plot_right else ['_l', '_L']
         file_name_post_fix = '_r' if is_plot_right else '_l'
         # actuator_num = len(self.gait_data.series_data["actuator_data"])
@@ -630,6 +687,8 @@ class GaitAnalyzer:
         plot_height = actuator_num * 1.0
         plot_width = 4
 
+        #################### segmented muscle data ####################
+
         fig, axes = plt.subplots(actuator_num,1,figsize=(plot_width *self.fig_size_multiplier,plot_height *self.fig_size_multiplier),dpi=self.dpi)
         actuator_index = 0
         for idx, actuator_name in enumerate(muscle_data_mapped.keys()):
@@ -637,8 +696,10 @@ class GaitAnalyzer:
                 ax = axes[actuator_index]
                 for muscle_data in muscle_data_mapped[actuator_name]:
                     ax.plot(x_mapped, muscle_data["force"], label=f"{actuator_name} force", color="#000000", linestyle="-")
-                # ax.set_title(f"{actuator_name} force")
-                ax.set_ylabel(actuator_name, fontsize=12, rotation=0, ha='right', va='center')
+                
+                ax.axvline(toe_off, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+
+                ax.set_ylabel(actuator_name[:-2], fontsize=12, rotation=0, ha='right', va='center')
                 ax.yaxis.set_label_coords(-0.3, 0.5)
                 # ax.legend()
                 actuator_index += 1
@@ -649,6 +710,10 @@ class GaitAnalyzer:
         plt.figure(fig.number)
         if self.show_plot:
             plt.show()
+        plt.close()
+
+
+        #################### mean and std muscle data ####################
 
         # Plot mean and std separately
         fig_mean_std, axes_mean_std = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=self.dpi)
@@ -663,8 +728,10 @@ class GaitAnalyzer:
                 ax.plot(x_mapped, mean_force, label=f"{actuator_name} Mean Force", color='black', linewidth=2)
                 ax.fill_between(x_mapped, mean_force - std_force, mean_force + std_force, color='gray', alpha=0.5)
 
+                ax.axvline(toe_off, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
+
                 # ax.set_title(f"{actuator_name} Mean and Std Force")
-                ax.set_ylabel(actuator_name, fontsize=12, rotation=0, ha='right', va='center')
+                ax.set_ylabel(actuator_name[:-2], fontsize=12, rotation=0, ha='right', va='center')
                 ax.yaxis.set_label_coords(-0.3, 0.5)
                 # ax.legend()
                 actuator_index += 1
@@ -675,6 +742,9 @@ class GaitAnalyzer:
         if self.show_plot:
             plt.figure(fig_mean_std.number)
             plt.show()
+        plt.close()
+
+        #################### mean and std ctrl data ####################
 
         # Plot mean and std for ctrl
         fig_mean_std_ctrl, axes_mean_std_ctrl = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=self.dpi)
@@ -686,14 +756,14 @@ class GaitAnalyzer:
                 mean_ctrl = np.mean(ctrl_data, axis=0)
                 std_ctrl = np.std(ctrl_data, axis=0)
 
-                ax.plot(x_mapped, mean_ctrl, label=f"{actuator_name} Mean Ctrl", color='#000000', linewidth=2)
+                ax.plot(x_mapped, mean_ctrl, label=f"{actuator_name}", color='#000000', linewidth=2)
                 ax.fill_between(x_mapped, mean_ctrl - std_ctrl, mean_ctrl + std_ctrl, color='#000000', alpha=0.2)
 
-                # ax.set_title(f"{actuator_name} Mean and Std Ctrl")
+                ax.axvline(toe_off, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
 
                 ax.set_ylim(0, 100)
                 ax.set_xlim(0, 100)
-                ax.set_ylabel(actuator_name, fontsize=12, rotation=0, ha='right', va='center')
+                ax.set_ylabel(actuator_name[:-2], fontsize=12, rotation=0, ha='right', va='center')
                 ax.yaxis.set_label_coords(-0.3, 0.5)
 
                 # ax.legend()
@@ -703,7 +773,8 @@ class GaitAnalyzer:
         if self.show_plot:
             plt.figure(fig_mean_std_ctrl.number)
             plt.show()
+        plt.close()
 
-        def __del__(self):
-            plt.close()
-            pass
+    def __del__(self):
+        plt.close()
+        pass
