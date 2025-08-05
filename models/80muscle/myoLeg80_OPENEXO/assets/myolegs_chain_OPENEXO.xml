@@ -105,28 +105,6 @@
         <site name="PS_at_brim_l_site_psoas_l_side" pos="-0.0209166 -0.0856869 -0.0790765"/>
         <site name="IL_at_brim_r_site_iliacus_r_side" pos="-0.02526034 -0.0256276 0.0928915"/>
         <site name="IL_at_brim_l_site_iliacus_l_side" pos="-0.00526034 -0.0756276 -0.0828915"/>
-        <body name="fanny_pack" pos="-0.1 0.05 -0.1475">
-                <inertial diaginertia="0.0000044 0.0000042 0.0000066" mass="0.001" pos="-0.065 0.0 0.15" quat="1 1 0 0"/>
-                <geom name="fanny_pack_geom" mesh="fanny_pack_geom" type="mesh"
-                    rgba="0.06 0.06 0.06 0.35"/>
-
-                <body name="battery_l" pos="-0.11 0.01 0.075">
-                    <geom name="battery_geom_l" mesh="battery_geom" type="mesh"
-                        rgba="0.98 0.784 0.0 1"/>
-                <site name="cable_l_P1" pos="0 0 -0.05"/>
-                </body>
-
-                <body name="raspberry_pi" pos="-0.125 0.0 0.125">
-                    <geom name="raspberry_pi_geom" mesh="raspberry_pi_geom" type="mesh"
-                        rgba="0.0 0.54 0.98 1"/>
-                </body>   
-
-                <body name="battery_r" pos="-0.11 0.01 0.165">
-                    <geom name="battery_geom_r" mesh="battery_geom" type="mesh"
-                        rgba="0.98 0.784 0.0 1"/>
-                    <site name="cable_r_P1" pos="0 0 0.1"/>
-                </body>
-        </body>
         <body name="femur_r" pos="-0.056276 -0.07849 0.07726">
             <site name="hip_r" class="myo_leg_marker"/>
             <inertial pos="0 -0.195 -0.0005" quat="0.708013 -0.7062 0 0" mass="8.4" diaginertia="0.1694 0.1694 0.0245269" />
@@ -264,29 +242,16 @@
                 <site name="SM_at_condyles_r_site_semimem_r_side" pos="-0.0387876 -0.035171 -0.0182577"/>
                 <site name="ST_at_condyles_r_site_semiten_r_side" pos="-0.0428471 -0.0468901 -0.0181631"/>
                 <site name="BF_at_gastroc_r_site_bfsh_r_side" pos="-0.0687049 -0.0256284 0.0426731"/>
-                <body name="exo_main_r" pos="0.01 0 0">
+                <body name="exo_shaft_r" pos="-0.025 -0.215 0.05">
                     <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="-0.025 -0.2 0.075" quat="1 0 0 0"/>
-                    <geom name="exo_main_r_geom" mesh="exo_main_r_geom" type="mesh"
+                    <geom name="exo_shaft_r_geom" mesh="exo_shaft_r_geom" type="mesh"
                         rgba="0.4 0.4 0.4 1"/>
-                    <site name="cable_r_P3" pos="0 -0.1 0.095"/>
-                    <site name="chain_r_P1" pos="-0.015 -0.28 0.07"/>
                 </body>
 
-                <body name="exo_clink_r" pos="0 0 0">
+                <body name="exo_cuff_r" pos="-0.05 -0.13 -0.065">
                     <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 -0.075 0.05" quat="1 0 0 0"/>
-                    <geom name="exo_clink_r_geom" mesh="exo_clink_r_geom" type="mesh"
+                    <geom name="exo_cuff_r_geom" mesh="exo_cuff_r_geom" type="mesh"
                         rgba="0.3 0.3 0.3 1"/>
-                </body>
-                <body name="exo_spad_r" pos="0 0 0">
-                    <inertial diaginertia="0.00022 0.00021 0.00033" mass="0.1415" pos="0.04 -0.075 0.0" quat="1 0 1 0"/>
-                    <geom name="exo_spad_r_geom" mesh="exo_spad_r_geom" type="mesh"
-                        rgba="0.3 0.3 0.3 1"/>
-                </body>
-                    
-                <body name="tb_shank_r" pos="-0.07 -0.44 0.0085">
-                    <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="-0.065 0.1 0" quat="0 0 1 0"/>
-                    <geom name="tb_shank_r_geom" mesh="tb_shank_r_geom" type="mesh"
-                        rgba="0.06 0.06 0.06 0.35"/>
                 </body>
                 <body name="talus_r" pos="-0.01 -0.4 0">
                     <site name="ankle_r" class="myo_leg_marker"/>
@@ -328,11 +293,10 @@
                         <geom name="r_foot_col3" size=".02" class="coll" fromto="0.140 0 0.03 0.010 0 0.01"/>
                         <geom name="r_foot_col4" type="ellipsoid" size=".085 .035 0.04" class="coll" pos="0.08 .02 0" euler="0 0 -.2"/>
                         <site name="r_foot_touch" type="box" pos="0.09 -.01 0.0" size=".1 .01 .055" euler="0 0 0" class="myo_leg_touch"/>
-                        <body name="tb_mid_r" pos="0 0 0">
-                            <!-- <site name="r_foot_touch" type="box" pos="0.025 -0.04 0.0" size=".05 .03 .05" euler="0 0 0" class="myo_leg_touch"/> -->
-                            <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="0.05 -0.015 0.0" quat="1 1 0 0"/>
-                            <geom name="tb_mid_r_geom" mesh="tb_mid_r_geom" type="mesh"
-                                rgba="0.06 0.06 0.06 0.35"/>
+                        <body name="exo_blade_r" pos="0.1 0.055 -0.06" euler="0 -0.15 0">
+                            <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 0.075 0.05" quat="1 0 0 0"/>
+                            <geom name="exo_blade_r_geom" mesh="exo_blade_r_geom" type="mesh"
+                            rgba="0.3 0.3 0.3 1"/>
                         </body>
                         <body name="toes_r" pos="0.1788 -0.002 0.00108">
                             <site name="toe_r" class="myo_leg_marker"/>
@@ -350,25 +314,7 @@
                             <site name="fdl_r-P8" pos="0.0441 -0.006 0.0242"/>
                             <site name="fhl_r-P6" pos="0.0155 -0.0064 -0.0265"/>
                             <site name="fhl_r-P7" pos="0.0562 -0.0102 -0.0181"/>
-                            <body name="tb_toe_r" pos="-0.18 0.0 0">
-                                <!-- <site name="r_toes_touch" type="box" pos="0.215 -0.04 -0.005" size=".075 .03 .06" euler="0 0 0" class="myo_leg_touch"/> -->
-                                <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="0.2 -0.015 0.0" quat="1 1 0 0"/>
-                                <geom name="tb_toe_r_geom" mesh="tb_toe_r_geom" type="mesh"
-                                    rgba="0.06 0.06 0.06 0.35"/>
-                            </body>
                         </body>
-                    </body>
-                    <body name="exo_ilink_r" pos="0.02 0.405 0">
-                        <inertial diaginertia="0.000012 0.000004 0.000015" mass="0.03114" pos="-0.025 -0.435 0.065" quat="1 0 0 0"/>
-                        <geom name="exo_ilink_r_geom" mesh="exo_ilink_r_geom" type="mesh"
-                            rgba="0.3 0.3 0.3 1"/>
-                        <site name="chain_r_P2" pos="-0.05 -0.335 0.065"/>
-                    </body>
-
-                    <body name="exo_blink_r" pos="0.022 0.405 0">
-                        <inertial diaginertia="0.00006 0.00001 0.00007" mass="0.06831" pos="-0.025 -0.35 0.0675" quat="1 0 0 0"/>
-                        <geom name="exo_blink_r_geom" mesh="exo_blink_r_geom" type="mesh"
-                            rgba="0.3 0.3 0.3 1"/>
                     </body>
                 </body>
             </body>
@@ -525,31 +471,18 @@
                 <site name="SM_at_condyles_l_site_semimem_l_side" pos="-0.0387876 -0.035171 0.0182577"/>
                 <site name="ST_at_condyles_l_site_semiten_l_side" pos="-0.0428471 -0.0468901 0.0181631"/>
                 <site name="BF_at_gastroc_l_site_bfsh_l_side" pos="-0.0687049 -0.0256284 -0.0426731"/>
-                <body name="exo_main_l" pos="0.01 0 0">
-                    <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="-0.01 -0.2 -0.075" quat="1 0 0 0"/>
-                    <geom name="exo_main_l_geom" mesh="exo_main_l_geom" type="mesh"
+                <body name="exo_shaft_l" pos="-0.025 -0.215 -0.097">
+                    <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="-0.025 -0.2 0.075" quat="1 0 0 0"/>
+                    <geom name="exo_shaft_l_geom" mesh="exo_shaft_l_geom" type="mesh"
                         rgba="0.4 0.4 0.4 1"/>
-                    <site name="cable_l_P3" pos="0 -0.1 0.095"/>
-                    <site name="chain_l_P1" pos="-0.015 -0.28 0.07"/>
                 </body>
 
-                <body name="exo_clink_l" pos="0 0 0">
+                <body name="exo_cuff_l" pos="-0.05 -0.13 -0.055">
                     <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 -0.075 0.05" quat="1 0 0 0"/>
-                    <geom name="exo_clink_l_geom" mesh="exo_clink_l_geom" type="mesh"
+                    <geom name="exo_cuff_l_geom" mesh="exo_cuff_l_geom" type="mesh"
                         rgba="0.3 0.3 0.3 1"/>
                 </body>
 
-                <body name="exo_spad_l" pos="0 0 0">
-                    <inertial diaginertia="0.00022 0.00021 0.00033" mass="0.1415" pos="0.04 -0.075 0.0" quat="1 0 1 0"/>
-                    <geom name="exo_spad_l_geom" mesh="exo_spad_l_geom" type="mesh"
-                        rgba="0.3 0.3 0.3 1"/>
-                </body>
-
-                <body name="tb_shank_l" pos="-0.07 -0.44 -0.01">
-                    <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="0.065 0.1 0" quat="0 0 1 0"/>
-                    <geom name="tb_shank_l_geom" mesh="tb_shank_l_geom" type="mesh"
-                        rgba="0.06 0.06 0.06 0.35"/>
-                </body>
                 <body name="talus_l" pos="-0.01 -0.4 0">
                     <site name="ankle_l" class="myo_leg_marker"/>
                     <joint axis="0.105014 0.174022 0.979126" name="ankle_angle_l" pos="0 0 0" range="-0.698132 0.523599"/>
@@ -590,11 +523,10 @@
                         <geom name="l_foot_col3" size=".02" class="coll" fromto="0.140 0 -.03 0.010 0 -.01"/>
                         <geom name="l_foot_col4" type="ellipsoid" size=".085 .035 0.04" class="coll" pos="0.08 .02 0" euler="0 0 -.2"/>
                         <site name="l_foot_touch" type="box" pos="0.09 -.01 0.0" size=".1 .01 .055" euler="0 0 0" class="myo_leg_touch"/>
-                        <body name="tb_mid_l" pos="0 0 0">
-                            <!-- <site name="l_foot_touch" type="box" pos="0.025 -0.04 0.0" size=".05 .03 .05" euler="0 0 0" class="myo_leg_touch"/> -->
-                            <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="0.05 -0.015 0.0" quat="1 1 0 0"/>
-                            <geom name="tb_mid_l_geom" mesh="tb_mid_l_geom" type="mesh"
-                                rgba="0.06 0.06 0.06 0.35"/>
+                        <body name="exo_blade_l" pos="0.075 0.055 -0.0775" euler="0 0.15 0">
+                            <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="-0.01 0 0.05" quat="1 0 0 0"/>
+                            <geom name="exo_blade_l_geom" mesh="exo_blade_l_geom" type="mesh"
+                            rgba="0.3 0.3 0.3 1"/>
                         </body>
                         <body name="toes_l" pos="0.1788 -0.002 -0.00108">
                             <site name="toe_l" class="myo_leg_marker"/>
@@ -612,25 +544,8 @@
                             <site name="fdl_l-P8" pos="0.0441 -0.006 -0.0242"/>
                             <site name="fhl_l-P6" pos="0.0155 -0.0064 0.0265"/>
                             <site name="fhl_l-P7" pos="0.0562 -0.0102 0.0181"/>
-                            <body name="tb_toe_l" pos="-0.18 0 -0.0075">
-                                <!-- <site name="l_toes_touch" type="box" pos="0.215 -0.04 -0.002" size=".075 .03 .06" euler="0 0 0" class="myo_leg_touch"/>  -->
-                                <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="0.2 -0.015 0.0" quat="1 1 0 0"/>
-                                <geom name="tb_toe_l_geom" mesh="tb_toe_l_geom" type="mesh"
-                                    rgba="0.06 0.06 0.06 0.35"/>
-                            </body> 
                         </body>
                     </body>
-                <body name="exo_ilink_l" pos="0.02 0.405 0">
-                    <inertial diaginertia="0.000012 0.000004 0.000015" mass="0.03114" pos="-0.025 -0.435 -0.065" quat="1 0 0 0"/>
-                    <geom name="exo_ilink_l_geom" mesh="exo_ilink_l_geom" type="mesh"
-                        rgba="0.3 0.3 0.3 1"/>
-                </body>
-
-                <body name="exo_blink_l" pos="0.022 0.405 0">
-                    <inertial diaginertia="0.00006 0.00001 0.00007" mass="0.06831" pos="-0.025 -0.35 -0.0675" quat="1 0 0 0"/>
-                    <geom name="exo_blink_l_geom" mesh="exo_blink_l_geom" type="mesh"
-                        rgba="0.3 0.3 0.3 1"/>
-                </body>
                 </body>
             </body>
             <body name="patella_l" pos="-0.00809 -0.40796 0">
