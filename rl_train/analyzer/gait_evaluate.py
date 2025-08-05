@@ -50,23 +50,31 @@ class GaitEvaluatorBase:
         # self.env.sim.renderer._scene_option.flags[mujoco.mjtVisFlag.mjVIS_ACTIVATION] = 1
         
     def evaluate(self, result_dir:str, file_name:str, *,
-                 max_timestep:int=600,
                  velocity_mode:MyoAssistLegBase.VelocityMode,
                  target_velocity_period:float,
+                 min_target_velocity:float,
+                 max_target_velocity:float,
+                 terminate_when_done:bool,
+                 max_timestep:int=600,
                  ):
+        # print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
+        # Use get_stable_baselines3_model from EnvironmentHandler to load the model
         trained_model_path = self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)
-        model = EnvironmentHandler.get_stable_baselines3_model(self.session_config, self.env, trained_model_path)
+        model = EnvironmentHandler.get_stable_baselines3_model(self.session_config, self.env, trained_model_path=trained_model_path)
         # print(f"model.num_timesteps: {model.num_timesteps}")
 
         self.env.mujoco_render_frames = False
 
+        # Set velocity mode
         env_myoassist: MyoAssistLegBase = self.env.unwrapped
         env_myoassist.set_target_velocity_mode_manually(velocity_mode,
                                                         0,
-                                                        self.session_config.env_params.min_target_velocity,
-                                                        target_velocity_period
+                                                        min_target_velocity,
+                                                        min_target_velocity,
+                                                        max_target_velocity,
+                                                        target_velocity_period=target_velocity_period
                                                         )
-                                                        
+
         # gait_data = GaitData(mj_model=env.sim.model, mj_data=env.sim.data)
         gait_data = GaitData()
 
@@ -84,6 +92,8 @@ class GaitEvaluatorBase:
                                printing=True if time_step == 0 else False)
 
             if done or truncated:
+                if terminate_when_done:
+                    break
                 obs, info = self.env.reset()
         gait_data.print_brief_data()
 
@@ -94,16 +104,15 @@ class GaitEvaluatorBase:
         # print("==============================READ DATA==================================")
         gait_data_read.print_brief_data()
         # print("==============================READ DATA==================================")
-        
-        self.env.close()
-        print("Evaluate done!")
+
         return gait_data_path
+        
     def replay(self,
                 input_gait_data_path:str,
                 output_video_path:str,
                 *,
                 cam_distance:float=2.5,
-                max_time_step:int=600,
+                # max_time_step:int=600,
                 use_activation_visualization:bool=False,
                 cam_type:str="follow",
                 use_realtime_floating:bool=False,
@@ -125,12 +134,14 @@ class GaitEvaluatorBase:
         gait_data.read_json_data(input_gait_data_path)
         gait_analyzer = GaitAnalyzer(gait_data, None, False)
         gait_segment_indexes = gait_analyzer.get_gait_segment_index(is_right_foot_based=True)
+
+        max_timestep = gait_data.metadata["data_length"]
         frames = []
 
         self.env.sim.renderer._scene_option.flags[mujoco.mjtVisFlag.mjVIS_ACTUATOR] = 1 if use_activation_visualization else 0
 
         # camera move
-        cam_pos_range = (gait_data.series_data["joint_data"]["pelvis_tx"]["qpos"][0][0], gait_data.series_data["joint_data"]["pelvis_tx"]["qpos"][max_time_step-1][0])
+        cam_pos_range = (gait_data.series_data["joint_data"]["pelvis_tx"]["qpos"][0][0], gait_data.series_data["joint_data"]["pelvis_tx"]["qpos"][max_timestep-1][0])
         def cam_move(time_step:int):
             if cam_type == "follow":
                 cam_target_pos = self.env.unwrapped.sim.data.body("pelvis").xpos.copy()
@@ -139,12 +150,14 @@ class GaitEvaluatorBase:
                 cam_target_pos = self.env.unwrapped.sim.data.body("pelvis").xpos.copy()
                 cam_target_pos[2] = 0.8 # z fix
                 # x move average speed
-                cam_target_pos[0] = cam_pos_range[0] + (cam_pos_range[1] - cam_pos_range[0]) * time_step / max_time_step
+                cam_target_pos[0] = cam_pos_range[0] + (cam_pos_range[1] - cam_pos_range[0]) * time_step / max_timestep
+            else:
+                raise ValueError(f"Invalid cam_type: {cam_type}")
             self.free_cam.distance, self.free_cam.azimuth, self.free_cam.elevation, self.free_cam.lookat = cam_distance, 90, 0, cam_target_pos
 
         
         fig, axs = plt.subplots(3, 1, figsize=(8, 11), dpi=600)
-        for time_step in range(max_time_step):
+        for time_step in range(max_timestep):
             gait_data.apply_to_env(time_index=time_step, mj_model=self.env.sim.model, mj_data=self.env.sim.data)
 
             self.env.just_forward()
@@ -296,56 +309,6 @@ class ImitationGaitEvaluator(GaitEvaluatorBase):
         if self.ref_data_dict is not None:
             self.session_config.env_params.reference_data = self.ref_data_dict
         super().initialize_env()
-    def evaluate(self, result_dir:str, file_name:str, *,
-                 max_timestep:int=600,
-                 velocity_mode:MyoAssistLegBase.VelocityMode,
-                 target_velocity_period:float,
-                 ):
-        # print(f"load from {self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)}")
-        # Use get_stable_baselines3_model from EnvironmentHandler to load the model
-        trained_model_path = self.train_log_handler.get_path2save_model(self.train_log_handler.log_datas[-1].num_timesteps)
-        model = EnvironmentHandler.get_stable_baselines3_model(self.session_config, self.env, trained_model_path=trained_model_path)
-        # print(f"model.num_timesteps: {model.num_timesteps}")
-
-        self.env.mujoco_render_frames = False
-
-        # Set velocity mode
-        env_myoassist: MyoAssistLegBase = self.env.unwrapped
-        env_myoassist.set_target_velocity_mode_manually(velocity_mode,
-                                                        0,
-                                                        self.session_config.env_params.min_target_velocity,
-                                                        target_velocity_period
-                                                        )
-
-        # gait_data = GaitData(mj_model=env.sim.model, mj_data=env.sim.data)
-        gait_data = GaitData()
-
-        obs, info = self.env.reset()
-
-        for time_step in range(max_timestep):
-            # time.sleep(env.dt)
-            action, _states = model.predict(obs, deterministic=True)
-
-
-            obs, rewards, done, truncated, info = self.env.step(action)
-            gait_data.add_data(mj_model=self.env.sim.model,
-                               mj_data=self.env.sim.data,
-                               target_velocity=env_myoassist._target_velocity,
-                               printing=True if time_step == 0 else False)
-
-            if done or truncated:
-                obs, info = self.env.reset()
-        gait_data.print_brief_data()
-
-        gait_data_path = os.path.join(result_dir, file_name)
-        gait_data.save_json_data(gait_data_path)
-        gait_data_read = GaitData()
-        gait_data_read.read_json_data(gait_data_path)
-        # print("==============================READ DATA==================================")
-        gait_data_read.print_brief_data()
-        # print("==============================READ DATA==================================")
-        
+    
         self.env.close()
         print("Evaluate done!")
-        return gait_data_path
-    

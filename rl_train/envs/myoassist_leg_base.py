@@ -313,7 +313,12 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         return (next_obs, reward, terminated, truncated or is_over_time_limit, info)
     def just_forward(self):
         self.sim.forward()
-    def set_target_velocity_mode_manually(self, mode:VelocityMode, starting_phase:float, initial_target_velocity:float, target_velocity_period:float = None):
+    def set_target_velocity_mode_manually(self, mode:VelocityMode,
+                                          starting_phase:float,
+                                          initial_target_velocity:float,
+                                          min_target_velocity:float,
+                                          max_target_velocity:float,
+                                          target_velocity_period:float = None):
         self._velocity_mode_for_this_episode = mode
         self._starting_phase = starting_phase
         if mode == MyoAssistLegBase.VelocityMode.SINUSOIDAL and target_velocity_period is None:
@@ -322,11 +327,19 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         # self._modulate_target_velocity()
         self._target_velocity = initial_target_velocity
         self._prev_step_changed_time = self.sim.data.time
+
+        self._min_target_velocity = min_target_velocity
+        self._max_target_velocity = max_target_velocity
     def _change_mode_and_target_velocity_randomly(self):
         velocity_mode_for_this_episode = random.choice(list(MyoAssistLegBase.VelocityMode))
         starting_phase = random.uniform(0, 2 * np.pi)
         target_velocity_period = random.uniform(self._min_target_velocity_period, self._max_target_velocity_period) # maximum acc/dec is self._target_velocity_period / 2
-        self.set_target_velocity_mode_manually(velocity_mode_for_this_episode, self._min_target_velocity, starting_phase, target_velocity_period)
+        self.set_target_velocity_mode_manually(velocity_mode_for_this_episode,
+                                               self._min_target_velocity,
+                                               self._min_target_velocity,
+                                               self._max_target_velocity,
+                                               starting_phase,
+                                               target_velocity_period)
         if self._velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.UNIFORM:
             self._target_velocity = random.uniform(self._min_target_velocity, self._max_target_velocity)
         elif self._velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.SINUSOIDAL:

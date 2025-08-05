@@ -86,7 +86,10 @@ class TrainAnalyzer:
                                                         file_name=gait_data_name,
                                                         velocity_mode=MyoAssistLegBase.VelocityMode[evaluate_param["velocity_mode"]],
                                                         target_velocity_period=evaluate_param["target_velocity_period"],
-                                                        max_timestep=evaluate_param["num_timesteps"]
+                                                        max_timestep=evaluate_param["num_timesteps"],
+                                                        min_target_velocity=evaluate_param["min_target_velocity"],
+                                                        max_target_velocity=evaluate_param["max_target_velocity"],
+                                                        terminate_when_done=False
                                                         )
             else:
                 # it will(should) not happen during the training
@@ -117,7 +120,7 @@ class TrainAnalyzer:
             file_name = f'replay_{eval_idx:02d}.mp4'
             frames = gait_evaluator.replay(gait_data_path, os.path.join(analyze_result_dir, file_name),
                                                 cam_distance=evaluate_param["cam_distance"],
-                                                max_time_step=evaluate_param["num_timesteps"],
+                                                # max_time_step=evaluate_param["num_timesteps"],
                                                 use_activation_visualization=evaluate_param["visualize_activation"],
                                                 cam_type=evaluate_param["cam_type"],
                                                 use_realtime_floating=False
