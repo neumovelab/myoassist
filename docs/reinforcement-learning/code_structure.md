@@ -11,7 +11,7 @@ This page provides an overview of the directory layout and the main responsibili
 
 ---
 
-## High-Level Entry Points
+## Entry Points
 
 | Script | Purpose |
 |--------|---------|
@@ -35,19 +35,17 @@ rl_train/
 ├── train/               # Training pipeline (configs, commands, policies)
 │   ├── train_configs/   # JSON files that fully specify a training session
 │   ├── train_commands/  # Convenience shell commands for long experiments
-│   └── policies/        # Custom policy networks (if any)
+│   └── policies/        # Custom policy networks
 │
 ├── utils/               # Generic utilities used across training / analysis
-│   ├── learning_callback.py  # Custom SB3 callback for logging & checkpoints
-│   ├── train_log_handler.py  # Thin wrapper around loguru & tqdm
-│   └── data_types.py         # Typed dictionaries & helper enums
+│   └── learning_callback.py  # Custom SB3 callback for logging & checkpoints
 │
 ├── analyzer/            # Post-training analysis & visualisation
 │   ├── gait_analyze.py
 │   ├── gait_evaluate.py
 │   └── train_analyzer.py
 │
-├── reference_data/      # Ground-truth data used for imitation or evaluation
+├── reference_data/      # Human Mo-cap data used for imitation or evaluation
 │   └── short_reference_gait.npz
 │
 └── results/             # Auto-generated output (checkpoints, logs, videos)
