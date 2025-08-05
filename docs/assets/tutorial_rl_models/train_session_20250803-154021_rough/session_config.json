@@ -1,4 +1,16 @@
 {
+    "evaluate_param_list": [
+        {
+            "num_timesteps": 1200,
+            "min_target_velocity": 1.25,
+            "max_target_velocity": 1.25,
+            "target_velocity_period": 2,
+            "velocity_mode": "UNIFORM",
+            "cam_type": "follow",
+            "cam_distance": 2.5,
+            "visualize_activation": true
+        }
+    ],
     "total_timesteps": 200000000.0,
     "logger_params": {
         "logging_frequency": 8,
@@ -96,18 +108,7 @@
             "pelvis_ty"
         ]
     },
-    "evaluate_param_list": [
-        {
-            "num_timesteps": 300,
-            "min_target_velocity": 1.25,
-            "max_target_velocity": 1.25,
-            "target_velocity_period": 2,
-            "velocity_mode": "UNIFORM",
-            "cam_type": "follow",
-            "cam_distance": 2.5,
-            "visualize_activation": true
-        }
-    ],
+    
     "policy_params": {
         "custom_policy_params": {
             "reset_shared_net_after_load": false,
