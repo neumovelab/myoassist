@@ -269,7 +269,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         # print(f"DEBUG:: normalized_foot_force_sum: {normalized_foot_force_sum}")
         # e^(-max(0, f/w - 1))
         # foot_force_penalty = self.dt * np.exp(-np.maximum(0, normalized_foot_force_sum - 1))
-        foot_force_penalty = self.dt * max(0, 1.2 - normalized_foot_force_sum)
+        foot_force_penalty = - self.dt * max(0, normalized_foot_force_sum - 1.2)
         # print(f"DEBUG:: foot_force_penalty: {foot_force_penalty}")
 
         base_reward = {
