@@ -506,7 +506,7 @@ class GaitAnalyzer:
             line_color = "#000000" if "_r" in joint else "#555555"
             fill_color = "#555555" if "_r" in joint else "#888888"
             line_style = "-" if "_r" in joint else "--"
-            ax.plot(x_mapped, mean_data_degree, color=line_color, linestyle=line_style)
+            ax.plot(x_mapped, mean_data_degree, color=line_color, linestyle=line_style, label="Right" if "_r" in joint else "Left")
             ax.fill_between(x_mapped, mean_data_degree - std_data_degree, mean_data_degree + std_data_degree, color=fill_color, alpha=0.5)
         
         axes2[0].set_ylabel(self.JOINT_NAMES['HIP'], fontsize=12, rotation=0, ha='right', va='center')
@@ -526,7 +526,12 @@ class GaitAnalyzer:
             axes2[idx].axvline(toe_off_l, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
             axes2[idx].axvline(toe_off_r, color=self.toe_off_color, linestyle="-", linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
 
+        # Add legend to the bottom of the figure
+        handles, labels = axes2[0].get_legend_handles_labels()
+        fig2.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.04), ncol=2, frameon=False)
+
         fig2.tight_layout()
+        fig2.subplots_adjust(bottom=0.15)  # Add more bottom margin for legend
         fig2.savefig(os.path.join(result_dir,"left_right_comparison_avg.png"))
         if self.show_plot:
             plt.figure(fig2.number)
@@ -580,7 +585,7 @@ class GaitAnalyzer:
             line_color = "#000000"
             fill_color = "#555555"
             line_style = "-"
-            ax.plot(x_mapped, mean_data_degree, color=line_color, linestyle=line_style)
+            ax.plot(x_mapped, mean_data_degree, color=line_color, linestyle=line_style, label="Simulation")
             ax.fill_between(x_mapped, mean_data_degree - std_data_degree, mean_data_degree + std_data_degree, color=fill_color, alpha=0.5)
         for joint, data in ref_data.items():
             data_degree = np.rad2deg(data)
@@ -593,7 +598,7 @@ class GaitAnalyzer:
             
             line_color = "#555555"
             line_style = "--"
-            ax.plot(x_mapped, data_degree, label=f"{joint} ref", color=line_color, linestyle=line_style)
+            ax.plot(x_mapped, data_degree, label="Reference", color=line_color, linestyle=line_style)
         axes[0].set_ylabel(self.JOINT_NAMES['HIP'], fontsize=12, rotation=0, ha='right', va='center')
         axes[0].yaxis.set_label_coords(-0.15, 0.5)
         axes[1].set_ylabel(self.JOINT_NAMES['KNEE'], fontsize=12, rotation=0, ha='right', va='center')
@@ -609,7 +614,12 @@ class GaitAnalyzer:
             ax.set_xlim(0, 100)  # limit x-axis to data range
             ax.axvline(toe_off_r, color=self.toe_off_color, linestyle=self.toe_off_linestyle, linewidth=self.toe_off_linewidth, alpha=self.toe_off_alpha)
 
+        # Add legend to the bottom of the figure
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.04), ncol=2, frameon=False)
+
         fig.tight_layout()
+        fig.subplots_adjust(bottom=0.15)  # Add more bottom margin for legend
         fig.savefig(os.path.join(result_dir,"right_ref_comparison_avg.png"))
         if self.show_plot:
             plt.figure(fig.number)
