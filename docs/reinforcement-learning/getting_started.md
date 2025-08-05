@@ -120,6 +120,10 @@ This folder contains various plots and videos that visualize your agent's perfor
 - **What's inside:**  
   - Multiple plots (e.g., reward curves, kinematics, etc.)
   - Videos
+  <p align="center">
+    <img src="../assets/rl_evaluate_result.png" alt="evaluation result" width="50%">
+  </p>
+
 
 The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
@@ -143,7 +147,8 @@ python rl_train/run_train.py --config_file_path [path/to/config.json] --config.e
 <p align="center">
   <img src="../assets/train_models.png" alt="trained model" width="50%">
 </p>
-**Example:**
+
+**Example (evaluating with a pretrained model we provide):**
 ```bash
 python rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/session_config.json --config.env_params.prev_trained_policy_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/trained_models/model_19939328 --flag_realtime_evaluate
 ```
