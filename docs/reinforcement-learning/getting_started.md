@@ -56,7 +56,7 @@ python rl_train/run_simulation.py
 Run a minimal training session to verify everything works:
 
 ```bash
-python rl_train/run_train.py --config_file_path rl_train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json --config.total_timesteps 12 --config.env_params.num_envs 1 --config.ppo_params.n_steps 4 --config.ppo_params.batch_size 4 --config.logger_params.logging_frequency 1 --config.logger_params.evaluate_frequency 1 --flag_rendering
+python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json --config.total_timesteps 12 --config.env_params.num_envs 1 --config.ppo_params.n_steps 4 --config.ppo_params.batch_size 4 --config.logger_params.logging_frequency 1 --config.logger_params.evaluate_frequency 1 --flag_rendering
 ```
 
 **What this does:**
@@ -89,7 +89,7 @@ rl_train/results/train_session_[date-time]/
 Once you've verified everything works, run full training:
 
 ```bash
-python rl_train/run_train.py --config_file_path rl_train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
+python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
 ```
 
 This file is the default example configuration we provide.  
