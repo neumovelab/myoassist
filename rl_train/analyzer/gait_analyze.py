@@ -27,6 +27,8 @@ class GaitAnalyzer:
         self.gait_data = gait_data
         self.segmented_data = segmented_ref_data
         self.show_plot = show_plot
+        self.fig_size_multiplier = 1
+        self.dpi = 300
         plt.ioff()  # Turn off interactive mode
 
     def get_gait_segment_index(self, *, is_right_foot_based: bool):
@@ -85,12 +87,21 @@ class GaitAnalyzer:
         for idx in range(len(result_strike_to_toe_off) - 1):
             result_strike_to_strike.append((result_strike_to_toe_off[idx][0], result_strike_to_toe_off[idx][1], result_strike_to_toe_off[idx + 1][0]))
         return result_strike_to_strike[1:]
+    
+    def get_toe_off_average(self, *, is_right_foot_based:bool):
+        gait_segment_index = self.get_gait_segment_index(is_right_foot_based=is_right_foot_based)
+        toe_off_cycles = []
+        for start_idx, toe_off_idx, end_idx in gait_segment_index:
+            toe_off_cycle = (toe_off_idx - start_idx) / (end_idx - start_idx)
+            toe_off_cycles.append(toe_off_cycle)
+        return np.mean(toe_off_cycles)
+
     def plot_entire_result(self, *,
                     result_dir,
                     is_right_foot_based:bool,
                     ) -> None:
         print(f"{self.gait_data.series_data.keys()=}")
-        fig, axes = plt.subplots(6,2,figsize=(30, 15),dpi=300)
+        fig, axes = plt.subplots(6,2,figsize=(12 *self.fig_size_multiplier, 6 *self.fig_size_multiplier),dpi=self.dpi)
         
         joint_data = self.gait_data.series_data["joint_data"]
         
@@ -127,7 +138,7 @@ class GaitAnalyzer:
         axes[5][0].set_title("left sensor")
         axes[5][0].plot([v[0] for v in sensor_data["l_foot"]["data"]], label="l_foot")
         axes[5][0].plot([v[0] for v in sensor_data["l_toes"]["data"]], label="l_toes")
-        axes[5][0].legend()
+        # axes[5][0].legend()
 
         axes[5][1].set_title("right sensor")
         axes[5][1].plot([v[0] for v in sensor_data["r_foot"]["data"]], label="r_foot")
@@ -144,7 +155,7 @@ class GaitAnalyzer:
                 for start_idx, toe_off_idx, end_idx in gait_segment_index:
                     ax.axvspan(start_idx, toe_off_idx, color='#00ff00', alpha=0.1)
 
-        axes[4][1].legend()
+        # axes[4][1].legend()
 
         axes[0][0].set_ylim(*self.JOINT_LIMIT['HIP'])
         axes[1][0].set_ylim(*self.JOINT_LIMIT['KNEE'])
@@ -155,85 +166,64 @@ class GaitAnalyzer:
 
         postfix = "_right_based" if is_right_foot_based else "_left_based"
         fig.tight_layout()
-        fig.savefig(os.path.join(result_dir,f"kinematics_data_{postfix}.png"))
+        fig.savefig(os.path.join(result_dir,f"kinematics_data{postfix}.png"))
 
         if self.show_plot:
             plt.show()
 
-
-    def plot_exo_data(self, *,
-                    result_dir,
-                    ) -> None:
-        fig, axes = plt.subplots(1,2,figsize=(30, 15),dpi=300)
-
-        exo_data_l = self.gait_data.series_data["actuator_data"]["Exo_L"]
-        exo_data_r = self.gait_data.series_data["actuator_data"]["Exo_R"]
-
-        axes[0].set_title("Exo_L")
-        axes[0].plot([-v[0] for v in exo_data_l["force"]])
-
-        axes[1].set_title("Exo_R")
-        axes[1].plot([-v[0] for v in exo_data_r["force"]])
-
-        gait_segment_index = self.get_gait_segment_index(is_right_foot_based=True)
-        for ax in axes:
-            for start_idx, toe_off_idx, end_idx in gait_segment_index:
-                ax.axvspan(start_idx, toe_off_idx, color='#00ff00', alpha=0.1)
-
-        max_ylim = max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])
-        for ax in axes:
-            ax.set_ylim(bottom=0, top=max_ylim)
-
-        fig.tight_layout()
-        fig.savefig(os.path.join(result_dir,"exo_data.png"))
-        if self.show_plot:
-            plt.show()
 
     def plot_exo_segmented_data(self, *,
                                 result_dir,
                                 ) -> None:
         # Plot individual segments
-        fig, axes = plt.subplots(1, 2, figsize=(20, 15), dpi=300)
+        fig, axes = plt.subplots(1, 2, figsize=(3.5 *self.fig_size_multiplier, 2 *self.fig_size_multiplier), dpi=self.dpi)
 
         exo_data_l = self.gait_data.series_data["actuator_data"]["Exo_L"]
         exo_data_r = self.gait_data.series_data["actuator_data"]["Exo_R"]
-        gait_segment_index = self.get_gait_segment_index(is_right_foot_based=True)
+        right_gait_segment_index = self.get_gait_segment_index(is_right_foot_based=True)
+        left_gait_segment_index = self.get_gait_segment_index(is_right_foot_based=False)
         x_mapped = np.linspace(0, 100, num=100)
         exo_data_mapped = {
             "Exo_L": [],
             "Exo_R": [],
         }
 
-        for idx, (start_idx, toe_off_idx, end_idx) in enumerate(gait_segment_index):
-            exo_l_data = [-v[0] for v in exo_data_l["force"][start_idx:end_idx]]
+        for idx, (start_idx, toe_off_idx, end_idx) in enumerate(right_gait_segment_index):
             exo_r_data = [-v[0] for v in exo_data_r["force"][start_idx:end_idx]]
 
-            exo_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(exo_l_data)), exo_l_data)
             exo_r_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(exo_r_data)), exo_r_data)
 
-            exo_data_mapped["Exo_L"].append(exo_l_mapped)
             exo_data_mapped["Exo_R"].append(exo_r_mapped)
 
-            axes[0].plot(x_mapped, exo_l_mapped, label=f"Segment {idx}")
             axes[1].plot(x_mapped, exo_r_mapped, label=f"Segment {idx}")
 
-        axes[0].set_title("Exo_L")
-        axes[1].set_title("Exo_R")
+        for idx, (start_idx, toe_off_idx, end_idx) in enumerate(left_gait_segment_index):
+            exo_l_data = [-v[0] for v in exo_data_l["force"][start_idx:end_idx]]
+
+            exo_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(exo_l_data)), exo_l_data)
+
+            exo_data_mapped["Exo_L"].append(exo_l_mapped)
+
+            axes[0].plot(x_mapped, exo_l_mapped, label=f"Segment {idx}")
+
+        axes[0].set_title("Exo L")
+        axes[1].set_title("Exo R")
 
         max_ylim = max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])
         for ax in axes:
             ax.set_ylim(bottom=0, top=max_ylim)
+            ax.set_xlim(0, 100)  # limit x-axis to data range
 
-        for ax in axes:
-            ax.legend()
+        # for ax in axes:
+        #     ax.legend()
 
         fig.tight_layout()
-        fig.savefig(os.path.join(result_dir, "exo_segmented_data.png"))
+        fig.savefig(os.path.join(result_dir, "exo_segmented_force.png"))
         if self.show_plot:
             plt.show()
 
         # Plot mean and std separately
-        fig_mean_std, axes_mean_std = plt.subplots(1, 2, figsize=(20, 15), dpi=300)
+        fig_mean_std, axes_mean_std = plt.subplots(1, 2, figsize=(3.5 *self.fig_size_multiplier, 2 *self.fig_size_multiplier), dpi=self.dpi)
 
         for exo, data in exo_data_mapped.items():
             data = np.array(data)
@@ -248,15 +238,16 @@ class GaitAnalyzer:
             ax.plot(x_mapped, mean_data, label=f"{exo} Mean", color='black', linewidth=2)
             ax.fill_between(x_mapped, mean_data - std_data, mean_data + std_data, color='gray', alpha=0.5)
 
-        axes_mean_std[0].set_title("Exo_L Mean and Std")
-        axes_mean_std[1].set_title("Exo_R Mean and Std")
+        axes_mean_std[0].set_title("Exo L")
+        axes_mean_std[1].set_title("Exo R")
 
         max_ylim_mean_std = max(axes_mean_std[0].get_ylim()[1], axes_mean_std[1].get_ylim()[1])
         for ax in axes_mean_std:
             ax.set_ylim(bottom=0, top=max_ylim_mean_std)
+            ax.set_xlim(0, 100)  # limit x-axis to data range
 
-        for ax in axes_mean_std:
-            ax.legend()
+        # for ax in axes_mean_std:
+        #     ax.legend()
 
         fig_mean_std.tight_layout()
         fig_mean_std.savefig(os.path.join(result_dir, "exo_mean_std_data.png"))
@@ -265,10 +256,11 @@ class GaitAnalyzer:
     def plot_segmented_kinematics_result(self, *,
                     result_dir,
                     ) -> None:
-        fig, axes = plt.subplots(3,2,figsize=(30, 15),dpi=300)
+        fig, axes = plt.subplots(3,2,figsize=(5 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
         
         joint_data = self.gait_data.series_data["joint_data"]
-        gait_segment_index = self.get_gait_segment_index(is_right_foot_based=True)
+        gait_segment_index_r = self.get_gait_segment_index(is_right_foot_based=True)
+        gait_segment_index_l = self.get_gait_segment_index(is_right_foot_based=False)
         x_mapped = np.linspace(0, 100, num=100)
         joint_data_mapped_degree = {
             "hip_flexion_l": [],
@@ -279,34 +271,39 @@ class GaitAnalyzer:
             "ankle_angle_r": [],
         }
 
-        for idx, (start_idx, toe_off_idx, end_idx) in enumerate(gait_segment_index):
-            hip_flexion_l_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_l"]["qpos"][start_idx:end_idx]])
+        for idx, (start_idx, toe_off_idx, end_idx) in enumerate(gait_segment_index_r):
             hip_flexion_r_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_r"]["qpos"][start_idx:end_idx]])
-            knee_angle_l_data = np.rad2deg([v[0] for v in joint_data["knee_angle_l"]["qpos"][start_idx:end_idx]])
             knee_angle_r_data = np.rad2deg([v[0] for v in joint_data["knee_angle_r"]["qpos"][start_idx:end_idx]])
-            ankle_angle_l_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_l"]["qpos"][start_idx:end_idx]])
             ankle_angle_r_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_r"]["qpos"][start_idx:end_idx]])
 
-            hip_flexion_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(hip_flexion_l_data)), hip_flexion_l_data)
             hip_flexion_r_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(hip_flexion_r_data)), hip_flexion_r_data)
-            knee_angle_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(knee_angle_l_data)), knee_angle_l_data)
             knee_angle_r_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(knee_angle_r_data)), knee_angle_r_data)
-            ankle_angle_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(ankle_angle_l_data)), ankle_angle_l_data)
             ankle_angle_r_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(ankle_angle_r_data)), ankle_angle_r_data)
 
-            joint_data_mapped_degree["hip_flexion_l"].append(hip_flexion_l_mapped)
             joint_data_mapped_degree["hip_flexion_r"].append(hip_flexion_r_mapped)
-            joint_data_mapped_degree["knee_angle_l"].append(knee_angle_l_mapped)
             joint_data_mapped_degree["knee_angle_r"].append(knee_angle_r_mapped)
-            joint_data_mapped_degree["ankle_angle_l"].append(ankle_angle_l_mapped)
             joint_data_mapped_degree["ankle_angle_r"].append(ankle_angle_r_mapped)
 
-            axes[0][0].plot(x_mapped, hip_flexion_l_mapped, label=f"Segment {idx}")
             axes[0][1].plot(x_mapped, hip_flexion_r_mapped, label=f"Segment {idx}")
-            axes[1][0].plot(x_mapped, knee_angle_l_mapped, label=f"Segment {idx}")
             axes[1][1].plot(x_mapped, knee_angle_r_mapped, label=f"Segment {idx}")
-            axes[2][0].plot(x_mapped, ankle_angle_l_mapped, label=f"Segment {idx}")
             axes[2][1].plot(x_mapped, ankle_angle_r_mapped, label=f"Segment {idx}")
+
+        for idx, (start_idx, toe_off_idx, end_idx) in enumerate(gait_segment_index_l):
+            hip_flexion_l_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_l"]["qpos"][start_idx:end_idx]])
+            knee_angle_l_data = np.rad2deg([v[0] for v in joint_data["knee_angle_l"]["qpos"][start_idx:end_idx]])
+            ankle_angle_l_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_l"]["qpos"][start_idx:end_idx]])
+
+            hip_flexion_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(hip_flexion_l_data)), hip_flexion_l_data)
+            knee_angle_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(knee_angle_l_data)), knee_angle_l_data)
+            ankle_angle_l_mapped = np.interp(x_mapped, np.linspace(0, 100, num=len(ankle_angle_l_data)), ankle_angle_l_data)
+
+            joint_data_mapped_degree["hip_flexion_l"].append(hip_flexion_l_mapped)
+            joint_data_mapped_degree["knee_angle_l"].append(knee_angle_l_mapped)
+            joint_data_mapped_degree["ankle_angle_l"].append(ankle_angle_l_mapped)
+
+            axes[0][0].plot(x_mapped, hip_flexion_l_mapped, label=f"Segment {idx}")
+            axes[1][0].plot(x_mapped, knee_angle_l_mapped, label=f"Segment {idx}")
+            axes[2][0].plot(x_mapped, ankle_angle_l_mapped, label=f"Segment {idx}")
         for joint, data in joint_data_mapped_degree.items():
             data = np.array(data)
             mean_data_degree = np.mean(data, axis=0)
@@ -344,7 +341,11 @@ class GaitAnalyzer:
 
         for ax_row in axes:
             for ax in ax_row:
-                ax.legend()
+                ax.set_xlim(0, 100)  # limit x-axis to data range
+
+        # for ax_row in axes:
+        #     for ax in ax_row:
+        #         ax.legend()
 
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,"segmented_joint_data.png"))
@@ -354,7 +355,7 @@ class GaitAnalyzer:
 
         # Average data
 
-        fig2, axes2 = plt.subplots(3,2,figsize=(30, 15),dpi=300)
+        fig2, axes2 = plt.subplots(3,2,figsize=(5 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
 
         for joint, data in joint_data_mapped_degree.items():
             data = np.array(data)
@@ -391,7 +392,11 @@ class GaitAnalyzer:
         axes2[2][0].set_ylim(*self.JOINT_LIMIT['ANKLE'])
         axes2[2][1].set_ylim(*self.JOINT_LIMIT['ANKLE'])
 
+        for ax_row in axes2:
+            for ax in ax_row:
+                ax.set_xlim(0, 100)  # limit x-axis to data range
 
+        fig2.tight_layout()
         fig2.savefig(os.path.join(result_dir,"segmented_joint_data_avg.png"))
         if self.show_plot:
             plt.figure(fig2.number)
@@ -399,8 +404,6 @@ class GaitAnalyzer:
     def plot_left_right_comparison(self, *,
                     result_dir,
                     ) -> None:
-        fig, axes = plt.subplots(3,2,figsize=(30, 15),dpi=300)
-
         joint_data = self.gait_data.series_data["joint_data"]
         gait_segment_index_r = self.get_gait_segment_index(is_right_foot_based=True)
         gait_segment_index_l = self.get_gait_segment_index(is_right_foot_based=False)
@@ -426,9 +429,6 @@ class GaitAnalyzer:
             joint_data_mapped["knee_angle_r"].append(knee_angle_r_mapped)
             joint_data_mapped["ankle_angle_r"].append(ankle_angle_r_mapped)
 
-            axes[0][1].plot(x_mapped, hip_flexion_r_mapped, label=f"Segment {idx}")
-            axes[1][1].plot(x_mapped, knee_angle_r_mapped, label=f"Segment {idx}")
-            axes[2][1].plot(x_mapped, ankle_angle_r_mapped, label=f"Segment {idx}")
         for idx, (start_idx, toe_off_idx, end_idx) in enumerate(gait_segment_index_l):
             hip_flexion_l_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_l"]["qpos"][start_idx:end_idx]])
             knee_angle_l_data = np.rad2deg([v[0] for v in joint_data["knee_angle_l"]["qpos"][start_idx:end_idx]])
@@ -442,35 +442,8 @@ class GaitAnalyzer:
             joint_data_mapped["knee_angle_l"].append(knee_angle_l_mapped)
             joint_data_mapped["ankle_angle_l"].append(ankle_angle_l_mapped)
 
-            axes[0][0].plot(x_mapped, hip_flexion_l_mapped, label=f"Segment {idx}")
-            axes[1][0].plot(x_mapped, knee_angle_l_mapped, label=f"Segment {idx}")
-            axes[2][0].plot(x_mapped, ankle_angle_l_mapped, label=f"Segment {idx}")
 
-        axes[0][0].set_title(self.JOINT_NAMES['LEFT_HIP'])
-        axes[0][1].set_title(self.JOINT_NAMES['RIGHT_HIP'])
-        axes[1][0].set_title(self.JOINT_NAMES['LEFT_KNEE'])
-        axes[1][1].set_title(self.JOINT_NAMES['RIGHT_KNEE'])
-        axes[2][0].set_title(self.JOINT_NAMES['LEFT_ANKLE'])
-        axes[2][1].set_title(self.JOINT_NAMES['RIGHT_ANKLE'])
-
-        axes[0][0].set_ylim(*self.JOINT_LIMIT['HIP'])
-        axes[1][0].set_ylim(*self.JOINT_LIMIT['KNEE'])
-        axes[2][0].set_ylim(*self.JOINT_LIMIT['ANKLE'])
-        axes[0][1].set_ylim(*self.JOINT_LIMIT['HIP'])
-        axes[1][1].set_ylim(*self.JOINT_LIMIT['KNEE'])
-        axes[2][1].set_ylim(*self.JOINT_LIMIT['ANKLE'])
-
-        for ax_row in axes:
-            for ax in ax_row:
-                ax.legend()
-
-        fig.tight_layout()
-        fig.savefig(os.path.join(result_dir,"left_right_comparison.png"))
-        if self.show_plot:
-            plt.figure(fig.number)
-            plt.show()
-
-        fig2, axes2 = plt.subplots(3,1,figsize=(20, 15),dpi=300)
+        fig2, axes2 = plt.subplots(3,1,figsize=(4 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
         for joint, data in joint_data_mapped.items():
             data = np.array(data)
             # print(f"DEBUG:: {joint=}, {data.shape=}")
@@ -492,16 +465,22 @@ class GaitAnalyzer:
             line_color = "#000000" if "_r" in joint else "#555555"
             fill_color = "#555555" if "_r" in joint else "#888888"
             line_style = "-" if "_r" in joint else "--"
-            ax.plot(x_mapped, mean_data_degree, label=f"{joint} mean", color=line_color, linestyle=line_style)
+            ax.plot(x_mapped, mean_data_degree, color=line_color, linestyle=line_style)
             ax.fill_between(x_mapped, mean_data_degree - std_data_degree, mean_data_degree + std_data_degree, color=fill_color, alpha=0.5)
         
-        axes2[0].set_title(self.JOINT_NAMES['HIP'])
-        axes2[1].set_title(self.JOINT_NAMES['KNEE'])
-        axes2[2].set_title(self.JOINT_NAMES['ANKLE'])
+        axes2[0].set_ylabel(self.JOINT_NAMES['HIP'], fontsize=12, rotation=0, ha='right', va='center')
+        axes2[0].yaxis.set_label_coords(-0.15, 0.5)
+        axes2[1].set_ylabel(self.JOINT_NAMES['KNEE'], fontsize=12, rotation=0, ha='right', va='center')
+        axes2[1].yaxis.set_label_coords(-0.15, 0.5)
+        axes2[2].set_ylabel(self.JOINT_NAMES['ANKLE'], fontsize=12, rotation=0, ha='right', va='center')
+        axes2[2].yaxis.set_label_coords(-0.15, 0.5)
 
         axes2[0].set_ylim(*self.JOINT_LIMIT['HIP'])
         axes2[1].set_ylim(*self.JOINT_LIMIT['KNEE'])
         axes2[2].set_ylim(*self.JOINT_LIMIT['ANKLE'])
+
+        for ax in axes2:
+            ax.set_xlim(0, 100)  # limit x-axis to data range
 
         fig2.tight_layout()
         fig2.savefig(os.path.join(result_dir,"left_right_comparison_avg.png"))
@@ -536,7 +515,7 @@ class GaitAnalyzer:
             joint_data_mapped["knee_angle_r"].append(knee_angle_r_mapped)
             joint_data_mapped["ankle_angle_r"].append(ankle_angle_r_mapped)
 
-        fig, axes = plt.subplots(3,1,figsize=(20, 15),dpi=300)
+        fig, axes = plt.subplots(3,1,figsize=(4 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
         for joint, data in joint_data_mapped.items():
             data = np.array(data)
             mean_data_degree = np.rad2deg(np.mean(data, axis=0))
@@ -551,7 +530,7 @@ class GaitAnalyzer:
             line_color = "#000000"
             fill_color = "#555555"
             line_style = "-"
-            ax.plot(x_mapped, mean_data_degree, label=f"{joint} mean", color=line_color, linestyle=line_style)
+            ax.plot(x_mapped, mean_data_degree, color=line_color, linestyle=line_style)
             ax.fill_between(x_mapped, mean_data_degree - std_data_degree, mean_data_degree + std_data_degree, color=fill_color, alpha=0.5)
         for joint, data in ref_data.items():
             data_degree = np.rad2deg(data)
@@ -565,13 +544,19 @@ class GaitAnalyzer:
             line_color = "#555555"
             line_style = "--"
             ax.plot(x_mapped, data_degree, label=f"{joint} ref", color=line_color, linestyle=line_style)
-        axes[0].set_title(self.JOINT_NAMES['HIP'])
-        axes[1].set_title(self.JOINT_NAMES['KNEE'])
-        axes[2].set_title(self.JOINT_NAMES['ANKLE'])
+        axes[0].set_ylabel(self.JOINT_NAMES['HIP'], fontsize=12, rotation=0, ha='right', va='center')
+        axes[0].yaxis.set_label_coords(-0.15, 0.5)
+        axes[1].set_ylabel(self.JOINT_NAMES['KNEE'], fontsize=12, rotation=0, ha='right', va='center')
+        axes[1].yaxis.set_label_coords(-0.15, 0.5)
+        axes[2].set_ylabel(self.JOINT_NAMES['ANKLE'], fontsize=12, rotation=0, ha='right', va='center')
+        axes[2].yaxis.set_label_coords(-0.15, 0.5)
 
         axes[0].set_ylim(*self.JOINT_LIMIT['HIP'])
         axes[1].set_ylim(*self.JOINT_LIMIT['KNEE'])
         axes[2].set_ylim(*self.JOINT_LIMIT['ANKLE'])
+
+        for ax in axes:
+            ax.set_xlim(0, 100)  # limit x-axis to data range
 
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,"right_ref_comparison_avg.png"))
@@ -586,13 +571,13 @@ class GaitAnalyzer:
             geom_name1:self.gait_data.get_contact_data(geom_name1=geom_name1, geom_name2=geom_name2)
             for geom_name1, geom_name2 in geom_pairs
         }
-        fig, axes = plt.subplots(len(geom_pairs),1,figsize=(20, 15),dpi=300)
+        fig, axes = plt.subplots(len(geom_pairs),1,figsize=(4 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
         for idx, (geom_name1, geom_name2) in enumerate(geom_pairs):
             ax = axes[idx]
             ax.plot([force[0] for force in plot_data[geom_name1]], label=f"{geom_name1} force", color="#000000", linestyle="-")
             # ax.plot([force[0] for force in plot_data[geom_name2]], label=f"{geom_name2} force", color="#555555", linestyle="--")
             ax.set_title(f"{geom_name1} and {geom_name2} contact force")
-            ax.legend()
+            # ax.legend()
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,"contact_data.png"))
         # axes[0].plot([force[0] for force in plot_data["calcn_l_geom_1"]], label=f"calcn_l_geom_1", color="#ff0000", linestyle="-")
@@ -642,19 +627,23 @@ class GaitAnalyzer:
                                 "velocity": np.interp(x_mapped, np.linspace(0, 100, num=len(actuator_data["velocity"][start_idx:end_idx])), [v[0] for v in actuator_data["velocity"][start_idx:end_idx]])}
                     muscle_data_mapped[actuator_name].append(muscle_data)
 
-        plot_height = actuator_num * 1.2
-        plot_width = 5
+        plot_height = actuator_num * 1.0
+        plot_width = 4
 
-        fig, axes = plt.subplots(actuator_num,1,figsize=(plot_width,plot_height),dpi=300)
+        fig, axes = plt.subplots(actuator_num,1,figsize=(plot_width *self.fig_size_multiplier,plot_height *self.fig_size_multiplier),dpi=self.dpi)
         actuator_index = 0
         for idx, actuator_name in enumerate(muscle_data_mapped.keys()):
             if actuator_name[-2:] in post_fix:
                 ax = axes[actuator_index]
                 for muscle_data in muscle_data_mapped[actuator_name]:
                     ax.plot(x_mapped, muscle_data["force"], label=f"{actuator_name} force", color="#000000", linestyle="-")
-                ax.set_title(f"{actuator_name} force")
+                # ax.set_title(f"{actuator_name} force")
+                ax.set_ylabel(actuator_name, fontsize=12, rotation=0, ha='right', va='center')
+                ax.yaxis.set_label_coords(-0.3, 0.5)
                 # ax.legend()
                 actuator_index += 1
+        for ax in axes:
+            ax.set_xlim(0, 100)  # limit x-axis to data range
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,f"segmented_muscle_data{file_name_post_fix}.png"))
         plt.figure(fig.number)
@@ -662,7 +651,7 @@ class GaitAnalyzer:
             plt.show()
 
         # Plot mean and std separately
-        fig_mean_std, axes_mean_std = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=300)
+        fig_mean_std, axes_mean_std = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=self.dpi)
         actuator_index = 0
         for idx, (actuator_name, muscle_data_list) in enumerate(muscle_data_mapped.items()):
             if actuator_name[-2:] in post_fix:
@@ -674,9 +663,13 @@ class GaitAnalyzer:
                 ax.plot(x_mapped, mean_force, label=f"{actuator_name} Mean Force", color='black', linewidth=2)
                 ax.fill_between(x_mapped, mean_force - std_force, mean_force + std_force, color='gray', alpha=0.5)
 
-                ax.set_title(f"{actuator_name} Mean and Std Force")
+                # ax.set_title(f"{actuator_name} Mean and Std Force")
+                ax.set_ylabel(actuator_name, fontsize=12, rotation=0, ha='right', va='center')
+                ax.yaxis.set_label_coords(-0.3, 0.5)
                 # ax.legend()
                 actuator_index += 1
+        for ax in axes_mean_std:
+            ax.set_xlim(0, 100)  # limit x-axis to data range
         fig_mean_std.tight_layout()
         fig_mean_std.savefig(os.path.join(result_dir, f"segmented_muscle_data_mean_std{file_name_post_fix}.png"))
         if self.show_plot:
@@ -684,7 +677,7 @@ class GaitAnalyzer:
             plt.show()
 
         # Plot mean and std for ctrl
-        fig_mean_std_ctrl, axes_mean_std_ctrl = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=300)
+        fig_mean_std_ctrl, axes_mean_std_ctrl = plt.subplots(actuator_num, 1, figsize=(plot_width,plot_height), dpi=self.dpi)
         actuator_index = 0
         for idx, (actuator_name, muscle_data_list) in enumerate(muscle_data_mapped.items()):
             if actuator_name[-2:] in post_fix:
@@ -701,7 +694,7 @@ class GaitAnalyzer:
                 ax.set_ylim(0, 100)
                 ax.set_xlim(0, 100)
                 ax.set_ylabel(actuator_name, fontsize=12, rotation=0, ha='right', va='center')
-                ax.yaxis.set_label_coords(-0.15, 0.5)
+                ax.yaxis.set_label_coords(-0.3, 0.5)
 
                 # ax.legend()
                 actuator_index += 1

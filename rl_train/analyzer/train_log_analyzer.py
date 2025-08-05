@@ -11,13 +11,13 @@ class TrainLogAnalyzer:
         time_steps = [log_data.num_timesteps for log_data in self._train_log_handler.log_datas]
         rewards = [log_data.average_reward_per_episode for log_data in self._train_log_handler.log_datas]
         
-        fig, axes = plt.subplots(1,1,figsize=(15,15),dpi=300)
+        fig, axes = plt.subplots(1,1,figsize=(5,3),dpi=300)
         axes.plot(time_steps, rewards)
-        axes.set_title("Reward")
+        axes.set_title("Return")
         axes.set_xlabel("Timesteps")
-        axes.set_ylabel("Reward")
+        axes.set_ylabel("Return")
         fig.tight_layout()
-        fig.savefig(os.path.join(result_dir, "reward.png"))
+        fig.savefig(os.path.join(result_dir, "return.png"))
         if show_plot:
             plt.figure(fig.number)
             plt.show()
