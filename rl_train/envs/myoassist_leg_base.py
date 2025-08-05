@@ -355,6 +355,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             if self.sim.data.time - self._prev_step_changed_time > self._target_velocity_period:
                 self._target_velocity = np.random.uniform(self._min_target_velocity, self._max_target_velocity)
             # print(f"DEBUG:: {self.is_evaluate_mode} {self._target_velocity=} (mode:{self._velocity_mode_for_this_episode}, starting_phase:{self._starting_phase}, target_velocity_period:{self._target_velocity_period})")
+        self._prev_step_changed_time = self.sim.data.time
     def reset(self, **kwargs):
         self._step_count_per_episode = 0
         if not self.is_evaluate_mode:
