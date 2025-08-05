@@ -100,7 +100,7 @@ class SetupTester:
         """Test MyoAssist package imports"""
         try:
             import rl_train
-            import myoassist_reflex
+            import ctrl_optim
         except ImportError as e:
             raise ImportError(f"Failed to import MyoAssist packages: {e}")
     
@@ -165,14 +165,14 @@ class SetupTester:
     def test_reflex_environment_initialization(self):
         """Test Reflex environment initialization without optimization"""
         try:
-            from myoassist_reflex.reflex.reflex_interface import myoLeg_reflex
+            from ctrl_optim.ctrl.reflex.reflex_interface import myoLeg_reflex
             import numpy as np
             import os
             
             original_cwd = os.getcwd()
             
             try:
-                os.chdir("myoassist_reflex")
+                os.chdir("ctrl_optim")
                 
                 control_params = np.ones(77,)
                 
@@ -198,7 +198,7 @@ class SetupTester:
                 
                 env.get_sensor_data()
                 
-                from myoassist_reflex.cost_functions.walk_cost import func_Walk_FitCost
+                from ctrl_optim.optim.cost_functions.walk_cost import func_Walk_FitCost
                 
                 dummy_params = np.random.rand(77,)
                 optim_type = "Kine"
@@ -235,10 +235,10 @@ class SetupTester:
     def test_reflex_imports(self):
         """Test MyoAssist-Reflex specific imports"""
         try:
-            from myoassist_reflex.optimization.tracker import OptimizationTracker
-            from myoassist_reflex.optimization.bounds import get_bounds
-            from myoassist_reflex.config import initParser
-            from myoassist_reflex.cost_functions.walk_cost import func_Walk_FitCost
+            from ctrl_optim.optim.optim_utils.tracker import OptimizationTracker
+            from ctrl_optim.optim.optim_utils.bounds import get_bounds
+            from ctrl_optim.optim.config import initParser
+            from ctrl_optim.optim.cost_functions.walk_cost import func_Walk_FitCost
             
         except Exception as e:
             raise RuntimeError(f"Reflex imports test failed: {e}")
@@ -269,7 +269,7 @@ class SetupTester:
                 if not os.path.exists(file_path):
                     raise FileNotFoundError(f"Required RL data file not found: {file_path}")
             
-            os.chdir("../myoassist_reflex")
+            os.chdir("../ctrl_optim")
             reflex_files = [
                 "ref_data/ref_kinematics_radians.csv",
                 "ref_data/ref_EMG.csv",
@@ -298,7 +298,7 @@ class SetupTester:
                 if not os.path.exists(config_path):
                     raise FileNotFoundError(f"Required RL config file not found: {config_path}")
             
-            os.chdir("./myoassist_reflex")
+            os.chdir("./ctrl_optim")
             reflex_configs = [
                 "training_configs/tutorial.bat",
             ]
@@ -373,7 +373,7 @@ class SetupTester:
             print("1. Try running a simple RL training session:")
             print("   python -m rl_train.run_policy --config_file_path rl_train/train_configs/imitation.json")
             print("2. Try running a CMA-ES optimization:")
-            print("   python -m myoassist_reflex.train --model tutorial --sim_time 5 --maxiter 10")
+            print("   python -m ctrl_optim.train --model tutorial --sim_time 5 --maxiter 10")
         else:
             print(f"\n{Colors.RED}{Colors.BOLD}✗ Some tests failed. Please check the error messages above.{Colors.END}")
             print(f"\n{Colors.YELLOW}Troubleshooting tips:{Colors.END}")
