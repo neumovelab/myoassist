@@ -105,7 +105,7 @@
         <site name="PS_at_brim_l_site_psoas_l_side" pos="-0.0209166 -0.0856869 -0.0790765"/>
         <site name="IL_at_brim_r_site_iliacus_r_side" pos="-0.02526034 -0.0256276 0.0928915"/>
         <site name="IL_at_brim_l_site_iliacus_l_side" pos="-0.00526034 -0.0756276 -0.0828915"/>
-        <body name="hmedi waistband" pos="-0.07 0.02 -0.17">
+        <body name="hmedi waistband" pos="-0.067 0.02 -0.17">
                 <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="-0.065 0.0 0.15" quat="1 1 0 0"/>
                 <geom name="ASSEM_MEDI waistband_geom" mesh="ASSEM_MEDI waistband_geom" type="mesh"
                     rgba="0.341 0.341 0.341 1"/>
@@ -179,28 +179,28 @@
             <site name="AMmid_at_femshaft_r_site_addmagMid_r_side" pos="-0.0100694 -0.108641 0.0230602"/>
             <site name="AMdist_at_femshaft_r_site_addmagDist_r_side" pos="0.0146959 -0.298529 0.0158276"/>
             <site name="AMisch_at_condyles_r_site_addmagIsch_r_side" pos="-0.0360341 -0.49032 -0.0446456"/>
-            <body name="hmedi femurflap_r" pos="-0.085 0.001 -0.08">
-                    <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="-0.065 0.0 0.15" quat="1 1 0 0"/>
-                    <geom name="ASSEM_MEDI femurflap_r_geom" mesh="ASSEM_MEDI femurflap_r_geom" type="mesh" pos = "0 0 0"
+            <body name="hmedi femurflap_r" pos="-0.08 0.001 -0.08">
+                    <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="0 0 0" quat="1 1 0 0"/>
+                    <geom name="ASSEM_MEDI femurflap_r_geom" mesh="ASSEM_MEDI femurflap_r_geom" type="mesh" pos = "0.0017 0 0"
                        rgba="0.341 0.341 0.341 1"/>
 
-                    <body name="mm03 cobra_r" pos="-0.04 0.027 0.0685">
+                    <body name="mm03 cobra_r" pos="-0.039 0.027 0.0685">
                         <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.00001" quat="1 1 0 0" pos = "0 0 0" />
                         <geom name="ASSEM_MEDI mm03_r_geom" mesh="ASSEM_MEDI mm03_r_geom" type="mesh" pos = "0 0 0"
                         rgba="0.8 0.8 0.8 1"/>
-                        <site name="cable_r_P2" pos="-0.0035 0 0.015"/>
+                        <site name="cable_r_P2" pos="-0.0001 0 0.015"/>
                     </body>
                 </body>
-             <body name="hmedi thigh_r" pos="-0.01 -0.35 -0.065">
+             <body name="hmedi thigh_r" pos="-0.016 -0.35 -0.065">
                     <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="-0.065 0.0 0.15" quat="1 1 0 0"/>
                     <geom name="ASSEM_MEDI thigh_r_geom" mesh="ASSEM_MEDI thigh_r_geom" type="mesh"
                        rgba="0.341 0.341 0.341 1"/>
 
-                    <body name="mm03 cobra_150_r" pos="-0.0635 0.035 0.04">
+                    <body name="mm03 cobra_150_r" pos="-0.065 0.035 0.04">
                         <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.00001" pos="0 0 0" quat="1 1 0 0"/>
                         <geom name="ASSEM_MEDI mm03_150_r_geom" mesh="ASSEM_MEDI mm03_150_r_geom" type="mesh"
                         rgba="0.8 0.8 0.8 1"/>
-                        <site name="cable_r_P3" pos="-0.0035 0 0.0225"/>
+                        <site name="cable_r_P3" pos="-0.0048 0 0.0225"/>
                     </body>
                 </body>    
             <body name="tibia_r" pos="-4.6e-07 -0.404425 -0.00126526">
@@ -417,29 +417,29 @@
             <site name="AMmid_at_femshaft_l_site_addmagMid_l_side" pos="-0.0100694 -0.108641 -0.0230602"/>
             <site name="AMdist_at_femshaft_l_site_addmagDist_l_side" pos="0.0146959 -0.298529 -0.0158276"/>
             <site name="AMisch_at_condyles_l_site_addmagIsch_l_side" pos="-0.0360341 -0.49032 0.0446456"/>
-            <body name="hmedi femurflap_l" pos="-0.085 0.001 -0.085">
-                    <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="-0.065 0.0 0.15" quat="1 1 0 0"/>
-                    <geom name="ASSEM_MEDI femurflap_l_geom" mesh="ASSEM_MEDI femurflap_l_geom" type="mesh"
+            <body name="hmedi femurflap_l" pos="-0.08 0.001 -0.085">
+                    <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="0 0 0" quat="1 1 0 0"/>
+                    <geom name="ASSEM_MEDI femurflap_l_geom" mesh="ASSEM_MEDI femurflap_l_geom" type="mesh" pos = "0.0017 0 0"
                        rgba="0.341 0.341 0.341 1"/>
 
-                    <body name="mm03 cobra_l" pos="-0.04 0.027 0.0675">
+                    <body name="mm03 cobra_l" pos="-0.039 0.027 0.0675">
                         <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.00001" pos = "0 0 0" quat="1 1 0 0"/>
                         <geom name="ASSEM_MEDI mm03_l_geom" mesh="ASSEM_MEDI mm03_l_geom" type="mesh"
                         rgba="0.8 0.8 0.8 1"/>
-                        <site name="cable_l_P2" pos="-0.0035 0 0.015"/>
+                        <site name="cable_l_P2" pos="-0.0001 0 0.015"/>
                     </body>
                 </body>
 
-                <body name="hmedi thigh_l" pos="-0.01 -0.35 -0.065">
+                <body name="hmedi thigh_l" pos="-0.016 -0.35 -0.065">
                     <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.001" pos="-0.065 0.0 0.15" quat="1 1 0 0"/>
                     <geom name="ASSEM_MEDI thigh_l_geom" mesh="ASSEM_MEDI thigh_l_geom" type="mesh"
                        rgba="0.341 0.341 0.341 1"/>
 
-                    <body name="mm03 cobra_150_l" pos="-0.0635 0.035 0.04">
+                    <body name="mm03 cobra_150_l" pos="-0.065 0.035 0.04">
                         <inertial diaginertia="0.000000001 0.000000001 0.000000001" mass="0.00001" pos="0 0 0" quat="1 1 0 0"/>
                         <geom name="ASSEM_MEDI mm03_150_l_geom" mesh="ASSEM_MEDI mm03_150_l_geom" type="mesh"
                         rgba="0.8 0.8 0.8 1"/>
-                        <site name="cable_l_P3" pos="-0.0035 0 0.0225"/>
+                        <site name="cable_l_P3" pos="-0.0048 0 0.0225"/>
                     </body>
                 </body>
             <body name="tibia_l" pos="-4.6e-07 -0.404425 0.00126526">
@@ -587,7 +587,7 @@
                 <site name="vasmed_l-P4" pos="0.005 0.0025 0.0085"/>
             </body>
         </body>
-        <body name="hmedi_torso" pos="-0.22 0.33 -0.1">
+        <body name="hmedi_torso" pos="-0.23 0.33 -0.1">
                     <inertial diaginertia="0.00044 0.00042 0.00066" mass="0.233" pos="-0.035 -0.025 0.1" quat="1 0 1 0"/>
                     <geom name="ASSEM_MEDI torso_geom" mesh="ASSEM_MEDI torso_geom" type="mesh"
                         rgba="0.788 0.788 0.788 1"/>

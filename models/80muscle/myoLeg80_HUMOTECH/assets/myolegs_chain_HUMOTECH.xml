@@ -324,7 +324,7 @@
                         <body name="r_aft_upper" pos="0.0815 0.036 -0.0465" euler="0 -0.1 0">
                             <inertial mass="0.14956" pos="-0.01 0.02 0.045" diaginertia="0.00019 0.00046 0.00049"/>
                             <geom name="r_aft_upper_geom" mesh="r_aft_upper" type="mesh"
-                                rgba="0.8 0.8 0.8 0.35"/>
+                                rgba="0.06 0.06 0.06 0.35"/>
                         </body>                        
                         <body name="toes_r" pos="0.1788 -0.002 0.00108">
                             <site name="toe_r" class="myo_leg_marker"/>
@@ -351,7 +351,7 @@
                             <body name="r_fore_upper" pos="0.038 0.0175 -0.039" euler="0.05 -0.1 -0.2">
                                 <inertial mass="0.10402" pos="0 0.01 0.05" diaginertia="0.00012 0.0002 0.00015" euler="0 0 -0.2"/>
                                 <geom name="r_fore_upper_geom" mesh="r_fore_upper" type="mesh"
-                                    rgba="0.8 0.8 0.8 0.35"/>
+                                    rgba="0.06 0.06 0.06 0.35"/>
                             </body>
                         </body>
                     </body>
@@ -583,16 +583,16 @@
                             <geom name="sole_attachment_l_geom" mesh="sole_attachment_l" type="mesh"
                                 rgba="0.95 0.95 0.95 1"/>
                         </body>
-                        <body name="l_aft_sole" pos="0.07 -0.025 -0.055" euler="0 0.1 0">
+                        <body name="l_aft_sole" pos="0.07 -0.025 -0.062" euler="0 0.1 0">
                             <site name="l_foot_touch" type="box" pos="-0.05 -0.005 0.0615" size=".06 .03 .05" euler="0 0 0" class="myo_leg_touch"/>
                             <inertial mass="0.92450" pos="-0.01 0 0.065" diaginertia="0.00067 0.00264 0.00247"/>
                             <geom name="l_aft_sole_geom" mesh="l_aft_sole" type="mesh"
                                 rgba="0.2 0.2 0.2 1"/>
                         </body>
-                        <body name="l_aft_upper" pos="0.0815 0.036 -0.0465" euler="0 0.1 0">
+                        <body name="l_aft_upper" pos="0.0815 0.036 -0.053" euler="0 0.1 0">
                             <inertial mass="0.14956" pos="-0.01 0.02 0.05" diaginertia="0.00019 0.00046 0.00049"/>
                             <geom name="l_aft_upper_geom" mesh="l_aft_upper" type="mesh"
-                                rgba="0.8 0.8 0.8 0.35"/>
+                                rgba="0.06 0.06 0.06 0.35"/>
                         </body>
                         <body name="toes_l" pos="0.1788 -0.002 -0.00108">
                             <site name="toe_l" class="myo_leg_marker"/>
@@ -610,16 +610,16 @@
                             <site name="fdl_l-P8" pos="0.0441 -0.006 -0.0242"/>
                             <site name="fhl_l-P6" pos="0.0155 -0.0064 0.0265"/>
                             <site name="fhl_l-P7" pos="0.0562 -0.0102 0.0181"/>
-                            <body name="l_fore_sole" pos="0.028 -0.035 -0.0725" euler="-0.1 0.1 -0.2">
+                            <body name="l_fore_sole" pos="0.028 -0.035 -0.0775" euler="-0.1 0.1 -0.2">
                                 <site name="l_toes_touch" type="box" pos="0.0 -0.0075 0.0625" size=".075 .03 .065" euler="0 0 0" class="myo_leg_touch"/>
                                 <inertial mass="0.61424" pos="0 -0.01 0.065" diaginertia="0.00061 0.00125 0.00085"/>
                                 <geom name="l_fore_sole_geom" mesh="l_fore_sole" type="mesh"
                                     rgba="0.2 0.2 0.2 1"/>
                             </body>
-                            <body name="l_fore_upper" pos="0.036 0.012 -0.0635" euler="-0.05 0.1 -0.2">
+                            <body name="l_fore_upper" pos="0.036 0.012 -0.0675" euler="-0.05 0.1 -0.2">
                                 <inertial mass="0.10402" pos="0 0.01 0.055" diaginertia="0.00012 0.0002 0.00015" euler="0 0 -0.2"/>
                                 <geom name="l_fore_upper_geom" mesh="l_fore_upper" type="mesh"
-                                    rgba="0.8 0.8 0.8 0.35"/>
+                                    rgba="0.06 0.06 0.06 0.35"/>
                             </body>
                         </body>
                     </body>
