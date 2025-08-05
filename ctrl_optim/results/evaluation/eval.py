@@ -1,6 +1,6 @@
 # Author(s): Calder Robbins <robbins.cal@northeastern.edu>
 """
-Unified Controller Optimization Processing Pipeline
+Unified Controller Optimization evaluation Pipeline
 """
 
 import os
@@ -27,9 +27,8 @@ import logging
 
 # Import the necessary interfaces from framework
 try:
-    from optim.reflex import myoLeg_reflex
-    from results.processing.MyoReport import MyoReport
-    from results.processing.exo_visualization import ExoVisualizer
+    from ctrl.reflex import myoLeg_reflex
+    from results.evaluation.exo_visualization import ExoVisualizer
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please ensure you're running this script from the correct directory.")
@@ -65,8 +64,8 @@ class SimulationConfig:
         self.use_4param_spline = False
         self.max_torque = 0
         self.init_pose = "walk_left"
-        self.processing_mode = "short"  # short, long (full commented out)
-        self.output_dir = os.path.join("results", "processing_outputs")
+        self.evaluation_mode = "short"  # short, long (full commented out)
+        self.output_dir = os.path.join("results", "evaluation_outputs")
         self.n_points = 3
         self.result_dirs = []  # selected results folders
 
@@ -133,7 +132,7 @@ class ParameterSelector:
         self.configs = []
         self.result_dirs = []  # holds selected result folders
         self.root = None
-        self._process_started = False
+        self._evaluate_started = False
         
         # Keep track of environment related widgets for enable/disable
         self._env_widgets = []
@@ -144,10 +143,10 @@ class ParameterSelector:
         self.config = SimulationConfig()
         self.configs = []
         self.result_dirs = []
-        self._process_started = False
+        self._evaluate_started = False
 
         self.root = tk.Tk()
-        self.root.title("Controller Optimization Processing Pipeline")
+        self.root.title("Controller Optimization evaluation Pipeline")
         self.root.geometry("550x650")
         self.root.configure(bg="#F0F0F0")
 
@@ -227,7 +226,7 @@ class ParameterSelector:
         main_frame.columnconfigure(0, weight=1)
         
         # Title
-        title_label = ttk.Label(main_frame, text="Controller Optimization Processing Pipeline", style="Title.TLabel")
+        title_label = ttk.Label(main_frame, text="Controller Optimization evaluation Pipeline", style="Title.TLabel")
         title_label.grid(row=0, column=0, pady=(0, 10), sticky="ew")
         
         # --- Results Folder Selection ---
@@ -396,7 +395,7 @@ class ParameterSelector:
         env_preview_frame.grid_remove()  # hidden by default
 
         # --- 4a. Parameter Type Selection ---
-        type_frame = ttk.Labelframe(main_frame, text="Parameter Types to Process", padding="5")
+        type_frame = ttk.Labelframe(main_frame, text="Parameter Types to evaluate", padding="5")
         type_frame.grid(row=8, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         self.include_best_var = tk.BooleanVar(value=True)
@@ -409,9 +408,9 @@ class ParameterSelector:
         self._single_frames = [config_frame, param_frame, env_config_frame]
         self._batch_frames = [type_frame, env_preview_frame]
 
-        # --- 5. Processing Mode ---
-        processing_frame = ttk.Labelframe(main_frame, text="Processing Mode", padding="5")
-        processing_frame.grid(row=9, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        # --- 5. evaluation Mode ---
+        evaluation_frame = ttk.Labelframe(main_frame, text="evaluation Mode", padding="5")
+        evaluation_frame.grid(row=9, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         self.mode_desc = {
             "short": "5s simulation, video + kinematics",
@@ -419,11 +418,11 @@ class ParameterSelector:
             # "full": "20s simulation, video + full report"  # Commented out
         }
         
-        self.processing_var = tk.StringVar(value=self.config.processing_mode)
+        self.evaluation_var = tk.StringVar(value=self.config.evaluation_mode)
         
         for i, (mode, desc) in enumerate(self.mode_desc.items()):
-            ttk.Radiobutton(processing_frame, text=f"{mode.title()}: {desc}", 
-                           variable=self.processing_var, value=mode).pack(anchor=tk.W, pady=2)
+            ttk.Radiobutton(evaluation_frame, text=f"{mode.title()}: {desc}", 
+                           variable=self.evaluation_var, value=mode).pack(anchor=tk.W, pady=2)
         
         # --- Outputs ---
         output_frame = ttk.Frame(main_frame)
@@ -438,8 +437,8 @@ class ParameterSelector:
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=11, column=0, pady=(20, 10))
         
-        ttk.Button(button_frame, text="Start Processing", 
-                  command=self._start_processing).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Start evaluation", 
+                  command=self._start_evaluation).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(button_frame, text="Cancel", 
                   command=self._cancel).pack(side=tk.LEFT)
         
@@ -452,13 +451,13 @@ class ParameterSelector:
         # Update GUI visibility based on initial state
         self._update_visibility()
         self.root.mainloop()
-        # Return a list of SimulationConfig objects if processing was started
-        if self._process_started:
+        # Return a list of SimulationConfig objects if evaluation was started
+        if self._evaluate_started:
             return self.configs if self.configs else [self.config]
         return None
 
     def _add_config_files(self):
-        """Allow user to select one or more .bat configuration files for batch processing."""
+        """Allow user to select one or more .bat configuration files for batch evaluation."""
         # Set initial directory to myoassist_reflex/results
         initial_dir = os.path.join("results", "optim_results")
         if not os.path.exists(initial_dir):
@@ -490,11 +489,11 @@ class ParameterSelector:
             cfg.parse_bat_config(bat_path) 
             cfg.param_files = param_files
 
-            # Processing mode is taken from GUI selection for all runs
-            cfg.processing_mode = self.processing_var.get()
-            if cfg.processing_mode == "short":
+            # evaluation mode is taken from GUI selection for all runs
+            cfg.evaluation_mode = self.evaluation_var.get()
+            if cfg.evaluation_mode == "short":
                 cfg.sim_time = 5
-            elif cfg.processing_mode == "long":
+            elif cfg.evaluation_mode == "long":
                 cfg.sim_time = 10
             # else:
                 # cfg.sim_time = 20
@@ -514,7 +513,7 @@ class ParameterSelector:
 
         if added:
             self.status_var.set("Configurations loaded successfully")
-            # Disable env widgets when config-driven batch processing
+            # Disable env widgets when config-driven batch evaluation
             self._set_env_widgets_state('disabled')
             self._update_visibility()
         elif not self.configs:
@@ -542,8 +541,8 @@ class ParameterSelector:
         """Deprecated – use _clear_config_files instead."""
         self._clear_config_files()
 
-    def _start_processing(self):
-        """Validate inputs and start processing. Handles single or batch configurations."""
+    def _start_evaluation(self):
+        """Validate inputs and start evaluation. Handles single or batch configurations."""
         # Batch mode takes precedence if configs list is populated
         if self.configs:
             # Build a unique root output folder using timestamp
@@ -553,11 +552,11 @@ class ParameterSelector:
 
             # Assign distinct output sub-dir for each run
             for cfg in self.configs:
-                # FIX: Update processing mode from GUI for all configs
-                cfg.processing_mode = self.processing_var.get()
-                if cfg.processing_mode == "short":
+                # FIX: Update evaluation mode from GUI for all configs
+                cfg.evaluation_mode = self.evaluation_var.get()
+                if cfg.evaluation_mode == "short":
                     cfg.sim_time = 5
-                elif cfg.processing_mode == "long":
+                elif cfg.evaluation_mode == "long":
                     cfg.sim_time = 10
                 
                 # FIXED: Apply parameter type filtering based on GUI checkboxes
@@ -586,7 +585,7 @@ class ParameterSelector:
                 # Copy original .bat into the run folder for record keeping
                 shutil.copy2(cfg.config_file, os.path.join(cfg.output_dir, f"{bat_name}_{date_time_str}.bat"))
 
-            self._process_started = True
+            self._evaluate_started = True
             self.root.destroy()
             return
 
@@ -623,12 +622,12 @@ class ParameterSelector:
         self.config.exo_bool = self.exo_var.get()
         self.config.fixed_exo = self.fixed_exo_var.get()
         self.config.use_4param_spline = self.legacy_var.get()
-        self.config.processing_mode = self.processing_var.get()
+        self.config.evaluation_mode = self.evaluation_var.get()
         
-        # Set sim_time based on processing_mode
-        if self.config.processing_mode == "short":
+        # Set sim_time based on evaluation_mode
+        if self.config.evaluation_mode == "short":
             self.config.sim_time = 5
-        elif self.config.processing_mode == "long":
+        elif self.config.evaluation_mode == "long":
             self.config.sim_time = 10
 
         # Add date and time to the output directory
@@ -645,11 +644,11 @@ class ParameterSelector:
             config_copy_path = os.path.join(self.config.output_dir, f"{config_name}_{date_time_str}.bat")
             shutil.copy2(self.config.config_file, config_copy_path)
 
-        self._process_started = True
+        self._evaluate_started = True
         self.root.destroy()
 
     def _cancel(self):
-        """Cancel the processing"""
+        """Cancel the evaluation"""
         self.root.destroy()
 
     def _add_param_files(self):
@@ -670,7 +669,7 @@ class ParameterSelector:
                 self.param_listbox.insert(tk.END, os.path.basename(file))
 
         if self.config.param_files:
-            self.status_var.set("Ready to start processing...")
+            self.status_var.set("Ready to start evaluation...")
 
     def _clear_param_files(self):
         """Clear all parameter files (single-run mode only)."""
@@ -768,7 +767,7 @@ class ParameterSelector:
         return preview_frame
 
     def _add_result_folders(self):
-        """Add one or more results directories for batch processing."""
+        """Add one or more results directories for batch evaluation."""
         # Set initial directory to myoassist_reflex/results
         initial_dir = os.path.join('results', 'optim_results')
         if not os.path.exists(initial_dir):
@@ -799,15 +798,15 @@ class ParameterSelector:
         for k, v in settings.items():
             setattr(cfg, k, v)
 
-        # FIX: Get processing mode from GUI and set sim_time accordingly
-        cfg.processing_mode = self.processing_var.get()
+        # FIX: Get evaluation mode from GUI and set sim_time accordingly
+        cfg.evaluation_mode = self.evaluation_var.get()
         cfg.config_file = bat_file
         cfg.param_files = param_files
 
-        # Set simulation time based on processing mode
-        if cfg.processing_mode == "short":
+        # Set simulation time based on evaluation mode
+        if cfg.evaluation_mode == "short":
             cfg.sim_time = 5
-        elif cfg.processing_mode == "long":
+        elif cfg.evaluation_mode == "long":
             cfg.sim_time = 10
 
         # Append and update GUI
@@ -839,36 +838,32 @@ class ParameterSelector:
         self._update_visibility()
 
 
-class SimulationProcessor:
-    """Main simulation processing class"""
+class SimulationEvaluator:
+    """Main simulation evaluation class"""
     
     def __init__(self, config: SimulationConfig):
-        """Initialize SimulationProcessor with better debugging"""
+        """Initialize with better debugging"""
         self.config = config
         self.report_generator = None
         
-        # Add debug output
-        # print(f"DEBUG: SimulationProcessor initialized with mode: {self.config.processing_mode}")
-        # print(f"DEBUG: SimulationProcessor sim_time: {self.config.sim_time}")
-        
-        # Ensure sim_time matches processing_mode (safety against earlier mis-set)
-        if self.config.processing_mode == 'short':
+        # Ensure sim_time matches evaluation_mode (safety against earlier mis-set)
+        if self.config.evaluation_mode == 'short':
             self.config.sim_time = 5
-        elif self.config.processing_mode == 'long':
+        elif self.config.evaluation_mode == 'long':
             self.config.sim_time = 10
         
-        # print(f"DEBUG: After correction - mode: {self.config.processing_mode}, sim_time: {self.config.sim_time}")
+        # print(f"DEBUG: After correction - mode: {self.config.evaluation_mode}, sim_time: {self.config.sim_time}")
         
         # Create output directory
         os.makedirs(self.config.output_dir, exist_ok=True)
         
-    def process_all_parameters(self):
-        """Process all selected parameter files - FIXED: Create separate environments for each parameter file"""
+    def evaluate_all_parameters(self):
+        """Evaluate all selected parameter files"""
         # Print header only once
         print(f"\n{'='*60}")
-        print(f"Controller Optimization Processing Pipeline")
+        print(f"Controller Optimization evaluation Pipeline")
         print(f"{'='*60}")
-        print(f"Processing Mode: {self.config.processing_mode.upper()}")
+        print(f"evaluation Mode: {self.config.evaluation_mode.upper()}")
         print(f"Model: {self.config.model}")
         print(f"Simulation Time: {self.config.sim_time}s")
         print(f"Output Directory: {self.config.output_dir}")
@@ -876,20 +871,20 @@ class SimulationProcessor:
         print(f"{'='*60}\n")
         
         for i, param_file in enumerate(self.config.param_files, 1):
-            print(f"Processing {i}/{len(self.config.param_files)}: {os.path.basename(param_file)}")
+            print(f"evaluation {i}/{len(self.config.param_files)}: {os.path.basename(param_file)}")
             try:
-                self._process_single_parameter(param_file, i)
+                self._evaluate_single_parameter(param_file, i)
                 print(f"✓ Completed: {os.path.basename(param_file)}\n")
             except Exception as e:
-                print(f"✗ Error processing {os.path.basename(param_file)}: {e}\n")
+                print(f"✗ Error evaluation {os.path.basename(param_file)}: {e}\n")
         
         # Print footer only once
         print(f"{'='*60}")
-        print(f"Processing Complete! Check {self.config.output_dir} for outputs.")
+        print(f"evaluation Complete! Check {self.config.output_dir} for outputs.")
         print(f"{'='*60}")
     
-    def _process_single_parameter(self, param_file: str, file_index: int):
-        """Process a single parameter file - FIXED: Create fresh environment for each parameter file"""
+    def _evaluate_single_parameter(self, param_file: str, file_index: int):
+        """evaluate a single parameter file - FIXED: Create fresh environment for each parameter file"""
         # Load parameters
         self._current_param_file = param_file
         params = np.loadtxt(param_file)
@@ -907,8 +902,8 @@ class SimulationProcessor:
         # FIXED: Generate video and store frames for reuse
         video_path, frames, simulation_data = self._run_simulation_with_frame_storage(env, base_filename)
         
-        # Process based on mode
-        if self.config.processing_mode == "short":
+        # evaluate based on mode
+        if self.config.evaluation_mode == "short":
             # print(f"  Short mode: Generating kinematics plot...")
             self._generate_quick_analysis(env, base_filename)
             print(f"  Video saved to {video_path}")
@@ -922,7 +917,7 @@ class SimulationProcessor:
                 except Exception as e:
                     print(f"  Warning: Could not generate exoskeleton video: {e}")
                     
-        elif self.config.processing_mode == "long":
+        elif self.config.evaluation_mode == "long":
             # print(f"  Long mode: Generating kinematics plot...")
             self._generate_quick_analysis(env, base_filename)
             print(f"  Video saved to {video_path}")
@@ -1007,7 +1002,7 @@ class SimulationProcessor:
         print(f"  Running {timesteps} timesteps...")
         
         # Initialize muscle data structures if full mode (exclude HAB in 2D) - SAME AS ORIGINAL
-        if self.config.processing_mode == "full":
+        if self.config.evaluation_mode == "full":
             muscle_names = ['GLU', 'VAS', 'SOL', 'GAS', 'HAM', 'HFL', 'RF', 'BFSH', 'TA', 'FDL']
             if self.config.mode == "3D":
                 muscle_names.append('HAB')
@@ -1039,7 +1034,7 @@ class SimulationProcessor:
         exo_visualizer = None
         if self.config.exo_bool:
             try:
-                from processing.exo_visualization import ExoVisualizer
+                from evaluation.exo_visualization import ExoVisualizer
                 exo_visualizer = ExoVisualizer()
                 # print(f"  ExoVisualizer initialized for data collection")
             except ImportError as e:
@@ -1060,7 +1055,7 @@ class SimulationProcessor:
             for idx in range(mj_model.njnt):
                 try:
                     joint_name = mj_model.joint(idx).name
-                    if joint_name:  # Only process named joints
+                    if joint_name:  # Only evaluate named joints
                         joint_name_to_index[joint_name] = idx
                         all_joint_data[joint_name] = {
                             'qpos': [],
@@ -1156,7 +1151,7 @@ class SimulationProcessor:
             frames.append(frame)
             
             # EXACT COPY of original kinematic data collection
-            if self.config.processing_mode in ["short", "long"] and i > 0:
+            if self.config.evaluation_mode in ["short", "long"] and i > 0:
                 try:
                     # Method 1: Try original env.get_plot_data() first
                     plot_data_success = False
@@ -1341,7 +1336,7 @@ class SimulationProcessor:
             
         # Initialize exo visualizer (same as original method)
         try:
-            from processing.exo_visualization import ExoVisualizer
+            from evaluation.exo_visualization import ExoVisualizer
             exo_visualizer = ExoVisualizer()
         except ImportError as e:
             print(f"  Warning: Could not import ExoVisualizer: {e}")
@@ -1488,7 +1483,7 @@ class SimulationProcessor:
         # Convert data to numpy arrays
         time_array = np.array(data['time'])
         
-        # Apply MyoReport-style data processing for kinematics
+        # Apply MyoReport-style data evaluation for kinematics
         rad_to_deg = 180 / np.pi
         joint_data = {}
         
@@ -1502,9 +1497,9 @@ class SimulationProcessor:
             ankle_raw = np.array(data[leg]['joint']['ankle'])
             trunk_raw = np.array(data['trunk'])
             
-            # Apply MyoReport processing style
+            # Apply MyoReport evaluation style
             if leg == 'r_leg':
-                # MyoReport processing for right leg
+                # MyoReport evaluation for right leg
                 extract_kine[:, 0] = trunk_raw * rad_to_deg  # Trunk
                 extract_kine[:, 1] = hip_raw * rad_to_deg    # Hip
                 extract_kine[:, 2] = -1 * knee_raw * rad_to_deg  # Knee (negated)
@@ -1655,7 +1650,7 @@ class SimulationProcessor:
     #             'slope_deg': self.config.slope_deg,
     #             'delayed': self.config.delayed,
     #             'exo_bool': self.config.exo_bool,
-    #             'processing_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    #             'evaluation_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     #             'timesteps': unpacked_dict.get('timesteps', len(self._simulation_data['time'])),
     #             'dt': unpacked_dict.get('dt', self._simulation_data['dt'])
     #         }
@@ -1720,7 +1715,7 @@ class SimulationProcessor:
     #     
     #     # Restructure muscle data into the format MyoReport expects
     #     # MyoReport uses: 'act' (activation), 'f' (force), 'v' (velocity)
-    #     if self.config.processing_mode == 'full':
+    #     if self.config.evaluation_mode == 'full':
     #         # Updated muscle mapping to match new interface
     #         muscle_mapping = {
     #             'GLU': 'glutmax',
@@ -1988,7 +1983,7 @@ def parse_bat_file(bat_path):
             'init_pose': "walk_left"
         }
         
-        # Process arguments
+        # evaluate arguments
         i = 0
         while i < len(args):
             arg = args[i]
@@ -2058,7 +2053,7 @@ def find_param_files(results_dir):
     return os.path.join(results_dir, bat_files[0]), param_files
 
 def get_module_dir():
-    """Get the directory containing the processing module"""
+    """Get the directory containing the evaluation module"""
     return os.path.dirname(os.path.abspath(__file__))
 
 def resolve_path(path, base_dir=None):
@@ -2071,18 +2066,18 @@ def resolve_path(path, base_dir=None):
     return os.path.normpath(os.path.join(base_dir, '..', path))
 
 def main():
-    """Main function to run the processing pipeline"""
+    """Main function to run the evaluation pipeline"""
     parser = argparse.ArgumentParser(
-        description="MyoAssist Processing Pipeline - Run simulations from training results",
+        description="MyoAssist evaluation Pipeline - Run simulations from training results",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent("""
             Examples:
               # Run with GUI interface (default):
-              python -m myoassist_reflex.processing
+              python -m myoassist_reflex.evaluation
               
               # Run with config file:
-              python -m myoassist_reflex.processing -c example_config.json
-              python -m myoassist_reflex.processing --config path/to/config.json
+              python -m myoassist_reflex.evaluation -c example_config.json
+              python -m myoassist_reflex.evaluation --config path/to/config.json
             """)
     )
     parser.add_argument(
@@ -2126,7 +2121,7 @@ def main():
             
             # Validate required fields
             required_fields = {
-                'processing_mode': str,
+                'evaluation_mode': str,
                 'output_dir': str
             }
             
@@ -2144,9 +2139,9 @@ def main():
             if invalid_types:
                 raise ValueError(f"Invalid field types in config file: {', '.join(invalid_types)}")
             
-            # Validate processing_mode
-            if config_data['processing_mode'] not in ['short', 'long']:
-                raise ValueError("Processing mode must be one of: short, long")
+            # Validate evaluation_mode
+            if config_data['evaluation_mode'] not in ['short', 'long']:
+                raise ValueError("evaluation mode must be one of: short, long")
             
             # Collect all results dirs to iterate
             batch_dirs = config_data['results_dirs'] if has_multiple else [config_data['results_dir']]
@@ -2161,16 +2156,16 @@ def main():
                 for key, value in settings.items():
                     setattr(cfg, key, value)
 
-                cfg.processing_mode = config_data['processing_mode']
+                cfg.evaluation_mode = config_data['evaluation_mode']
                 cfg.config_file = bat_file
                 run_folder_name = os.path.basename(results_dir.rstrip(os.sep))
                 cfg.output_dir = os.path.join(config_data['output_dir'], run_folder_name)
                 cfg.param_files = param_files
 
-                # Set sim_time based on processing_mode
-                if cfg.processing_mode == 'short':
+                # Set sim_time based on evaluation_mode
+                if cfg.evaluation_mode == 'short':
                     cfg.sim_time = 5
-                elif cfg.processing_mode == 'long':
+                elif cfg.evaluation_mode == 'long':
                     cfg.sim_time = 10
 
                 # Apply Best / BestLast filter - in non-GUI mode, include both by default
@@ -2189,8 +2184,8 @@ def main():
 
             # Execute all collected configurations sequentially
             for cfg in configs_to_run:
-                processor = SimulationProcessor(cfg)
-                processor.process_all_parameters()
+                evaluator = SimulationEvaluator(cfg)
+                evaluator.evaluate_all_parameters()
 
         except Exception as e:
             print(f"\nError in non-GUI mode: {e}")
@@ -2203,10 +2198,10 @@ def main():
 
             if configs:
                 for cfg in configs:
-                    processor = SimulationProcessor(cfg)
-                    processor.process_all_parameters()
+                    evaluator = SimulationEvaluator(cfg)
+                    evaluator.evaluate_all_parameters()
 
-                print("\nProcessing finished.")
+                print("\nEvaluation finished.")
                 if not prompt_to_continue():
                     break
             else:

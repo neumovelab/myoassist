@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='gymnasium.core')
 
 from .evaluate_cost import evaluateCost
-from optim.reflex.reflex_interface import myoLeg_reflex
+from ctrl_optim.ctrl.reflex.reflex_interface import myoLeg_reflex
 
 
 def func_Walk_FitCost(

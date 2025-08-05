@@ -20,8 +20,11 @@ import os
 
 import copy
 from scipy.interpolate import PchipInterpolator
-from optim.exo.fourparam_spline_ctrl import FourParamSplineController
-from optim.exo.npoint_spline_ctrl import NPointSplineController
+from ctrl.exo.fourparam_spline_ctrl import FourParamSplineController
+from ctrl.exo.npoint_spline_ctrl import NPointSplineController
+
+# Use the unified model path resolver
+from optim.optim_utils.resolve_path import resolve_model_path
 
 class myoLeg_reflex(object):
 
@@ -133,62 +136,17 @@ class myoLeg_reflex(object):
 
         self.init_pose = init_pose
                 
-        current_dir = os.getcwd()
-
-        # Check if we're in the ctrl_optim directory structure
-        if 'ctrl_optim' in current_dir:
-            if 'optim' in current_dir and 'reflex' in current_dir:
-                nav = os.path.abspath(os.path.join('..', '..', '..', 'models'))
-            else:
-                nav = os.path.abspath(os.path.join('..', 'models'))
-        elif 'processing' in current_dir:
-            nav = os.path.abspath(os.path.join('..', '..', 'models'))
-        else:
-            nav = os.path.abspath(os.path.join('..', 'models'))
-
-        # Determine movement dimension from muscle model
-        if mode == '2D':
-            mvt_dim = 2
-            # Model selection logic
-            if model == "baseline":
-                pathAndModel = os.path.join(nav, '22muscle_2D', 'myoLeg22_2D_BASELINE.xml')
-            elif model == "dephy":
-                pathAndModel = os.path.join(nav, '22muscle_2D', 'myoLeg22_2D_DEPHY.xml')
-            elif model == "hmedi":
-                pathAndModel = os.path.join(nav, '22muscle_2D', 'myoLeg22_2D_HMEDI.xml')
-            elif model == "humotech":
-                pathAndModel = os.path.join(nav, '22muscle_2D', 'myoLeg22_2D_HUMOTECH.xml')
-            elif model == "tutorial":
-                pathAndModel = os.path.join(nav, '22muscle_2D', 'myoLeg22_2D_TUTORIAL.xml')
-            elif model == "custom" and model_path:
-                pathAndModel = model_path
-            else:
-                raise ValueError(f"Invalid model type '{model}' or missing model_path for custom model")
-        else:
-            mvt_dim = 3
-            # Model selection logic
-            if model == "baseline":
-                pathAndModel = os.path.join(nav, '26muscle_3D', 'myoLeg26_BASELINE.xml')
-            elif model == "dephy":
-                pathAndModel = os.path.join(nav, '26muscle_3D', 'myoLeg26_DEPHY.xml')
-            elif model == "hmedi":
-                pathAndModel = os.path.join(nav, '26muscle_3D', 'myoLeg26_HMEDI.xml')
-            elif model == "humotech":
-                pathAndModel = os.path.join(nav, '26muscle_3D', 'myoLeg26_HUMOTECH.xml')
-            elif model == "tutorial":
-                pathAndModel = os.path.join(nav, '26muscle_3D', 'myoLeg26_TUTORIAL.xml')
-            elif model == "custom" and model_path:
-                pathAndModel = model_path
-            else:
-                raise ValueError(f"Invalid model type '{model}' or missing model_path for custom model")
+        # Use the unified model path resolver
+        pathAndModel = resolve_model_path(model, mode, model_path)
+        
+        # Determine movement dimension from mode
+        mvt_dim = 2 if mode == '2D' else 3
 
         self.delayed = delayed
         # !!! IMPT: Set timestep to 0.0005 ms (half a milisec) after env creation below
         self.frame_skip = 10 # Default for Myosuite environments. skip of 10 means each step() is 1 ms (0.01 sec)
         if self.delayed:
             self.frame_skip = 1 # Prepare for 1 ms (0.001 sec) timestep
-
-        curr_dir = os.getcwd()
 
         self.env = gym.make('myoLegStandRandom-v0', 
                             model_path=pathAndModel,

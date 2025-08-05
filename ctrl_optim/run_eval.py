@@ -12,7 +12,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 # Import and run the processing pipeline
-from results.processing.processing import main
+from results.evaluation.eval import main
 
 if __name__ == "__main__":
     main() 

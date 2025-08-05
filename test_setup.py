@@ -165,7 +165,7 @@ class SetupTester:
     def test_reflex_environment_initialization(self):
         """Test Reflex environment initialization without optimization"""
         try:
-            from ctrl_optim.optim.reflex.reflex_interface import myoLeg_reflex
+            from ctrl_optim.ctrl.reflex.reflex_interface import myoLeg_reflex
             import numpy as np
             import os
             

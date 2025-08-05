@@ -135,19 +135,18 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
     
     try:
         # Import here to avoid circular imports
-        from myoassist_reflex.optim.reflex import myoassist_reflex.optim.reflex_interface
+        from ctrl.reflex.reflex_interface import myoLeg_reflex
         
         # Parse the .bat file
         config = parse_bat_config(bat_file_path)
         config.update(override_kwargs)
-        workspace_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         
-        # Construct absolute model path
-        model_name = f"myoLeg22_2D_{config['model'].upper()}.xml"
-        model_path = os.path.join(workspace_root, 'models', model_name)
+        # Use the unified model path resolver
+        from .resolve_path import resolve_model_path
+        resolved_model_path = resolve_model_path(config['model'], config['mode'], None)
         
-        # Create the TestEnv instance with absolute model path
-        TestEnv = reflex_interface.myoLeg_reflex(
+        # Create the TestEnv instance with resolved model path
+        TestEnv = myoLeg_reflex(
             sim_time=config['sim_time'],
             mode=config['mode'],
             init_pose=config['init_pose'],
@@ -160,7 +159,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             use_4param_spline=config['use_4param_spline'],
             max_torque=config['max_torque'],
             model=config['model'],
-            model_path=model_path  # Pass the absolute path
+            model_path=resolved_model_path  # Use the resolved path
         )
         
         return TestEnv, config

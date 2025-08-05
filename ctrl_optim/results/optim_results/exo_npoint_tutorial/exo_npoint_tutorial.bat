@@ -15,11 +15,10 @@ python -m myoassist_reflex.train ^
     --tgt_grf_th 1.5 ^
     -kine ^
     --ExoOn 1 ^
-    --use_4param_spline ^
+    --n_points 3 ^
     --max_torque 100.0 ^
-    --popsize 8 ^
-    --maxiter 50 ^
-    --threads 8 ^
+    --popsize 32 ^
+    --maxiter 1000 ^
+    --threads 32 ^
     --sigma_gain 10 ^
-    --param_path results/exo_4param_tutorial ^
-    --save_path results/tutorial
+    --save_path results/exo_4param_tutorial
