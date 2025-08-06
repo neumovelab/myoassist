@@ -2096,14 +2096,18 @@ def main():
         try:
             config_path = args.config
             if not os.path.isabs(config_path):
-                if os.path.exists(config_path):
+                # First try the eval_config subdirectory
+                eval_config_path = os.path.join(get_module_dir(), 'eval_config', config_path)
+                if os.path.exists(eval_config_path):
+                    config_path = eval_config_path
+                elif os.path.exists(config_path):
                     config_path = os.path.abspath(config_path)
                 else:
                     module_config_path = os.path.join(get_module_dir(), config_path)
                     if os.path.exists(module_config_path):
                         config_path = module_config_path
                     else:
-                        raise FileNotFoundError(f"Config file not found at '{args.config}' or '{module_config_path}'")
+                        raise FileNotFoundError(f"Config file not found at '{args.config}', '{eval_config_path}', or '{module_config_path}'")
 
             print(f"\nRunning with config file: {config_path}")
             
