@@ -13,7 +13,7 @@ pink-noise-rl
 packaging
 gitpython
 
-# MyoAssist
+# RL
 stable-baselines3
 stable-baselines3[extra]
 # imageio
@@ -21,7 +21,7 @@ mediapy
 # for mac issue
 tensorboard
 
-# MyoAssist-Reflex
+# CTRL_OPTIM
 cma==4.0.0
 tqdm
 opencv-python==4.11.0.86
