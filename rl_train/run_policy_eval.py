@@ -119,4 +119,4 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
     gait_analyzer.plot_segmented_muscle_data(result_dir=analyze_result_dir, is_plot_right=True)
 
 
-
+    gait_analyzer.joint_angle_by_velocity(result_dir=analyze_result_dir)

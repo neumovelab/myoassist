@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from rl_train.analyzer.gait_data import GaitData
 import os
 import numpy as np
+from matplotlib.collections import LineCollection
+import matplotlib.colors as mcolors
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from scipy.signal import butter, filtfilt
 
 class GaitAnalyzer:
     JOINT_NAMES = {
@@ -29,7 +33,7 @@ class GaitAnalyzer:
 
     def __init__(self, gait_data:GaitData, segmented_ref_data:dict, show_plot:bool):
         self.gait_data = gait_data
-        self.segmented_data = segmented_ref_data
+        self.segmented_ref_data = segmented_ref_data
         self.show_plot = show_plot
         self.fig_size_multiplier = 1
         self.dpi = 300
@@ -109,7 +113,6 @@ class GaitAnalyzer:
                     result_dir,
                     is_right_foot_based:bool,
                     ) -> None:
-        print(f"{self.gait_data.series_data.keys()=}")
         fig, axes = plt.subplots(6,2,figsize=(12 *self.fig_size_multiplier, 6 *self.fig_size_multiplier),dpi=self.dpi)
         
         joint_data = self.gait_data.series_data["joint_data"]
@@ -176,6 +179,168 @@ class GaitAnalyzer:
         postfix = "_right_based" if is_right_foot_based else "_left_based"
         fig.tight_layout()
         fig.savefig(os.path.join(result_dir,f"kinematics_data{postfix}.png"))
+
+        if self.show_plot:
+            plt.show()
+        plt.close()
+    
+    def joint_angle_by_velocity(self, *, result_dir:str):
+        ref_line_color = "#555555"
+        ref_line_style = "--"
+        joint_data = self.gait_data.series_data["joint_data"]
+
+        # Joint angle
+        fig, axes = plt.subplots(3,1,figsize=(4 *self.fig_size_multiplier, 3 *self.fig_size_multiplier),dpi=self.dpi)
+        gait_segment_index = self.get_gait_segment_index(is_right_foot_based=True)
+
+        # Plot reference joint angles in black (#000000)
+        axes[0].plot(np.rad2deg(self.segmented_ref_data["q_hip_flexion_r"]), label="Reference", color=ref_line_color, linestyle=ref_line_style)
+        axes[1].plot(np.rad2deg(self.segmented_ref_data["q_knee_angle_r"]), label="Reference", color=ref_line_color, linestyle=ref_line_style)
+        axes[2].plot(np.rad2deg(self.segmented_ref_data["q_ankle_angle_r"]), label="Reference", color=ref_line_color, linestyle=ref_line_style)
+
+
+        # Use a low-pass Butterworth filter instead of moving average
+            
+        def lowpass_filter(data, cutoff=2.0, fs=100.0, order=2):
+            # cutoff: desired cutoff frequency of the filter, Hz
+            # fs: sample rate, Hz
+            # order: filter order
+            nyq = 0.5 * fs
+            normal_cutoff = cutoff / nyq
+            b, a = butter(order, normal_cutoff, btype='low', analog=False)
+            y = filtfilt(b, a, data)
+            return y
+        
+        actual_speed = [v[0] for v in joint_data["pelvis_tx"]["qvel"]]
+        if len(actual_speed) > 100:
+            # Apply low-pass filter to smooth the speed
+            # You may adjust cutoff and fs as needed for your data
+            actual_speed_smooth = lowpass_filter(np.array(actual_speed), cutoff=1.0, fs=30.0, order=2)
+        else:
+            # If the segment is too short, just copy the original
+            actual_speed_smooth = np.array(actual_speed)
+
+        vel_min = np.floor(np.min(actual_speed_smooth) * 10) / 10  # Round down to 0.1
+        vel_max = np.ceil(np.max(actual_speed_smooth) * 10) / 10   # Round up to 0.1
+        vel_range = (vel_min, vel_max)
+
+
+        for start_idx, toe_off_idx, end_idx in gait_segment_index:
+            # ax.axvspan(start_idx, toe_off_idx, color='#00ff00', alpha=0.1)
+
+            # Set x-axis to be normalized from 0 to 100 for each gait segment
+            segment_length = end_idx - start_idx
+            x_normalized = np.linspace(0, 100, segment_length)
+
+            # Map the x-axis to 0~100 using x_normalized for each joint angle data
+            hip_flexion_l_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_l"]["qpos"]][start_idx:end_idx])
+            hip_flexion_r_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_r"]["qpos"]][start_idx:end_idx])
+            knee_angle_l_data = np.rad2deg([v[0] for v in joint_data["knee_angle_l"]["qpos"]][start_idx:end_idx])
+            knee_angle_r_data = np.rad2deg([v[0] for v in joint_data["knee_angle_r"]["qpos"]][start_idx:end_idx])
+            ankle_angle_l_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_l"]["qpos"]][start_idx:end_idx])
+            ankle_angle_r_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_r"]["qpos"]][start_idx:end_idx])
+            actual_speed_smooth_segment = actual_speed_smooth[start_idx:end_idx]
+
+            
+
+            interp_points = 400
+
+            def interp_array(x, y, num_points):
+                x_new = np.linspace(x[0], x[-1], num_points)
+                y_new = np.interp(x_new, x, y)
+                return x_new, y_new
+
+            x_hip_r, hip_flexion_r_data_interp = interp_array(x_normalized, hip_flexion_r_data, interp_points)
+            x_knee_r, knee_angle_r_data_interp = interp_array(x_normalized, knee_angle_r_data, interp_points)
+            x_ankle_r, ankle_angle_r_data_interp = interp_array(x_normalized, ankle_angle_r_data, interp_points)
+            _, actual_speed_interp = interp_array(x_normalized, actual_speed_smooth_segment, interp_points)
+
+            
+
+            all_speeds = []
+            for seg_start, seg_toe_off, seg_end in gait_segment_index:
+                seg_speeds = [v[0] for v in joint_data["pelvis_tx"]["qvel"]][seg_start:seg_end]
+                all_speeds.extend(seg_speeds)
+            
+            
+
+            norm = mcolors.Normalize(vmin=vel_range[0], vmax=vel_range[1])
+            from matplotlib.colors import LinearSegmentedColormap
+            # Define a custom colormap: blue -> purple -> red
+            custom_cmap = LinearSegmentedColormap.from_list(
+                # "blue_purple_red", ["#0000ff", "#800080", "#ff0000"]
+                "blue_purple_red", ["#0000ff", "#eeeeee", "#ff0000"]
+            )
+            cmap = custom_cmap  # blue (low) -> purple (mid) -> red (high)
+
+            def plot_colored_line(ax, x, y, c, label=None):
+                # Prepare segments for LineCollection
+                points = np.array([x, y]).T.reshape(-1, 1, 2)
+                segments = np.concatenate([points[:-1], points[1:]], axis=1)
+                lc = LineCollection(segments, cmap=cmap, norm=norm)
+                lc.set_array(np.array(c))
+                lc.set_linewidth(1)
+                line = ax.add_collection(lc)
+                if label:
+                    # Add a dummy line for legend
+                    ax.plot([], [], color=cmap(norm(np.mean(c))), label=label)
+                return line
+
+            # Plot hip flexion right with color by speed (interpolated)
+            plot_colored_line(axes[0], x_hip_r, hip_flexion_r_data_interp, actual_speed_interp, label='Hip Flexion R')
+            # Plot knee angle right with color by speed (interpolated)
+            plot_colored_line(axes[1], x_knee_r, knee_angle_r_data_interp, actual_speed_interp, label='Knee Angle R')
+            # Plot ankle angle right with color by speed (interpolated)
+            plot_colored_line(axes[2], x_ankle_r, ankle_angle_r_data_interp, actual_speed_interp, label='Ankle Angle R')
+
+        cax = inset_axes(
+            axes[2], 
+            width="30%",  # width: 30% of parent axes
+            height="4%",  # height: 4% of parent axes
+            loc='lower left',
+            bbox_to_anchor=(-0.4, -0.55, 0.9, 0.9),  # position below the axis
+            bbox_transform=axes[2].transAxes,
+            borderpad=1
+        )
+        cb = plt.colorbar(
+            plt.cm.ScalarMappable(norm=norm, cmap=cmap), 
+            cax=cax, 
+            orientation='horizontal'
+        )
+        # Set label for colorbar and move it a bit higher by adjusting labelpad
+        cb.set_label("Speed (m/s)", fontsize=6, labelpad=0)  # Move label slightly upward
+        cb.ax.tick_params(labelsize=6)
+            
+        # Sometimes, matplotlib's autoscaling can override set_ylim if called after plotting.
+        # To ensure the y-limits are strictly enforced, disable autoscaling after setting limits.
+        axes[0].set_ylim(self.JOINT_LIMIT['HIP'][0], self.JOINT_LIMIT['HIP'][1])
+        axes[0].set_xlim(0, 100)
+        # axes[0].set_title("Hip")  # Set title for Hip axis
+        # axes[0].yaxis.set_major_locator(plt.MultipleLocator(10))  # Set y-tick interval to 10 degrees for HIP
+        axes[1].set_ylim(self.JOINT_LIMIT['KNEE'][0], self.JOINT_LIMIT['KNEE'][1])
+        axes[1].set_xlim(0, 100)
+        # axes[1].set_title("Knee")  # Set title for Knee axis
+        # axes[1].yaxis.set_major_locator(plt.MultipleLocator(10))  # Set y-tick interval to 10 degrees for KNEE
+        axes[2].set_ylim(self.JOINT_LIMIT['ANKLE'][0], self.JOINT_LIMIT['ANKLE'][1])
+        axes[2].set_xlim(0, 100)
+        # axes[2].set_title("Ankle")  # Set title for Ankle axis
+        # axes[2].yaxis.set_major_locator(plt.MultipleLocator(10))  # Set y-tick interval to 10 degrees for ANKLE
+        # axes[2].autoscale(enable=False, axis='y')
+
+        axes[0].set_ylabel(self.JOINT_NAMES['HIP'], fontsize=12, rotation=0, ha='right', va='center')
+        axes[0].yaxis.set_label_coords(-0.15, 0.5)
+        axes[1].set_ylabel(self.JOINT_NAMES['KNEE'], fontsize=12, rotation=0, ha='right', va='center')
+        axes[1].yaxis.set_label_coords(-0.15, 0.5)
+        axes[2].set_ylabel(self.JOINT_NAMES['ANKLE'], fontsize=12, rotation=0, ha='right', va='center')
+        axes[2].yaxis.set_label_coords(-0.15, 0.5)
+
+
+        fig.tight_layout()
+
+        
+        fig.subplots_adjust(bottom=0.15) # should call this after fig.tight_layout()
+
+        fig.savefig(os.path.join(result_dir,f"joint_angle_cmap_by_velocity.png"))
 
         if self.show_plot:
             plt.show()
@@ -557,9 +722,9 @@ class GaitAnalyzer:
             "ankle_angle_r": [],
         }
         ref_data = {
-            "hip_flexion_r": self.segmented_data["q_hip_flexion_r"],
-            "knee_angle_r": self.segmented_data["q_knee_angle_r"],
-            "ankle_angle_r": self.segmented_data["q_ankle_angle_r"],
+            "hip_flexion_r": self.segmented_ref_data["q_hip_flexion_r"],
+            "knee_angle_r": self.segmented_ref_data["q_knee_angle_r"],
+            "ankle_angle_r": self.segmented_ref_data["q_ankle_angle_r"],
         }
         for idx, (start_idx, toe_off_idx, end_idx) in enumerate(gait_segment_index_r):
             hip_flexion_r_data = [v[0] for v in joint_data["hip_flexion_r"]["qpos"][start_idx:end_idx]]
@@ -600,9 +765,9 @@ class GaitAnalyzer:
             elif "ankle_angle_r" in joint:
                 ax = axes[2]
             
-            line_color = "#555555"
-            line_style = "--"
-            ax.plot(x_mapped, data_degree, label="Reference", color=line_color, linestyle=line_style)
+            ref_line_color = "#555555"
+            ref_line_style = "--"
+            ax.plot(x_mapped, data_degree, label="Reference", color=ref_line_color, linestyle=ref_line_style)
         axes[0].set_ylabel(self.JOINT_NAMES['HIP'], fontsize=12, rotation=0, ha='right', va='center')
         axes[0].yaxis.set_label_coords(-0.15, 0.5)
         axes[1].set_ylabel(self.JOINT_NAMES['KNEE'], fontsize=12, rotation=0, ha='right', va='center')
