@@ -19,6 +19,8 @@
     <include file="assets/myolegs_assets_HMEDI.xml"/>
     <compiler angle="radian" meshdir="../../../myosuite/simhive/myo_sim" texturedir="../../../myosuite/simhive/myo_sim"/>
 
+    <statistic center="0 0 0.6" extent="2.5"/>
+
     <worldbody>
     
         <site name="pelvis_target" size="0.02" pos="0 0 .92" group="4"/>
