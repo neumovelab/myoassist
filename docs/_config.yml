@@ -18,11 +18,6 @@ kramdown:
   smart_quotes: ["apos", "apos", "quot", "quot"]
   enable_coderay: false
 
-# Plugins
-plugins:
-  - jekyll-feed
-  - jekyll-seo-tag
-
 title: MyoAssist Documentation
 description: Documentation for MyoAssist - A musculoskeletal simulation framework with reinforcement learning and reflex control
 theme: just-the-docs
