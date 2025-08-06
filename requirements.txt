@@ -18,6 +18,8 @@ stable-baselines3
 stable-baselines3[extra]
 # imageio
 mediapy
+# for mac issue
+tensorboard
 
 # MyoAssist-Reflex
 cma==4.0.0
