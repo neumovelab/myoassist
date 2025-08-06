@@ -85,7 +85,26 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
     gait_data.read_json_data(gait_data_path)
     segmented_ref_data = np.load("rl_train/reference_data/segmented.npz", allow_pickle=True)
     segmented_ref_data = {key: segmented_ref_data[key] for key in segmented_ref_data.files}
+
+
+    gait_evaluator.replay(gait_data_path, os.path.join(analyze_result_dir, "replay.mp4"),
+                                                cam_distance=evaluate_param["cam_distance"],
+                                                # max_time_step=evaluate_param["num_timesteps"],
+                                                use_activation_visualization=evaluate_param["visualize_activation"],
+                                                cam_type=evaluate_param["cam_type"],
+                                                use_realtime_floating=False
+                                                )
+
     gait_analyzer = GaitAnalyzer(gait_data, segmented_ref_data, show_plot)
+
+
+    if len(gait_analyzer.get_gait_segment_index(is_right_foot_based=True)) < 1:
+        print("="*10 + "Warning" + "="*10)
+        print("Warning! Not enough gait data to plot. Skipping plotting.")
+        print("="*10 + "Warning" + "="*10)
+
+        continue
+
 
     gait_analyzer.plot_entire_result(result_dir=analyze_result_dir,is_right_foot_based=True)
 
@@ -99,12 +118,5 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
 
     gait_analyzer.plot_segmented_muscle_data(result_dir=analyze_result_dir, is_plot_right=True)
 
-    gait_evaluator.replay(gait_data_path, os.path.join(analyze_result_dir, "replay.mp4"),
-                                                    cam_distance=evaluate_param["cam_distance"],
-                                                    # max_time_step=evaluate_param["num_timesteps"],
-                                                    use_activation_visualization=evaluate_param["visualize_activation"],
-                                                    cam_type=evaluate_param["cam_type"],
-                                                    use_realtime_floating=False
-                                                    )
 
 
