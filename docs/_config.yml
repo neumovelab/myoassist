@@ -1,3 +1,28 @@
+# Markdown and Kramdown settings
+markdown: kramdown
+kramdown:
+  math_engine: mathjax
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+      start_line: 1
+  input: GFM
+  hard_wrap: false
+  auto_ids: true
+  footnote_backlink: true
+  footnote_backlink_inline: true
+  # Additional settings for better compatibility
+  entity_output: as_char
+  toc_levels: [1, 2, 3, 4, 5, 6]
+  smart_quotes: ["apos", "apos", "quot", "quot"]
+  enable_coderay: false
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
 title: MyoAssist Documentation
 description: Documentation for MyoAssist - A musculoskeletal simulation framework with reinforcement learning and reflex control
 theme: just-the-docs
@@ -51,8 +76,3 @@ defaults:
 aux_links:
   "MyoAssist Repository": https://github.com/neumovelab/myoassist
   "Issues": https://github.com/neumovelab/myoassist/issues
-
-markdown: kramdown
-kramdown:
-  math_engine: mathjax
-  syntax_highlighter: rouge
