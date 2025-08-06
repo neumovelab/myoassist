@@ -10,6 +10,9 @@ import glob
 import platform
 from pathlib import Path
 
+env = os.environ.copy()
+env['PYTHON_EXECUTABLE'] = sys.executable
+
 
 def get_script_directory():
     """Get the directory where this script is located"""

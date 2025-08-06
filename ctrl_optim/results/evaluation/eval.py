@@ -6,9 +6,14 @@ Unified Controller Optimization evaluation Pipeline
 import os
 import sys
 import textwrap
+import platform
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
+
+# macOS Tkinter compatibility fix
+if platform.system() == 'Darwin':  # macOS
+    os.environ['TK_SILENCE_DEPRECATION'] = '1'
 
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -145,14 +150,29 @@ class ParameterSelector:
         self.result_dirs = []
         self._evaluate_started = False
 
-        self.root = tk.Tk()
-        self.root.title("Controller Optimization evaluation Pipeline")
-        self.root.geometry("550x650")
-        self.root.configure(bg="#F0F0F0")
+        # macOS-compatible Tkinter root creation
+        if platform.system() == 'Darwin':  # macOS
+            try:
+                self.root = tk.Tk()
+                self.root.title("Controller Optimization evaluation Pipeline")
+                self.root.geometry("550x650")
+                self.root.configure(bg="#F0F0F0")
+            except Exception as e:
+                print(f"Warning: Could not configure Tkinter window on macOS: {e}")
+                self.root = tk.Tk()
+        else:
+            self.root = tk.Tk()
+            self.root.title("Controller Optimization evaluation Pipeline")
+            self.root.geometry("550x650")
+            self.root.configure(bg="#F0F0F0")
 
         # --- Style Configuration ---
-        style = ttk.Style(self.root)
-        style.theme_use('clam')
+        try:
+            style = ttk.Style(self.root)
+            style.theme_use('clam')
+        except Exception as e:
+            print(f"Warning: Could not set ttk theme: {e}")
+            style = ttk.Style(self.root)
 
         # Colors
         BG_COLOR = "#F0F0F0"

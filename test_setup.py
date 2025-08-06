@@ -231,6 +231,56 @@ class SetupTester:
             
         except Exception as e:
             raise RuntimeError(f"Reflex environment initialization failed: {e}")
+
+    def test_minimal_controller_script(self):
+        """Test the minimal controller script functionality"""
+        try:
+            import subprocess
+            import os
+            
+            original_cwd = os.getcwd()
+            
+            try:
+                os.chdir("ctrl_optim")
+                
+                # Run the minimal controller script
+                result = subprocess.run(
+                    [sys.executable, "run_ctrl_minimal.py"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30  # 30 second timeout
+                )
+                
+                # Check if script ran successfully
+                if result.returncode != 0:
+                    raise RuntimeError(f"Script failed with return code {result.returncode}. "
+                                    f"stdout: {result.stdout}, stderr: {result.stderr}")
+                
+                # Check if output contains walking duration
+                if "Walking duration:" not in result.stdout:
+                    raise RuntimeError("Script output missing walking duration information")
+                
+                # Extract and validate walking duration
+                for line in result.stdout.split('\n'):
+                    if "Walking duration:" in line:
+                        duration_str = line.split(":")[1].strip().split()[0]
+                        try:
+                            duration = float(duration_str)
+                            if duration < 0 or duration > 10:  # Reasonable bounds
+                                raise RuntimeError(f"Walking duration out of reasonable bounds: {duration}")
+                        except ValueError:
+                            raise RuntimeError(f"Invalid walking duration format: {duration_str}")
+                        break
+                else:
+                    raise RuntimeError("Could not parse walking duration from output")
+                
+            finally:
+                os.chdir(original_cwd)
+            
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Minimal controller script timed out (30s)")
+        except Exception as e:
+            raise RuntimeError(f"Minimal controller script test failed: {e}")
     
     def test_reflex_imports(self):
         """Test MyoAssist-Reflex specific imports"""
@@ -333,6 +383,7 @@ class SetupTester:
             (self.test_mujoco_license, "MuJoCo License"),
             (self.test_rl_environment_initialization, "RL Environment Initialization"),
             (self.test_reflex_environment_initialization, "Reflex Environment Initialization"),
+            (self.test_minimal_controller_script, "Minimal Controller Script"),
             (self.test_reflex_imports, "Reflex-Specific Imports"),
             (self.test_rl_imports, "RL-Specific Imports"),
             (self.test_data_files, "Data Files Accessibility"),
