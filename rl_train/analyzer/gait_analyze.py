@@ -1,5 +1,9 @@
 import matplotlib
-# matplotlib.use('Agg')  # Set non-interactive backend
+import platform
+# Set matplotlib backend to non-interactive for macOS compatibility
+if platform.system() == "Darwin":  # macOS
+    matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from rl_train.analyzer.gait_data import GaitData
 import os

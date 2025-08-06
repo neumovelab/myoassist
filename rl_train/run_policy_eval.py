@@ -1,4 +1,3 @@
-import argparse
 
 # Parse command line arguments for log_dir
 import sys
