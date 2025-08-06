@@ -69,7 +69,7 @@ class GaitEvaluatorBase:
         env_myoassist: MyoAssistLegBase = self.env.unwrapped
         env_myoassist.set_target_velocity_mode_manually(velocity_mode,
                                                         0,
-                                                        min_target_velocity,
+                                                        (min_target_velocity + max_target_velocity)/2,
                                                         min_target_velocity,
                                                         max_target_velocity,
                                                         target_velocity_period=target_velocity_period
