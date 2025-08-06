@@ -188,7 +188,7 @@
                             <body name="osl_ankle_assembly" pos="0 -0.14 -0.006">
                                 <inertial pos="-0.00665 0.04539 0.00924" quat="0.612323 0.440299 -0.442253 0.485396" mass="1.739" diaginertia="0.00535042 0.00492977 0.0030318"/>
                                 <geom name="osl_ankle_assembly_geom_1" type="mesh" rgba="0.8 0.8 0.8 1" mesh="osl_ankle_assembly_geom_1_osl_ankle_v2" condim="3" contype="1"/>
-                                <site name="r_osl_load_force" type="box" pos="0 0.105 0.005" size="0.02 0.003 0.02" euler="0 0 0" group="3" rgba="0.8 0.2 .2 .4" />
+                                <site name="r_osl_load_force" type="box" pos="0 0.105 0.005" size="0.02 0.003 0.02" euler="0 0 0" group="3" rgba="0.8 0.2 .2 1" />
                                 
                                 <body name="osl_foot_assembly">
                                     <inertial pos="0.064562 -0.048401 0.004732" quat="0.482413 0.245831 0.66522 0.514127" mass="0.291" diaginertia="0.00145886 0.00139898 0.001"/>

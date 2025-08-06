@@ -189,14 +189,14 @@
                     <body name="osl_knee_assembly">
                         <inertial pos="0.00381 -0.05901 0.00918" quat="0.659658 0.705162 0.180917 -0.186728" mass="2.2455" diaginertia="0.00930494 0.00919978 0.00355928"/>
                         <joint name="osl_knee_angle_r" pos="0 0 0" axis="0 0 -1" range="0 2.0944"/>
-                        <geom name="osl_knee_assembly_geom_1" type="mesh" rgba="0.071 0.169 0.62 1" mesh="osl_knee_assembly_geom_1_osl_knee_v2" condim="3" contype="1"/>
+                        <geom name="osl_knee_assembly_geom_1" type="mesh" rgba="0.8 0.8 0.8 1" mesh="osl_knee_assembly_geom_1_osl_knee_v2" condim="3" contype="1"/>
                         <body name="osl_tibial_pylon" pos="0 -0.2315 0.006">
 							<inertial pos="0 0 0" mass="0.0629248" diaginertia="0.001 0.001 0.001"/>
 
 							<geom name="osl_tibial_pylon_geom_1" type="cylinder" size="0.012 0.070499651775824771" quat="0.707035 0.707179 0 0" rgba="0 0 0 1.0" condim="3" contype="1"/>
 							<body name="osl_ankle_assembly" pos="0 -0.1761 -0.006">
 								<inertial pos="-0.00665 0.04539 0.00924" quat="0.612323 0.440299 -0.442253 0.485396" mass="1.739" diaginertia="0.00535042 0.00492977 0.0030318"/>
-								<geom name="osl_ankle_assembly_geom_1" type="mesh" rgba="0.071 0.169 0.62 1" mesh="osl_ankle_assembly_geom_1_osl_ankle_v2" condim="3" contype="1"/>
+								<geom name="osl_ankle_assembly_geom_1" type="mesh" rgba="0.8 0.8 0.8 1" mesh="osl_ankle_assembly_geom_1_osl_ankle_v2" condim="3" contype="1"/>
 								<site name="r_osl_load_force" type="box" pos="0 0.105 0.005" size="0.02 0.003 0.02" euler="0 0 0" group="3" rgba="0.8 0.2 .2 .4" />
 								
 								<body name="osl_foot_assembly">
