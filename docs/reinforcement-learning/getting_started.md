@@ -39,6 +39,18 @@ See how to create a simulation environment and run for 150 frames(5sec):
 python rl_train/run_simulation.py
 ```
 
+- mac:
+```bash
+mjpython rl_train/run_simulation.py
+```
+> **Note:**
+If you need MuJoCo visualizer in mac os, simply use `mjpython` instead of `python` to run your script.  
+You do not need to install anything extra—just change the command:
+
+> **Note:**  
+If you see the error message `ModuleNotFoundError: No module named 'flatten_dict'`, simply run the command again. This will usually resolve the problem automatically.
+
+
 <!-- ![result of run_simulation.py](../assets/rl_random_action_tutorial_env.png)-->
 
 <p align="center">
@@ -88,8 +100,14 @@ rl_train/results/train_session_[date-time]/
 
 Once you've verified everything works, run full training:
 
+- windows:
 ```bash
 python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
+```
+
+- mac:
+```bash
+mjpython rl_train/run_train.py --config_file_path rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
 ```
 
 This file is the default example configuration we provide.  
@@ -136,9 +154,16 @@ You can run a trained policy in realtime simulation:
   <img src="../assets/realtime_eval_flat_tutorial.gif" alt="result of run_simulation.py" width="50%">
 </p>
 
+- windows:
 ```bash
 python rl_train/run_train.py --config_file_path [path/to/config.json] --config.env_params.prev_trained_policy_path [path/to/model_file] --flag_realtime_evaluate
 ```
+
+- mac:
+```bash
+mjpython rl_train/run_train.py --config_file_path [path/to/config.json] --config.env_params.prev_trained_policy_path [path/to/model_file] --flag_realtime_evaluate
+```
+
 
 **Parameters:**
 - `[path/to/config.json]`: Path to the JSON file in the train_session folder
@@ -149,8 +174,13 @@ python rl_train/run_train.py --config_file_path [path/to/config.json] --config.e
 </p>
 
 **Example (evaluating with a pretrained model we provide):**
+- windows:
 ```bash
 python rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/session_config.json --config.env_params.prev_trained_policy_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/trained_models/model_19939328 --flag_realtime_evaluate
+```
+- mac:
+```bash
+mjpython rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/session_config.json --config.env_params.prev_trained_policy_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/trained_models/model_19939328 --flag_realtime_evaluate
 ```
 
 ## Next Steps
