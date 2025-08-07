@@ -28,7 +28,7 @@ import logging
 
 # Import the necessary interfaces from framework
 try:
-    from ctrl.reflex import myoLeg_reflex
+    from ctrl_optim.ctrl.reflex import myoLeg_reflex
     from results.evaluation.exo_visualization import ExoVisualizer
 except ImportError as e:
     print(f"Error importing required modules: {e}")

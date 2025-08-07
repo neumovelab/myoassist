@@ -20,11 +20,11 @@ import os
 
 import copy
 from scipy.interpolate import PchipInterpolator
-from ctrl.exo.fourparam_spline_ctrl import FourParamSplineController
-from ctrl.exo.npoint_spline_ctrl import NPointSplineController
+from ctrl_optim.ctrl.exo.fourparam_spline_ctrl import FourParamSplineController
+from ctrl_optim.ctrl.exo.npoint_spline_ctrl import NPointSplineController
 
 # Use the unified model path resolver
-from optim.optim_utils.resolve_path import resolve_model_path
+from ctrl_optim.optim.optim_utils.resolve_path import resolve_model_path
 
 class myoLeg_reflex(object):
 

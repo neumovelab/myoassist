@@ -12,7 +12,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 # Import the necessary modules
-from ctrl.reflex.reflex_interface import myoLeg_reflex
+from ctrl_optim.ctrl.reflex.reflex_interface import myoLeg_reflex
 
 
 def main():

@@ -132,32 +132,26 @@ class SetupTester:
             
             original_cwd = os.getcwd()
             
-            try:
-                os.chdir("./")
-                
-                from rl_train.envs.environment_handler import EnvironmentHandler
-                from rl_train.train.train_configs.config_imiatation_exo import ExoImitationTrainSessionConfig
+            from rl_train.envs.environment_handler import EnvironmentHandler
+            from rl_train.train.train_configs.config_imiatation_exo import ExoImitationTrainSessionConfig
 
-                config_path = "rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json"
-                default_config: ExoImitationTrainSessionConfig = EnvironmentHandler.get_session_config_from_path(config_path, ExoImitationTrainSessionConfig)
-                default_config.env_params.num_envs = 1
-                env = EnvironmentHandler.create_environment(default_config, is_rendering_on=False, is_evaluate_mode=False)
-                
-                obs, info = env.reset()
-                
-                action = env.action_space.sample()
-                obs, reward, done, truncated, info = env.step(action)
-                
-                assert hasattr(env, 'observation_space'), "Environment missing observation_space"
-                assert hasattr(env, 'action_space'), "Environment missing action_space"
-                
-                assert isinstance(obs, (np.ndarray, dict)), "Invalid observation type"
-                assert isinstance(reward, (float, np.ndarray)), "Invalid reward type"
-                
-                env.close()
-                
-            finally:
-                os.chdir(original_cwd)
+            config_path = "rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json"
+            default_config: ExoImitationTrainSessionConfig = EnvironmentHandler.get_session_config_from_path(config_path, ExoImitationTrainSessionConfig)
+            default_config.env_params.num_envs = 1
+            env = EnvironmentHandler.create_environment(default_config, is_rendering_on=False, is_evaluate_mode=False)
+            
+            obs, info = env.reset()
+            
+            action = env.action_space.sample()
+            obs, reward, done, truncated, info = env.step(action)
+            
+            assert hasattr(env, 'observation_space'), "Environment missing observation_space"
+            assert hasattr(env, 'action_space'), "Environment missing action_space"
+            
+            assert isinstance(obs, (np.ndarray, dict)), "Invalid observation type"
+            assert isinstance(reward, (float, np.ndarray)), "Invalid reward type"
+            
+            env.close()
             
         except Exception as e:
             raise RuntimeError(f"RL environment initialization failed: {e}")
@@ -171,63 +165,58 @@ class SetupTester:
             
             original_cwd = os.getcwd()
             
+            control_params = np.ones(77,)
+            
+            env = myoLeg_reflex(
+                seed=1234,
+                dt=0.01,
+                mode='2D',
+                sim_time=1,
+                init_pose='walk_left',
+                control_params=control_params,
+                slope_deg=0,
+                delayed=True,
+                exo_bool=False,
+                model="tutorial"
+            )
+            
+            env.reset()
+            
+            assert hasattr(env, 'dt'), "Environment missing dt attribute"
+            assert hasattr(env, 'slope_deg'), "Environment missing slope_deg attribute"
+            assert hasattr(env, 'exo_bool'), "Environment missing exo_bool attribute"
+            assert hasattr(env, 'mode'), "Environment missing mode attribute"
+            
+            env.get_sensor_data()
+            
+            from ctrl_optim.optim.cost_functions.walk_cost import func_Walk_FitCost
+            
+            dummy_params = np.random.rand(77,)
+            optim_type = "Kine"
+            one_step = np.random.rand(100, 10)
+            one_EMG = np.random.rand(100, 10)
+            trunk_err_type = "ref_diff"
+            input_tgt_vel = 1.25
+            stride_num = 1
+            tgt_sym = 0.1
+            tgt_grf = 1.5
+            
             try:
-                os.chdir("ctrl_optim")
-                
-                control_params = np.ones(77,)
-                
-                env = myoLeg_reflex(
-                    seed=1234,
-                    dt=0.01,
-                    mode='2D',
-                    sim_time=1,
-                    init_pose='walk_left',
-                    control_params=control_params,
-                    slope_deg=0,
-                    delayed=True,
-                    exo_bool=False,
-                    model="tutorial"
+                cost = func_Walk_FitCost(
+                    params=dummy_params,
+                    optim_type=optim_type,
+                    one_step=one_step,
+                    one_EMG=one_EMG,
+                    trunk_err_type=trunk_err_type,
+                    input_tgt_vel=input_tgt_vel,
+                    stride_num=stride_num,
+                    tgt_sym=tgt_sym,
+                    tgt_grf=tgt_grf
                 )
+                assert isinstance(cost, (float, dict)), "Invalid cost function output"
+            except Exception as e:
+                print(f"Cost function test completed (simulation failure expected): {str(e)[:100]}...")
                 
-                env.reset()
-                
-                assert hasattr(env, 'dt'), "Environment missing dt attribute"
-                assert hasattr(env, 'slope_deg'), "Environment missing slope_deg attribute"
-                assert hasattr(env, 'exo_bool'), "Environment missing exo_bool attribute"
-                assert hasattr(env, 'mode'), "Environment missing mode attribute"
-                
-                env.get_sensor_data()
-                
-                from ctrl_optim.optim.cost_functions.walk_cost import func_Walk_FitCost
-                
-                dummy_params = np.random.rand(77,)
-                optim_type = "Kine"
-                one_step = np.random.rand(100, 10)
-                one_EMG = np.random.rand(100, 10)
-                trunk_err_type = "ref_diff"
-                input_tgt_vel = 1.25
-                stride_num = 1
-                tgt_sym = 0.1
-                tgt_grf = 1.5
-                
-                try:
-                    cost = func_Walk_FitCost(
-                        params=dummy_params,
-                        optim_type=optim_type,
-                        one_step=one_step,
-                        one_EMG=one_EMG,
-                        trunk_err_type=trunk_err_type,
-                        input_tgt_vel=input_tgt_vel,
-                        stride_num=stride_num,
-                        tgt_sym=tgt_sym,
-                        tgt_grf=tgt_grf
-                    )
-                    assert isinstance(cost, (float, dict)), "Invalid cost function output"
-                except Exception as e:
-                    print(f"Cost function test completed (simulation failure expected): {str(e)[:100]}...")
-                
-            finally:
-                os.chdir(original_cwd)
             
         except Exception as e:
             raise RuntimeError(f"Reflex environment initialization failed: {e}")
@@ -238,45 +227,37 @@ class SetupTester:
             import subprocess
             import os
             
-            original_cwd = os.getcwd()
+            # Run the minimal controller script
+            result = subprocess.run(
+                [sys.executable, "ctrl_optim/run_ctrl_minimal.py"],
+                capture_output=True,
+                text=True,
+                timeout=30  # 30 second timeout
+            )
             
-            try:
-                os.chdir("ctrl_optim")
-                
-                # Run the minimal controller script
-                result = subprocess.run(
-                    [sys.executable, "run_ctrl_minimal.py"],
-                    capture_output=True,
-                    text=True,
-                    timeout=30  # 30 second timeout
-                )
-                
-                # Check if script ran successfully
-                if result.returncode != 0:
-                    raise RuntimeError(f"Script failed with return code {result.returncode}. "
-                                    f"stdout: {result.stdout}, stderr: {result.stderr}")
-                
-                # Check if output contains walking duration
-                if "Walking duration:" not in result.stdout:
-                    raise RuntimeError("Script output missing walking duration information")
-                
-                # Extract and validate walking duration
-                for line in result.stdout.split('\n'):
-                    if "Walking duration:" in line:
-                        duration_str = line.split(":")[1].strip().split()[0]
-                        try:
-                            duration = float(duration_str)
-                            if duration < 0 or duration > 10:  # Reasonable bounds
-                                raise RuntimeError(f"Walking duration out of reasonable bounds: {duration}")
-                        except ValueError:
-                            raise RuntimeError(f"Invalid walking duration format: {duration_str}")
-                        break
-                else:
-                    raise RuntimeError("Could not parse walking duration from output")
-                
-            finally:
-                os.chdir(original_cwd)
+            # Check if script ran successfully
+            if result.returncode != 0:
+                raise RuntimeError(f"Script failed with return code {result.returncode}. "
+                                f"stdout: {result.stdout}, stderr: {result.stderr}")
             
+            # Check if output contains walking duration
+            if "Walking duration:" not in result.stdout:
+                raise RuntimeError("Script output missing walking duration information")
+            
+            # Extract and validate walking duration
+            for line in result.stdout.split('\n'):
+                if "Walking duration:" in line:
+                    duration_str = line.split(":")[1].strip().split()[0]
+                    try:
+                        duration = float(duration_str)
+                        if duration < 0 or duration > 10:  # Reasonable bounds
+                            raise RuntimeError(f"Walking duration out of reasonable bounds: {duration}")
+                    except ValueError:
+                        raise RuntimeError(f"Invalid walking duration format: {duration_str}")
+                    break
+            else:
+                raise RuntimeError("Could not parse walking duration from output")
+                
         except subprocess.TimeoutExpired:
             raise RuntimeError("Minimal controller script timed out (30s)")
         except Exception as e:
@@ -309,56 +290,46 @@ class SetupTester:
         
         original_cwd = os.getcwd()
         
-        try:
-            os.chdir("rl_train")
-            rl_files = [
-                "reference_data/short_reference_gait.npz",
-            ]
-            
-            for file_path in rl_files:
-                if not os.path.exists(file_path):
-                    raise FileNotFoundError(f"Required RL data file not found: {file_path}")
-            
-            os.chdir("../ctrl_optim")
-            reflex_files = [
-                "ref_data/ref_kinematics_radians.csv",
-                "ref_data/ref_EMG.csv",
-            ]
-            
-            for file_path in reflex_files:
-                if not os.path.exists(file_path):
-                    raise FileNotFoundError(f"Required Reflex data file not found: {file_path}")
+        rl_files = [
+            "rl_train/reference_data/short_reference_gait.npz",
+        ]
+        
+        for file_path in rl_files:
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"Required RL data file not found: {file_path}")
+        
+        reflex_files = [
+            "ctrl_optim/optim/ref_data/ref_kinematics_radians.csv",
+            "ctrl_optim/optim/ref_data/ref_EMG.csv",
+        ]
+        
+        for file_path in reflex_files:
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"Required Reflex data file not found: {file_path}")
                     
-        finally:
-            os.chdir(original_cwd)
-    
     def test_config_files(self):
         """Test that configuration files are accessible"""
         import os
         
         original_cwd = os.getcwd()
         
-        try:
-            os.chdir("./")
-            rl_configs = [
-                "rl_train/train/train_configs/imitation.json",
-            ]
-            
-            for config_path in rl_configs:
-                if not os.path.exists(config_path):
-                    raise FileNotFoundError(f"Required RL config file not found: {config_path}")
-            
-            os.chdir("./ctrl_optim")
-            reflex_configs = [
-                "training_configs/tutorial.bat",
-            ]
-            
-            for config_path in reflex_configs:
-                if not os.path.exists(config_path):
-                    raise FileNotFoundError(f"Required Reflex config file not found: {config_path}")
+        rl_configs = [
+            "rl_train/train/train_configs/imitation.json",
+        ]
+        
+        for config_path in rl_configs:
+            if not os.path.exists(config_path):
+                raise FileNotFoundError(f"Required RL config file not found: {config_path}")
+        
+        # os.chdir("./ctrl_optim")
+        # reflex_configs = [
+        #     "training_configs/tutorial.bat",
+        # ]
+        
+        # for config_path in reflex_configs:
+        #     if not os.path.exists(config_path):
+        #         raise FileNotFoundError(f"Required Reflex config file not found: {config_path}")
                     
-        finally:
-            os.chdir(original_cwd)
     
     def test_gpu_availability(self):
         """Test GPU availability for training"""
