@@ -94,12 +94,12 @@ Here is a quick overview of the main entry point scripts in the [`rl_train`](htt
 See how to create a simulation environment and run for 150 frames(5sec):
 
 ```bash
-python rl_train/run_simulation.py
+python rl_train/run_sim_minimal.py
 ```
 
 - mac:
 ```bash
-mjpython rl_train/run_simulation.py
+mjpython rl_train/run_sim_minimal.py
 ```
 > **Note:**
 If you need MuJoCo visualizer in mac os, simply use `mjpython` instead of `python` to run your script.  
@@ -109,10 +109,10 @@ You do not need to install anything extra—just change the command:
 If you see the error message `ModuleNotFoundError: No module named 'flatten_dict'`, simply run the command again. This will usually resolve the problem automatically.
 
 
-<!-- ![result of run_simulation.py](../assets/rl_random_action_tutorial_env.png)-->
+<!-- ![result of run_sim_minimal.py](../assets/rl_random_action_tutorial_env.png)-->
 
 <p align="center">
-  <img src="../assets/rl_random_action_tutorial_env.png" alt="result of run_simulation.py" width="50%">
+  <img src="../assets/rl_random_action_tutorial_env.png" alt="result of run_sim_minimal.py" width="50%">
 </p>
 
 
@@ -207,9 +207,9 @@ For more details on how to customize these parameters, see the [Understanding Co
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
-<!-- ![result of run_simulation.py](/docs/assets/realtime_eval_flat_tutorial.gif) -->
+<!-- ![result of run_sim_minimal.py](/docs/assets/realtime_eval_flat_tutorial.gif) -->
 <p align="center">
-  <img src="../assets/realtime_eval_flat_tutorial.gif" alt="result of run_simulation.py" width="50%">
+  <img src="../assets/realtime_eval_flat_tutorial.gif" alt="result of run_sim_minimal.py" width="50%">
 </p>
 
 - windows:

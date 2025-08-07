@@ -15,7 +15,7 @@ This page provides an overview of the directory layout and the main responsibili
 
 | Script | Purpose |
 |--------|---------|
-| `run_simulation.py` | Quickly spin up an environment and roll **random actions** for smoke-testing the simulation. |
+| `run_sim_minimal.py` | Quickly spin up an environment and roll **random actions** for smoke-testing the simulation. |
 | `run_train.py` | Main **training launcher**. Reads a JSON config, constructs environments, and starts Stable-Baselines3 PPO training. |
 | `run_policy_eval.py` | Replay a **trained policy** in evaluation mode and generate analysis artefacts. |
 
