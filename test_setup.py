@@ -421,17 +421,9 @@ class SetupTester:
         if failed_tests == 0:
             print(f"\n{Colors.GREEN}{Colors.BOLD}✓ All tests passed! Your MyoAssist setup is working correctly.{Colors.END}")
             print(f"\n{Colors.BLUE}Next steps:{Colors.END}")
-            print("1. Try running a simple RL training session:")
-            print("   python -m rl_train.run_policy --config_file_path rl_train/train_configs/imitation.json")
-            print("2. Try running a CMA-ES optimization:")
-            print("   python -m ctrl_optim.train --model tutorial --sim_time 5 --maxiter 10")
         else:
             print(f"\n{Colors.RED}{Colors.BOLD}✗ Some tests failed. Please check the error messages above.{Colors.END}")
             print(f"\n{Colors.YELLOW}Troubleshooting tips:{Colors.END}")
-            print("1. Make sure all dependencies are installed: pip install -r requirements.txt")
-            print("2. Check that MuJoCo license is properly configured")
-            print("3. Verify that all data files are present in the repository")
-            print("4. Try reinstalling the package: pip install -e .")
 
 def main():
     """Main function to run the setup verification"""
