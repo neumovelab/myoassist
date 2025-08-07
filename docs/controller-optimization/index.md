@@ -9,11 +9,9 @@ layout: home
 
 **Reflex-based controller for assistive devices using parameter optimization**
 
-<div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
-  <div style="flex: 1; text-align: center;">
-    <img src="../assets/exo_vis.gif" alt="Controller Optimization Demo" style="max-width: 75%; height: auto;">
-    <!-- <div>Controller Optimization Demo</div> -->
-  </div>
+<div style="text-align: center;">
+  <img src="../assets/exo_vis.gif" alt="Controller Optimization Demo" style="max-width: 75%; height: auto;">
+  <!-- <div>Controller Optimization Demo</div> -->
 </div>
 
 Controller optimization in MyoAssist enables optimization of a reflex-based musculoskeletal model controller combined with exoskeleton controllers. Using CMA-ES (Covariance Matrix Adaptation Evolution Strategy), this framework can produce controllers that achieve diverse performance objectives.
