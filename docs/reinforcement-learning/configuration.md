@@ -58,6 +58,8 @@ TrainSessionConfigBase
 
 ### Evaluate Parameters
 
+These parameters are provided as a list of dictionaries, where each dictionary represents a different evaluation configuration. Multiple configurations will be executed in sequence.
+
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `num_timesteps` | Number of timesteps for evaluation | 200 |
@@ -68,6 +70,31 @@ TrainSessionConfigBase
 | `cam_type` | Camera type | "follow" |
 | `cam_distance` | Camera distance | 2.5 |
 | `visualize_activation` | Visualize muscle activation | true |
+
+**Example Configuration:**
+<details>
+<summary>Click to expand example configuration</summary>
+
+```json
+[
+  {
+    "num_timesteps": 200,
+    "min_target_velocity": 1.25,
+    "max_target_velocity": 1.25,
+    "velocity_mode": "UNIFORM",
+    ...
+  },
+  {
+    "num_timesteps": 300,
+    "min_target_velocity": 1.0,
+    "max_target_velocity": 2.0,
+    "velocity_mode": "SINUSOIDAL"
+    ...
+    
+  }
+]
+```
+</details>
 
 ### Logger Parameters
 
