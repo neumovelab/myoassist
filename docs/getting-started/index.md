@@ -9,12 +9,6 @@ layout: home
 
 Welcome to MyoAssist! This section will help you get up and running with the framework.
 
-## Quick Navigation
-
-- [Installation](#installation)
-- [Quick Start Guide](#quick-start)
-- [Available Models](#available-models)
-
 ## Prerequisites
 
 Before you begin, make sure you have:
