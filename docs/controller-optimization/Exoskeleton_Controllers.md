@@ -52,6 +52,8 @@ This is a version of a widely used controller defined by four parameters that de
 
 <p align="center">
   <img src="../assets/4param.png" alt="4-Parameter Controller Diagram" width="350"/>
+  <br>
+  <i>4 parameter phase-based spline control</i>
 </p>
 
 ### Controller B: N-Point Spline (`npoint_spline_ctrl.py`)
@@ -64,6 +66,8 @@ This is a more flexible controller that defines the torque profile using a varia
 
 <p align="center">
   <img src="../assets/npoint.png" alt="NPoint Controller Diagram" width="350"/>
+  <br>
+  <i>n-parameter spline control</i>
 </p>
 
 ## 3. Integration and Optimization
@@ -106,6 +110,9 @@ A more complex option within the framework is the **bootstrapping** capability f
 
 <p align="center">
   <img src="../assets/bootstrap.png" alt="Bootstrap Diagram" width="600"/>
+  <br>
+  <i>n-parameter spline bootstrapping logic</i>
 </p>
+
 
 This method of bootstrapping provides a clean way to increase or decrease the complexity of the exoskeleton controller while transferring knowledge from previous optimization runs.

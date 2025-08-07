@@ -43,6 +43,7 @@ The MuJoCo world frame uses a **(+x forward, +y left, +z up)** coordinate system
 <img src="../assets/ducks.png" width="600"/>
 </div>
 <div align="center">
+<i>Rubber duckie defined in the world frame at life-size vs. defined in the body frame at model-scale</i>
 </div>
 
 ## 4. Loading Mesh Files
@@ -158,6 +159,7 @@ When adding devices to the feet (e.g., shoes), you must update the model's initi
 <img src="../assets/contacts.png" width="600"/>
 </div>
 <div align="center">
+<i>Incorrect contacts and forces vs. corrected contacts and forces</i>
 </div>
 
 ## 8. Using the MuJoCo Visualizer
