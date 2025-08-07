@@ -10,7 +10,7 @@ nav_order: 1
 
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
-    <img src="/assets/train_session_20250728-161129_tutorial_partial_obs_replay.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
+    <img src="assets/train_session_20250728-161129_tutorial_partial_obs_replay.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
     <!-- <div>Flat Terrain</div> -->
   </div>
 </div>
@@ -18,7 +18,7 @@ nav_order: 1
 MyoAssist is a package within [**MyoSuite**](https://sites.google.com/view/myosuite), a collection of musculoskeletal environments built on [**MuJoCo**](https://mujoco.org/) for reinforcement learning and control research. It is developed and maintained by the [**NeuMove Lab**](https://neumove.org/) at Northeastern University. We aim to bridge neuroscience, biomechanics, robotics, and machine learning to advance the design of assistive devices and deepen our understanding of human movement.
 
 <div style="text-align:center;">
-   <img src="/assets/myoassist_tree.png" alt="Diagram" style="width:70%;">
+   <img src="assets/myoassist_tree.png" alt="Diagram" style="width:70%;">
 </div>
 
 MyoAssist consists of three main components that together support simulation, training, and analysis of human–device interaction:
