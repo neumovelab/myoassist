@@ -130,8 +130,6 @@ class SetupTester:
             import numpy as np
             import os
             
-            original_cwd = os.getcwd()
-            
             from rl_train.envs.environment_handler import EnvironmentHandler
             from rl_train.train.train_configs.config_imiatation_exo import ExoImitationTrainSessionConfig
 
@@ -161,9 +159,6 @@ class SetupTester:
         try:
             from ctrl_optim.ctrl.reflex.reflex_interface import myoLeg_reflex
             import numpy as np
-            import os
-            
-            original_cwd = os.getcwd()
             
             control_params = np.ones(77,)
             
@@ -288,8 +283,6 @@ class SetupTester:
         """Test that required data files are accessible"""
         import os
         
-        original_cwd = os.getcwd()
-        
         rl_files = [
             "rl_train/reference_data/short_reference_gait.npz",
         ]
@@ -310,8 +303,6 @@ class SetupTester:
     def test_config_files(self):
         """Test that configuration files are accessible"""
         import os
-        
-        original_cwd = os.getcwd()
         
         rl_configs = [
             "rl_train/train/train_configs/imitation.json",
