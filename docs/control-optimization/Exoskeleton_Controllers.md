@@ -11,7 +11,7 @@ This document details the architecture, implementation, and optimization of the 
 
 ## Overview
 
-Each exoskeleton's torque profile is governed by one of two spline-based controllers that are active during the stance phase of the gait cycle. The parameters of these controllers are optimized alongside the neuromuscular reflex parameters by the CMA-ES algorithm (**[Running_Optimizations](./Running_Optimizations.md)**).
+Each exoskeleton's torque profile is governed by one of two spline-based controllers that are active during the stance phase of the gait cycle. The parameters of these controllers are optimized alongside the neuromuscular reflex parameters by the CMA-ES algorithm (**[Running_Optimizations](Running_Optimizations)**).
 
 ## 1. Actuator Definition
 

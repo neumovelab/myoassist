@@ -54,8 +54,8 @@ MyoAssist’s reinforcement learning (RL) pipeline is built on top of **Stable-B
 
 ## Key Features
 
-- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](network-index-handler.md)).
-- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](terrain-types.md)).
+- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](network-index-handler)).
+- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](terrain-types)).
 - **Reference Motion Imitation** – Optional imitation reward using ground-truth gait trajectories.
 - **Realtime Evaluation** – Run policies in realtime with `--flag_realtime_evaluate`.
 

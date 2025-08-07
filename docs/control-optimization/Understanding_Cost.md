@@ -81,7 +81,7 @@ The primary constraints are:
 - **Velocity**: The average velocity must be close to the target velocity.
 - **Pelvis Orientation**: The pelvis must remain reasonably upright (for 3D models).
 
-Values for these thresholds and targets are set through the config files and in `train.py` (**[Running_Optimizations](./Running_Optimizations.md)**).
+Values for these thresholds and targets are set through the config files and in `train.py` (**[Running_Optimizations](Running_Optimizations)**).
 
 If these constraints are not met, the cost is calculated as:
 

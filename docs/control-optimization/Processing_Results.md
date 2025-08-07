@@ -92,4 +92,4 @@ Create a `.json` file to specify the processing parameters. See `myoassist_refle
 
 While this processing pipeline is powerful for generating detailed reports, sometimes you just want to quickly watch a video of a specific controller. For this purpose, the **`sample_run.ipynb`** notebook is the ideal tool.
 
-Please refer to the **[Running a Simulation](./Running_Simulations.md)** guide for detailed instructions on how to use the notebook to load any parameter file and generate a video. 
+Please refer to the **[Running a Simulation](Running_Simulations)** guide for detailed instructions on how to use the notebook to load any parameter file and generate a video. 
