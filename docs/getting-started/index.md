@@ -30,12 +30,9 @@ git clone https://github.com/neumovelab/myoassist.git
 cd myoassist
 ```
 
-### Step 2: Install the Package
-```bash
-pip install -e .
-```
 
-### step 3: set Virtual Environment(venv)
+
+### step 2: set Virtual Environment(venv)
 
 > This step is not mandatory if you are already familiar with Python virtual environments and prefer to set up your own environment.
 
@@ -45,6 +42,12 @@ Virtual environments (venv) are important because they allow you to create isola
 ### How to set up a virtual environment
 
 1. **Create a virtual environment:**
+
+   - On **Linux/macOS**:
+   ```bash
+   python3.11 -m venv .my_venv
+   ```
+   - On **Windows**:
    ```bash
    py -3.11 -m venv .my_venv
    ```
@@ -75,10 +78,16 @@ Virtual environments (venv) are important because they allow you to create isola
 
 
 
-3. **Deactivate the virtual environment:**
+3. **Deactivate the virtual environment (optional):**
    ```bash
    deactivate
    ```
+   You only need to deactivate the virtual environment when you are completely done working on the project, or if you want to switch to a different virtual environment.  
+   In most cases, you do not need to deactivate unless you specifically want to leave the current environment.
 
 After creating and activating the virtual environment, you can install the required packages. This ensures that your dependencies are managed per project and do not affect your global Python installation.
 
+### Step 3: Install the Package
+```bash
+pip install -e .
+```
