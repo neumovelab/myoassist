@@ -1,9 +1,3 @@
----
-title: Home
-layout: home
-nav_order: 1
----
-
 # MyoAssist
 
 **An open-source Python toolkit for simulating and optimizing assistive devices in neuromechanical simulations**
