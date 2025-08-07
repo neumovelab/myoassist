@@ -11,10 +11,6 @@ import platform
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 
-# macOS Tkinter compatibility fix
-if platform.system() == 'Darwin':  # macOS
-    os.environ['TK_SILENCE_DEPRECATION'] = '1'
-
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
@@ -150,29 +146,14 @@ class ParameterSelector:
         self.result_dirs = []
         self._evaluate_started = False
 
-        # macOS-compatible Tkinter root creation
-        if platform.system() == 'Darwin':  # macOS
-            try:
-                self.root = tk.Tk()
-                self.root.title("Controller Optimization evaluation Pipeline")
-                self.root.geometry("550x650")
-                self.root.configure(bg="#F0F0F0")
-            except Exception as e:
-                print(f"Warning: Could not configure Tkinter window on macOS: {e}")
-                self.root = tk.Tk()
-        else:
-            self.root = tk.Tk()
-            self.root.title("Controller Optimization evaluation Pipeline")
-            self.root.geometry("550x650")
-            self.root.configure(bg="#F0F0F0")
+        self.root = tk.Tk()
+        self.root.title("Controller Optimization evaluation Pipeline")
+        self.root.geometry("550x650")
+        self.root.configure(bg="#F0F0F0")
 
         # --- Style Configuration ---
-        try:
-            style = ttk.Style(self.root)
-            style.theme_use('clam')
-        except Exception as e:
-            print(f"Warning: Could not set ttk theme: {e}")
-            style = ttk.Style(self.root)
+        style = ttk.Style(self.root)
+        style.theme_use('clam')
 
         # Colors
         BG_COLOR = "#F0F0F0"
@@ -2083,7 +2064,10 @@ def resolve_path(path, base_dir=None):
     
     if os.path.isabs(path):
         return path
-    return os.path.normpath(os.path.join(base_dir, '..', path))
+    
+    # Fix: Don't add '..' when resolving paths, just join with base_dir
+    # The base_dir is already at the evaluation module level, so we don't need to go up
+    return os.path.normpath(os.path.join(path))
 
 def main():
     """Main function to run the evaluation pipeline"""
@@ -2112,14 +2096,18 @@ def main():
         try:
             config_path = args.config
             if not os.path.isabs(config_path):
-                if os.path.exists(config_path):
+                # First try the eval_config subdirectory
+                eval_config_path = os.path.join(get_module_dir(), 'eval_config', config_path)
+                if os.path.exists(eval_config_path):
+                    config_path = eval_config_path
+                elif os.path.exists(config_path):
                     config_path = os.path.abspath(config_path)
                 else:
                     module_config_path = os.path.join(get_module_dir(), config_path)
                     if os.path.exists(module_config_path):
                         config_path = module_config_path
                     else:
-                        raise FileNotFoundError(f"Config file not found at '{args.config}' or '{module_config_path}'")
+                        raise FileNotFoundError(f"Config file not found at '{args.config}', '{eval_config_path}', or '{module_config_path}'")
 
             print(f"\nRunning with config file: {config_path}")
             
