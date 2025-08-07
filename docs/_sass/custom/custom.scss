@@ -27,3 +27,71 @@ a:hover {
 .main-content .anchor-heading svg {
     color: #155257 !important; 
 }
+
+// Reduce width of the left sidebar menu to move it left
+.side-bar {
+    width: 15rem !important;
+}
+
+@media (min-width: 50rem) {
+    .side-bar {
+        width: 14rem !important;
+    }
+}
+
+// Adjust main content margin to match sidebar width
+.main {
+    margin-left: 18rem !important;
+}
+
+@media (min-width: 50rem) {
+    .main {
+        margin-left: 18rem !important;
+    }
+}
+
+// Make main content extend further to the right
+.main-content {
+    max-width: none !important;
+    width: calc(100vw - 35rem) !important;
+}
+
+// Adjust the main header to give more space to the aux-nav
+.main-header {
+    @media (min-width: 50rem) {
+        justify-content: space-between !important;
+        padding-right: 0 !important;
+        width: calc(100vw - 35rem) !important;  // Match your sidebar width
+    }
+}
+
+// Make the aux-nav take up more of the available space
+.aux-nav {
+    @media (min-width: 50rem) {
+        flex: 1 !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        padding-right: 0 !important;
+        margin-right: 0 !important;
+        width: calc(100vw - 35rem) !important;  // Match main header width
+    }
+    
+    @media (min-width: 66.5rem) {
+        padding-right: 0 !important;
+        margin-right: 0 !important;
+    }
+}
+
+// Ensure the list items are pushed to the far right
+.aux-nav .aux-nav-list {
+    @media (min-width: 50rem) {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        justify-content: flex-end !important;
+    }
+    
+    @media (min-width: 66.5rem) {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+}

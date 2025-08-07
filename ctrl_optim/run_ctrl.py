@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import subprocess
 import platform
+import glob
+from pathlib import Path
 
 # Add the current directory to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -46,11 +48,25 @@ def open_video_in_new_window(video_path):
         print(f"Video saved to: {video_path}")
 
 
+def find_config_file(results_dir):
+    """Find configuration file (.bat or .sh) in the results directory"""
+    # Look for both .bat and .sh files
+    config_files = []
+    for ext in ["*.bat", "*.sh"]:
+        config_files.extend(glob.glob(os.path.join(results_dir, ext)))
+    
+    if not config_files:
+        raise FileNotFoundError(f"No configuration file (.bat or .sh) found in directory: {results_dir}")
+    
+    # Return the first found configuration file
+    return config_files[0]
+
+
 def main():
     """Main function to run the simulation."""
     
     # --- Load from Optimization Results ---
-    LOAD_FROM_FILE = False
+    LOAD_FROM_FILE = True
     notebook_dir = os.getcwd()
     PARAMS_FILE_PATH = os.path.join(notebook_dir, "results", "optim_results", "exo_npoint_tutorial", "myorfl_Kine_2D_1_25_2025Jul25_1827_None_BestLast.txt")
     
@@ -83,17 +99,14 @@ def main():
         
         results_dir = os.path.dirname(PARAMS_FILE_PATH)
         filename = os.path.basename(PARAMS_FILE_PATH)
-        bat_files = [f for f in os.listdir(results_dir) if f.endswith('.bat')]
         
-        if not bat_files:
-            raise FileNotFoundError(f"No .bat configuration file found in directory: {results_dir}")
-        
-        bat_file_path = os.path.join(results_dir, bat_files[0])
+        # Find configuration file (.bat or .sh)
+        config_file_path = find_config_file(results_dir)
         
         env, config, _ = load_params_and_create_testenv(
             results_dir=results_dir,
             filename=filename,
-            bat_file_path=bat_file_path,
+            bat_file_path=config_file_path,
             sim_time=SIMULATION_TIME
         )
         print_config_summary(config, title="Loaded Configuration")
