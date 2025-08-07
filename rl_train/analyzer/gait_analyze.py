@@ -30,6 +30,12 @@ class GaitAnalyzer:
         "KNEE": (-70, 5),
         "ANKLE": (-30, 25),
     }
+    # larger range
+    # JOINT_LIMIT = {
+    #     "HIP": (-30, 50),
+    #     "KNEE": (-95, 5),
+    #     "ANKLE": (-30, 25),
+    # }
 
     def __init__(self, gait_data:GaitData, segmented_ref_data:dict, show_plot:bool):
         self.gait_data = gait_data
