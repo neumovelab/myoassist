@@ -73,7 +73,7 @@ Here is a quick overview of the main entry point scripts in the [`rl_train`](htt
 
 | File | Purpose |
 |------|---------|
-| [`run_simulation.py`](https://github.com/neumovelab/myoassist/blob/myoassist0.1prepare/rl_train/run_simulation.py) | The simplest way to create and test a MyoAssist RL environment. No training, just environment creation and random actions. |
+| [`run_sim_minimal.py`](https://github.com/neumovelab/myoassist/blob/myoassist0.1prepare/rl_train/run_sim_minimal.py) | The simplest way to create and test a MyoAssist RL environment. No training, just environment creation and random actions. |
 | [`run_train.py`](https://github.com/neumovelab/myoassist/blob/myoassist0.1prepare/rl_train/run_train.py) | Main entry point for running RL training sessions. Loads configuration, sets up environments, and starts training. |
 | [`run_policy_eval.py`](https://github.com/neumovelab/myoassist/blob/myoassist0.1prepare/rl_train/run_policy_eval.py) | Entry point for evaluating and analyzing trained policies. Useful for testing policy performance and generating analysis results. |
 
