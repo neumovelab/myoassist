@@ -176,6 +176,7 @@ rl_train/results/train_session_[date-time]/
 - `analyze_results_[timesteps]_[evaluate_number]`: Training analysis results
 - `session_config.json`: Configuration used for this training
 - `train_log.json`: Training log data
+- `trained_models/`: Trained models(`.zip`) saved at each log interval - can be used for evaluation or transfer learning
 
 ## Full Training (When Ready)
 
@@ -194,6 +195,16 @@ mjpython rl_train/run_train.py --config_file_path rl_train/train/train_configs/i
 This file is the default example configuration we provide.  
 For more details, see the [Understanding Configuration](./configuration.html) section.
 
+## Transfer Learning
+<img src="../assets/transfer_learning_explanation.png" alt="Transfer Learning" style="max-width: 100%; height: auto;">
+
+```bash
+python rl_train/run_train.py --config_file_path [path/to/transfer_learning/config.json] --config.env_params.prev_trained_policy_path [path/to/pretrained_model]
+```
+
+or you can specify the `env_params.prev_trained_policy_path` in config(.json) file
+
+> **Note:** The `[path/to/pretrained_model]` should point to a `.zip` file, but do not include the `.zip` extension in the path.
 
 ## Policy Evaluation
 
