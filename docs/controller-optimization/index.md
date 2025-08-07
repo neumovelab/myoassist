@@ -11,7 +11,7 @@ layout: home
 
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
-    <img src="../assets/exo_vis.gif" alt="Controller Optimization Demo" style="max-width: 100%; height: auto;">
+    <img src="../assets/exo_vis.gif" alt="Controller Optimization Demo" style="max-width: 75%; height: auto;">
     <!-- <div>Controller Optimization Demo</div> -->
   </div>
 </div>

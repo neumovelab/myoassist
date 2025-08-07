@@ -13,6 +13,7 @@ Welcome to MyoAssist! This section will help you get up and running with the fra
 
 Before you begin, make sure you have:
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/) (Make sure to add Python to PATH during installation)
+- [Visual Studio Code](https://code.visualstudio.com/download) (Or other IDE)
 - [MuJoCo 3.3.3](https://github.com/google-deepmind/mujoco/releases/tag/3.3.3)
 - [Git](https://git-scm.com/downloads)
 
