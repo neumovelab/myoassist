@@ -1,5 +1,5 @@
 ---
-title: Terrain Types
+title: Trouble Shooting
 parent: Reinforcement Learning
 nav_order: 3
 layout: home

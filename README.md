@@ -15,7 +15,7 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Documentation](#documentation)
+- [Documentations](#documentations)
 - [Available Models](#available-models)
 - [Project Structure](#project-structure)
 - [Core Components](#core-components)
