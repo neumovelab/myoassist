@@ -5,7 +5,7 @@ theme: just-the-docs
 # Site settings
 url: https://your-github-username.github.io/myoassist
 baseurl: ""
-repo_branch: myoassist0.1prepare
+repo_branch: main
 
 logo: "/assets/myoassist_logo.png"
 
