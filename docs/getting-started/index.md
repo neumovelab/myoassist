@@ -30,16 +30,13 @@ git clone https://github.com/neumovelab/myoassist.git
 cd myoassist
 ```
 
+### Step 2: Set Up Virtual Environment (venv)
 
+> This step is optional if you are already familiar with Python virtual environments and prefer to set up your own environment.
 
-### step 2: set Virtual Environment(venv)
+Virtual environments (venv) are essential because they allow you to create isolated Python environments for your projects. This means each project can have its own dependencies, regardless of what dependencies other projects have. This helps prevent version conflicts and makes your development process more reliable and reproducible.
 
-> This step is not mandatory if you are already familiar with Python virtual environments and prefer to set up your own environment.
-
-
-Virtual environments (venv) are important because they allow you to create isolated Python environments for your projects. This means each project can have its own dependencies, regardless of what dependencies every other project has. This helps prevent version conflicts and makes your development process more reliable and reproducible.
-
-### How to set up a virtual environment
+### How to Set Up a Virtual Environment
 
 1. **Create a virtual environment:**
 
@@ -51,7 +48,7 @@ Virtual environments (venv) are important because they allow you to create isola
    ```bash
    py -3.11 -m venv .my_venv
    ```
-   This will create a new folder named `venv` in your project directory.
+   This will create a new folder named `.my_venv` in your project directory.
 
 2. **Activate the virtual environment:**
    - On **Linux/macOS**:
@@ -62,7 +59,6 @@ Virtual environments (venv) are important because they allow you to create isola
      ```bash
      .my_venv\Scripts\activate
      ```
-
 
 > **Note:**  
 >  
@@ -76,8 +72,6 @@ Virtual environments (venv) are important because they allow you to create isola
 >  
 > This indicates that the virtual environment is currently active.
 
-
-
 3. **Deactivate the virtual environment (optional):**
    ```bash
    deactivate
@@ -90,4 +84,21 @@ After creating and activating the virtual environment, you can install the requi
 ### Step 3: Install the Package
 ```bash
 pip install -e .
+```
+
+### Step 4: Verify Installation
+
+```bash
+python test_setup.py
+```
+
+You should see output similar to this:
+
+```bash
+Test Summary
+----------------------------------------
+Total tests: 13
+Passed: 13
+Failed: 0
+Total time: 13.60s
 ```
