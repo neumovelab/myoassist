@@ -12,3 +12,18 @@ a:hover {
 .nav-list-expander svg {
     color: #155257 !important;
 }
+
+// Custom search icon color (magnifying glass)
+.search-label .search-icon {
+    color: #575757 !important; 
+}
+
+// Custom search icon color when focused
+.search-input:focus + .search-label .search-icon {
+    color: #0f3f42 !important; 
+}
+
+// Custom search result icon color (chain link icon)
+.main-content .anchor-heading svg {
+    color: #155257 !important; 
+}
