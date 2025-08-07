@@ -1,0 +1,7 @@
+{
+    "results_dir": "results/optim_results/tutorial_YOUR RESULTS FOLDER",
+    "evaluation_mode": "short",
+    "output_dir": "evaluation_outputs",
+    "include_best": false,
+    "include_bestlast": true
+}

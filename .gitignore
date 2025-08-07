@@ -90,6 +90,7 @@ celerybeat-schedule
 # Environments
 .env
 .venv*/
+.*venv/
 env/
 venv/
 ENV/
@@ -127,10 +128,8 @@ osl.log
 
 
 # MyoAssist #
-myoassist_rl/train_logs/
-# !myoassist_rl/train_logs/reflex/
-# !myoassist_rl/train_logs/selected/
-
+rl_train/train_logs/
+rl_train/results/
 cma_dump/
 
 train_bash_script.md

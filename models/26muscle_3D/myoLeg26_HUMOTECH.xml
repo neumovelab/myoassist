@@ -259,7 +259,7 @@
                             <body name="r_aft_upper" pos="0.0815 0.036 -0.0465" euler="0 -0.1 0">
                                 <inertial mass="0.14956" pos="-0.01 0.02 0.045" diaginertia="0.00019 0.00046 0.00049"/>
                                 <geom name="r_aft_upper_geom" mesh="r_aft_upper" type="mesh"
-                                    rgba="0.8 0.8 0.8 0.35"/>
+                                    rgba="0.06 0.06 0.06 0.35"/>
                             </body>
 
                             <body name="toes_r" pos="0.1788 -0.002 0.00108">
@@ -282,7 +282,7 @@
                                 <body name="r_fore_upper" pos="0.038 0.0175 -0.0395" euler="0 -0.1 -0.2">
                                     <inertial mass="0.10402" pos="0 0.01 0.05" diaginertia="0.00012 0.0002 0.00015" euler="0 0 -0.2"/>
                                     <geom name="r_fore_upper_geom" mesh="r_fore_upper" type="mesh"
-                                        rgba="0.8 0.8 0.8 0.35"/>
+                                        rgba="0.06 0.06 0.06 0.35"/>
                                 </body>
                             </body>
                         </body>
@@ -421,7 +421,7 @@
                             <body name="l_aft_upper" pos="0.0815 0.036 -0.0465" euler="0 0.1 0">
                                 <inertial mass="0.14956" pos="-0.01 0.02 0.05" diaginertia="0.00019 0.00046 0.00049"/>
                                 <geom name="l_aft_upper_geom" mesh="l_aft_upper" type="mesh"
-                                    rgba="0.8 0.8 0.8 0.35"/>
+                                    rgba="0.06 0.06 0.06 0.35"/>
                             </body>
 
                             <body name="toes_l" pos="0.1788 -0.002 -0.00108">
@@ -445,7 +445,7 @@
                                 <body name="l_fore_upper" pos="0.038 0.0175 -0.0615" euler="0 0.1 -0.2">
                                     <inertial mass="0.10402" pos="0 0.01 0.055" diaginertia="0.00012 0.0002 0.00015" euler="0 0 -0.2"/>
                                     <geom name="l_fore_upper_geom" mesh="l_fore_upper" type="mesh"
-                                        rgba="0.8 0.8 0.8 0.35"/>
+                                        rgba="0.06 0.06 0.06 0.35"/>
                                 </body>
                             </body>
                         </body>

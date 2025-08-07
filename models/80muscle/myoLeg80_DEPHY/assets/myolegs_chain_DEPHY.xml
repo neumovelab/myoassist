@@ -358,14 +358,14 @@
                             </body>
                         </body>
                     </body>
-                    <body name="exo_ilink_r" pos="0.06 0.445 -0.0075">
+                    <body name="exo_ilink_r" pos="0.02 0.405 0">
                         <inertial diaginertia="0.000012 0.000004 0.000015" mass="0.03114" pos="-0.025 -0.435 0.065" quat="1 0 0 0"/>
                         <geom name="exo_ilink_r_geom" mesh="exo_ilink_r_geom" type="mesh"
                             rgba="0.3 0.3 0.3 1"/>
                         <site name="chain_r_P2" pos="-0.05 -0.335 0.065"/>
                     </body>
 
-                    <body name="exo_blink_r" pos="0.06 0.445 -0.0075">
+                    <body name="exo_blink_r" pos="0.022 0.405 0">
                         <inertial diaginertia="0.00006 0.00001 0.00007" mass="0.06831" pos="-0.025 -0.35 0.0675" quat="1 0 0 0"/>
                         <geom name="exo_blink_r_geom" mesh="exo_blink_r_geom" type="mesh"
                             rgba="0.3 0.3 0.3 1"/>
@@ -620,13 +620,13 @@
                             </body> 
                         </body>
                     </body>
-                <body name="exo_ilink_l" pos="0.06 0.445 0.0075">
+                <body name="exo_ilink_l" pos="0.02 0.405 0">
                     <inertial diaginertia="0.000012 0.000004 0.000015" mass="0.03114" pos="-0.025 -0.435 -0.065" quat="1 0 0 0"/>
                     <geom name="exo_ilink_l_geom" mesh="exo_ilink_l_geom" type="mesh"
                         rgba="0.3 0.3 0.3 1"/>
                 </body>
 
-                <body name="exo_blink_l" pos="0.06 0.445 0.0075">
+                <body name="exo_blink_l" pos="0.022 0.405 0">
                     <inertial diaginertia="0.00006 0.00001 0.00007" mass="0.06831" pos="-0.025 -0.35 -0.0675" quat="1 0 0 0"/>
                     <geom name="exo_blink_l_geom" mesh="exo_blink_l_geom" type="mesh"
                         rgba="0.3 0.3 0.3 1"/>

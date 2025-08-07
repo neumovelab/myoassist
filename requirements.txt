@@ -5,21 +5,23 @@ gymnasium==0.29.1
 termcolor
 flatten_dict
 h5py
-numpy
-mujoco==3.1.5
-dm-control==1.0.19
+numpy==2.2.6
+mujoco==3.3.3
+dm-control==1.0.31
 Pillow
 pink-noise-rl
 packaging
 gitpython
 
-# MyoAssist
+# RL
 stable-baselines3
 stable-baselines3[extra]
 # imageio
 mediapy
+# for mac issue
+tensorboard
 
-# MyoAssist-Reflex
+# CTRL_OPTIM
 cma==4.0.0
 tqdm
 opencv-python==4.11.0.86

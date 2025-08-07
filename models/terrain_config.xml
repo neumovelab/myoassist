@@ -24,19 +24,18 @@
         <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
 		
         <!-- Terracotta solid tile -->
-        <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.988 0.757 0.749"  rgb2="0.988 0.757 0.749"  mark="edge" markrgb="1 1 1" gridlayout="8" />
-        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" />
+        <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.988 0.757 0.749"  rgb2="0.988 0.757 0.749"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
 
         <!-- Light blue check -->
-        <!-- <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.561 0.725 0.937"  rgb2="0.384 0.494 0.639"  mark="edge" markrgb="1 1 1" gridlayout="8" />
-        <material name="matfloor" reflectance="0" texture="texfloor" texrepeat="1 1" texuniform="true" /> -->
+        <texture name="texfloor" type="2d" builtin="checker" width="512" height="512" rgb1="0.561 0.725 0.937"  rgb2="0.384 0.494 0.639"  mark="edge" markrgb="1 1 1" gridlayout="8" />
+        <material name="matfloor" reflectance="0.1" texture="texfloor" texrepeat="1 1" texuniform="true" />
 
         <hfield name="terrain" size="50 10 1 30" nrow="100" ncol="500"/>
     </asset>
 
     <worldbody>
-        <light dir="0 0 -1" directional="true" pos="0 0 0"/>
-        <light dir="0 -1 0" directional="true" pos="0 0 0"/>
+        <light dir="0 0 -1" directional="true" diffuse="0.8 0.8 0.8" specular="0 0 0" pos="0 -3 3" mode="trackcom"/>
         <body name="ground" pos="40 0 0" quat="0.707035 0.707179 0 0">
             <geom name="ground-plane" quat="0.707035 -0.707179 0 0" rgba="1 1 1 1" material="matfloor" size="50 2.5 0.125" type="plane" />
         </body>

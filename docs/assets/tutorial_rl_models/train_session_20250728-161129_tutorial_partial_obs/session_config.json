@@ -1,4 +1,28 @@
 {
+    "total_timesteps": 3e7,
+    "evaluate_param_list":[
+        {
+            "num_timesteps": 120,
+            "min_target_velocity": 1.25,
+            "max_target_velocity": 1.25,
+            "target_velocity_period": 2,
+            "velocity_mode": "UNIFORM",
+            "cam_type": "average_speed",
+            "cam_distance": 2.5,
+            "visualize_activation": true
+        },
+        {
+            "num_timesteps": 1200,
+            "min_target_velocity": 1.25,
+            "max_target_velocity": 1.25,
+            "target_velocity_period": 2,
+            "velocity_mode": "UNIFORM",
+            "cam_type": "follow",
+            "cam_distance": 2.5,
+            "visualize_activation": true
+        }
+    ],
+    
     "logger_params": {
         "logging_frequency": 8,
         "evaluate_frequency": 64
@@ -48,7 +72,7 @@
         "custom_max_episode_steps": 1000,
         "model_path": "models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml",
         "prev_trained_policy_path": null,
-        "reference_data_path": "myoassist_rl/reference_data/short_reference_gait.npz",
+        "reference_data_path": "rl_train/reference_data/short_reference_gait.npz",
         "enable_lumbar_joint": false,
         "lumbar_joint_fixed_angle": -0.13,
         "lumbar_joint_damping_value": 0.05,
