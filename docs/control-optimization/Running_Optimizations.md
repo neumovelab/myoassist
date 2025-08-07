@@ -136,7 +136,7 @@ The `train.py` script accepts a wide range of arguments to customize the optimiz
 - `--fixed_exo`: Keep exoskeleton parameters fixed (not optimized).
 
 ### Optimization Target
-- `-eff`, `-vel`, `-kine`, `-combined`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose one that best fits your goal (e.g., minimizing effort, matching a target velocity, or tracking reference kinematics). For more information see (**[Understanding_Cost](./Understanding_Cost.md)**).
+- `-eff`, `-vel`, `-kine`, `-combined`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose one that best fits your goal (e.g., minimizing effort, matching a target velocity, or tracking reference kinematics). For more information see (**[Understanding_Cost](Understanding_Cost)**).
 
 ### Optimizer Settings
 - `--popsize`: The population size for the CMA-ES optimizer (number of solutions per generation).

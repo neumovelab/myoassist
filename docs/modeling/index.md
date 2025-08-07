@@ -23,6 +23,6 @@ Learn how to prepare and configure your models for simulation.
 
 ## Quick Links
 
-- [Available Models](available-models)
-- [Model Preparation](model-prep)
-- [Modeling Guide](modeling-guide)
+- [Available Models](Available_Models)
+- [Model Preparation](model_prep)
+- [Modeling Guide](Modeling)

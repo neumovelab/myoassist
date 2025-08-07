@@ -19,9 +19,9 @@ MyoAssist provides tools for:
 
 ## Quick Links
 
-- [Running Simulations](running-simulations)
-- [Running Optimizations](running-optimizations)
-- [Understanding Cost Functions](understanding-cost)
-- [Reflex Control](reflex-control)
-- [Exoskeleton Controllers](exoskeleton-controllers)
-- [Processing Results](processing-results) 
+- [Running Simulations](Running_Simulations)
+- [Running Optimizations](Running_Optimizations)
+- [Understanding Cost Functions](Understanding_Cost)
+- [Reflex Control](Reflex_Control)
+- [Exoskeleton Controllers](Exoskeleton_Controllers)
+- [Processing Results](Processing_Results) 

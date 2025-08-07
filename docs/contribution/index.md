@@ -21,6 +21,6 @@ We welcome contributions from the community. Here are some ways you can contribu
 
 ## Quick Links
 
-- [Contribution Guidelines](contribution-guidelines)
+- [Contribution Guidelines](Contribution)
 - [Development Setup](development-setup)
 - [Code of Conduct](code-of-conduct) 
