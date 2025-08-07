@@ -1,4 +1,4 @@
-// Custom link colors for MyoAssist
+/* Custom link colors for MyoAssist */
 a {
     color: #155257 !important;
     text-decoration-color: #ececec !important;
@@ -13,84 +13,107 @@ a:hover {
     color: #155257 !important;
 }
 
-// Custom search icon color (magnifying glass)
+/* Custom search icon color (magnifying glass) */
 .search-label .search-icon {
-    color: #575757 !important; 
+    color: #575757 !important;
 }
 
-// Custom search icon color when focused
+/* Custom search icon color when focused */
 .search-input:focus + .search-label .search-icon {
-    color: #0f3f42 !important; 
+    color: #0f3f42 !important;
 }
 
-// Custom search result icon color (chain link icon)
+/* Custom search result icon color (chain link icon) */
 .main-content .anchor-heading svg {
-    color: #155257 !important; 
+    color: #155257 !important;
 }
 
-// Reduce width of the left sidebar menu to move it left
+/* Fix menu button to match other buttons styling */
+.site-button {
+    color: #155257 !important;
+    background-color: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.site-button:hover {
+    color: #0f3f42 !important;
+    background-image: linear-gradient(-90deg, rgb(234.8, 236.82, 244.9) 0%, rgba(234.8, 236.82, 244.9, 0.8) 100%) !important;
+}
+
+.site-button svg {
+    color: inherit !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+/* Sidebar and main content adjustments - MOBILE FIRST APPROACH */
+
+/* Mobile: Keep default behavior (sidebar overlays, no margin on main) */
 .side-bar {
-    width: 15rem !important;
+    /* Don't override width on mobile - let it use full width overlay */
 }
 
+.main {
+    /* Don't override margin-left on mobile - let it use default (no margin) */
+}
+
+.main-content {
+    /* Don't override width on mobile - let it use default responsive behavior */
+}
+
+/* Desktop: Apply your custom layout */
 @media (min-width: 50rem) {
+    /* Reduce width of the left sidebar menu */
     .side-bar {
         width: 14rem !important;
     }
-}
 
-// Adjust main content margin to match sidebar width
-.main {
-    margin-left: 18rem !important;
-}
-
-@media (min-width: 50rem) {
+    /* Adjust main content margin to match sidebar width */
     .main {
         margin-left: 18rem !important;
     }
-}
 
-// Make main content extend further to the right
-.main-content {
-    max-width: none !important;
-    width: calc(100vw - 35rem) !important;
-}
+    /* Make main content extend further to the right */
+    .main-content {
+        max-width: none !important;
+        width: calc(100vw - 35rem) !important;
+    }
 
-// Adjust the main header to give more space to the aux-nav
-.main-header {
-    @media (min-width: 50rem) {
+    /* Adjust the main header to give more space to the aux-nav */
+    .main-header {
         justify-content: space-between !important;
         padding-right: 0 !important;
-        width: calc(100vw - 35rem) !important;  // Match your sidebar width
+        width: calc(100vw - 35rem) !important;
     }
-}
 
-// Make the aux-nav take up more of the available space
-.aux-nav {
-    @media (min-width: 50rem) {
+    /* Make the aux-nav take up more of the available space */
+    .aux-nav {
         flex: 1 !important;
         display: flex !important;
         justify-content: flex-end !important;
         padding-right: 0 !important;
         margin-right: 0 !important;
-        width: calc(100vw - 35rem) !important;  // Match main header width
+        width: calc(100vw - 35rem) !important;
     }
-    
-    @media (min-width: 66.5rem) {
-        padding-right: 0 !important;
-        margin-right: 0 !important;
-    }
-}
 
-// Ensure the list items are pushed to the far right
-.aux-nav .aux-nav-list {
-    @media (min-width: 50rem) {
+    /* Ensure the list items are pushed to the far right */
+    .aux-nav .aux-nav-list {
         margin-left: 0 !important;
         margin-right: 0 !important;
         justify-content: flex-end !important;
     }
-    
-    @media (min-width: 66.5rem) {
+}
+
+/* Large desktop: Fine-tune if needed */
+@media (min-width: 66.5rem) {
+    .aux-nav {
+        padding-right: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .aux-nav .aux-nav-list {
         margin-left: 0 !important;
         margin-right: 0 !important;
     }
