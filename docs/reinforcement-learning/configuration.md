@@ -168,4 +168,4 @@ TrainSessionConfigBase
 
 ## Example Configuration
 
-[imitation_tutorial_22_separated_net_partial_obs.json]({{ site.github.repository_url }}/blob/{{ site.repo_branch }}/rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json)
+[imitation_tutorial_22_separated_net_partial_obs.json](https://github.com/neumovelab/myoassist/blob/myoassist0.1prepare/rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json)
