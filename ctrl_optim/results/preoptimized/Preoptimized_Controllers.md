@@ -21,19 +21,6 @@ This folder contains partially-optimized controllers for the tutorial model (2D,
 - **exo_4param_neg5deg/**: 1.25 m/s, -5° downhill
 - **exo_4param_neg10deg/**: 2.0 m/s, -10° downhill
 
-### Exo Off
-- **exo_off_0_75ms/**: 0.75 m/s walking speed, flat terrain
-- **exo_off_1ms/**: 1.0 m/s walking speed, flat terrain
-- **exo_off_1_25ms/**: 1.25 m/s walking speed, flat terrain
-- **exo_off_1_5ms/**: 1.5 m/s walking speed, flat terrain
-- **exo_off_1_75ms/**: 1.75 m/s walking speed, flat terrain
-- **exo_off_2deg/**: 1.25 m/s, +2° uphill
-- **exo_off_5deg/**: 1.25 m/s, +5° uphill
-- **exo_off_10deg/**: 1.25 m/s, +10° uphill
-- **exo_off_neg2deg/**: 1.25 m/s, -2° downhill
-- **exo_off_neg5deg/**: 1.25 m/s, -5° downhill
-- **exo_off_neg10deg/**: 2.0 m/s, -10° downhill
-
 
 Each folder contains:
 - `_Best.txt` and `_BestLast.txt`: Parameter vectors for initialization and their corresponding cost summaries
