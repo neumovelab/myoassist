@@ -1,7 +1,7 @@
 ---
 title: Contributing
 nav_order: 6
-has_children: true
+has_children: False
 layout: home
 ---
 
