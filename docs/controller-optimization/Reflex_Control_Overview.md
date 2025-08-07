@@ -1,11 +1,11 @@
 ---
-title: Reflex Control
-parent: Control & Optimization
+title: Reflex Control Overview
+parent: Controller Optimization
 nav_order: 4
 layout: home
 ---
 
-# Reflex Control
+# Reflex Control Overview
 
 This document describes the neuromuscular reflex control system implemented in MyoAssist, based on the neural circuitry proposed by Song and Geyer (2015) for human locomotion.
 
@@ -61,7 +61,7 @@ The control system is organized into 10 distinct reflex modules (M1-M10), each r
 ### Swing Phase Modules (M6-M10)
 
 **M6 - Swing Leg Placement Control**
-- Uses body-frame alpha angle: `α = φ_hip - 0.5 * φ_knee`
+- Uses body-frame alpha angle: <code>α = φ<sub>hip</sub> - 0.5 × φ<sub>knee</sub></code>
 - **HFL**: Positive feedback for alpha angle error and velocity
 - **GLU**: Negative feedback for alpha angle error and velocity (antagonistic action)
 - Activated during swing phase and stance-to-swing transitions with contralateral load modulation
@@ -113,25 +113,30 @@ The control system is organized into 10 distinct reflex modules (M1-M10), each r
 
 The control also implements switching mechanisms (Sw1-Sw4):
 
-- **Sw1**: Knee flexion reaches threshold (`knee_sw_tgt`)
-- **Sw2**: Leg angle reaches `α_target + α_delta`  
-- **Sw3**: Leg angle reaches `α_target`
-- **Sw4**: Leg angular velocity reverses (`dα ≥ 0`)
+- **Sw1**: Knee flexion reaches threshold (<code>knee_sw_tgt</code>)
+- **Sw2**: Leg angle reaches <code>α_target + α_delta</code>  
+- **Sw3**: Leg angle reaches <code>α_target</code>
+- **Sw4**: Leg angular velocity reverses (<code>dα ≥ 0</code>)
 
 ## 3D Control Extensions
 
 For 3D control, additional modules handle frontal plane motion:
 
 - **HAB/HAD Force Feedback**: Module M1 extended with hip abductor force feedback
-- **Frontal Plane Balance**: Module M3 extended for lateral trunk control using `θ_f`
+- **Frontal Plane Balance**: Module M3 extended for lateral trunk control using <code>θ<sub>f</sub></code>
 - **Frontal Plane Coordination**: Module M4 extended for contralateral frontal plane effects
-- **Frontal Plane Swing Control**: Module M6 extended with `α_f` target tracking
+- **Frontal Plane Swing Control**: Module M6 extended with <code>α<sub>f</sub></code> target tracking
 
 The frontal plane uses leg-specific sign conventions:
-```
-α_target_global = α_0 - C_d * distance - C_v * velocity
-α_target = α_target_global - θ_trunk
-```
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>α<sub>target_global</sub> = α<sub>0</sub> - C<sub>d</sub> × distance - C<sub>v</sub> × velocity</strong>
+</div>
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>α<sub>target</sub> = α<sub>target_global</sub> - θ<sub>trunk</sub></strong>
+</div>
+
 ## Supraspinal Control Layer
 
 The supraspinal layer provides:
@@ -139,10 +144,14 @@ The supraspinal layer provides:
 - **Foot placement targets**: Calculated from COM position and velocity relative to stance foot
 - **Swing leg selection**: During double support, selects leg farther from target for swing
 - **Target angle computation**:
-```
-sign_frontal = 1 if leg == 'r_leg' else -1
-α_target_f = α_global_f - (sign_frontal * θ_f)
-```
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>sign<sub>frontal</sub> = 1 if leg == 'r_leg' else -1</strong>
+</div>
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>α<sub>target_f</sub> = α<sub>global_f</sub> - (sign<sub>frontal</sub> × θ<sub>f</sub>)</strong>
+</div>
 
 ## Implementation Details
 
@@ -154,8 +163,8 @@ sign_frontal = 1 if leg == 'r_leg' else -1
 - **Total without exoskeleton**: 77 parameters (2D) or 97 parameters (3D)
 
 Parameter categories:
-- **Target angles**: `theta_tgt`, `knee_tgt`, `ankle_tgt`, `mtp_tgt`
-- **Foot placement**: `alpha_0`, `C_d`, `C_v` (and frontal plane equivalents)
+- **Target angles**: <code>theta_tgt</code>, <code>knee_tgt</code>, <code>ankle_tgt</code>, <code>mtp_tgt</code>
+- **Foot placement**: <code>alpha_0</code>, <code>C_d</code>, <code>C_v</code> (and frontal plane equivalents)
 - **Module gains**: Muscle-specific gains for each reflex module
 - **Thresholds**: Phase transition and co-activation thresholds
 
@@ -185,25 +194,32 @@ Automatic phase detection based on:
 ## Formulation
 
 ### Alpha Angle Control (Body Frame)
-```
-α = φ_hip - 0.5 * φ_knee  (body frame leg angle)
-α_target = α_global - θ_trunk  (converted to body frame)
-```
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>α = φ<sub>hip</sub> - 0.5 × φ<sub>knee</sub> (body frame leg angle)</strong>
+</div>
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>α<sub>target</sub> = α<sub>global</sub> - θ<sub>trunk</sub> (converted to body frame)</strong>
+</div>
 
 ### Force Feedback
-```
-S_muscle = Σ(gain_i * max(F_muscle_i, 0))  (positive feedback only)
-```
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>S<sub>muscle</sub> = Σ(gain<sub>i</sub> × max(F<sub>muscle_i</sub>, 0)) (positive feedback only)</strong>
+</div>
 
 ### Phase-Dependent Modulation
-```
-S_muscle = phase_factor * load_modulation * Σ(module_contributions)
-```
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>S<sub>muscle</sub> = phase_factor × load_modulation × Σ(module_contributions)</strong>
+</div>
 
 ### Load-Dependent Stance Transition
-```
-transition_factor = clip(1 - Tr_St_sup * F_contralateral, 0, 1)
-```
+
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
+  <strong>transition_factor = clip(1 - Tr_St_sup × F<sub>contralateral</sub>, 0, 1)</strong>
+</div>
 
 ## References
 
