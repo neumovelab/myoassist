@@ -7,7 +7,7 @@ layout: home
 
 # Reinforcement Learning
 
-MyoAssist’s reinforcement learning (RL) pipeline is built on top of **Stable-Baselines3 (SB3) PPO** and a set of custom MuJoCo environments that simulate human–exoskeleton interaction. This page gives you a bird’s-eye view of how everything fits together and where to find more information.
+MyoAssist’s reinforcement learning (RL) pipeline is built on top of **[Stable-Baselines3 (SB3) PPO](https://stable-baselines3.readthedocs.io/en/master/index.html)** and a set of custom **[MuJoCo](https://mujoco.org/)** environments that simulate human–exoskeleton interaction. This page gives you a bird’s-eye view of how everything fits together and where to find more information.
 
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
@@ -19,6 +19,29 @@ MyoAssist’s reinforcement learning (RL) pipeline is built on top of **Stable-B
     <!-- <div>Rough Terrain</div> -->
   </div>
 </div>
+
+
+Reinforcement learning (RL) is a machine learning paradigm where an agent learns to make decisions by interacting with an environment and receiving feedback in the form of rewards. In the context of MyoAssist, RL is used to train control policies for human–exoskeleton systems within MuJoCo simulation environments.
+
+<p align="center">
+  <img src="../assets/reinforcement_learning_explanation.png" alt="Reinforcement Learning Overview" style="max-width: 100%; height: auto;">
+</p>
+
+**Observation Space:**  
+In our environments, the agent receives observations that include:
+- Joint angles
+- Joint velocities
+- Muscle activations
+- Sensory data (such as ground contact, force sensors, etc.)
+- etc
+
+**Action Space:**  
+The agent outputs actions that control:
+- Muscle activations (for the human actor network)
+- Exoskeleton control values (for the exoskeleton actor network)
+
+
+
 
 ---
 
