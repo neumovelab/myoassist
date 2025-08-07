@@ -7,7 +7,7 @@ layout: home
 
 # Terrain Types
 
-MyoAssist supports various terrain types for heightfield generation using the [HfieldManager](/myoassist_utils/hfield_manager.py).
+MyoAssist supports various terrain types for heightfield generation using the [HfieldManager]({{ site.github.repository_url }}/blob/{{ site.repo_branch }}/myoassist_utils/hfield_manager.py).
 
 ## Available Terrain Types
 
@@ -134,5 +134,5 @@ All terrain types include a safe zone around the starting position where terrain
 
 ## Implementation Details
 
-Terrain generation is handled by the [HfieldManager](/myoassist_utils/hfield_manager.py) class which:
+Terrain generation is handled by the [HfieldManager]({{ site.github.repository_url }}/blob/{{ site.repo_branch }}/myoassist_utils/hfield_manager.py) class which:
 
