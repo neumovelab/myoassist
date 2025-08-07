@@ -195,4 +195,4 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 
 ## Example Configuration
 
-[imitation_tutorial_22_separated_net_partial_obs.json](https://github.com/neumovelab/myoassist/blob/myoassist0.1prepare/rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json)
+[imitation_tutorial_22_separated_net_partial_obs.json](https://github.com/neumovelab/myoassist/blob/main/rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json)

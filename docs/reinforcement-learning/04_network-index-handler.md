@@ -22,7 +22,7 @@ Network Indexing is essential when working with:
 </p>
 
 > **Note:**  
-The order of the observation vector can be checked in the `DEFAULT_OBS_KEYS` of the gym environment.([rl_train/envs/](https://github.com/neumovelab/myoassist/tree/myoassist0.1prepare/rl_train/envs/))
+The order of the observation vector can be checked in the `DEFAULT_OBS_KEYS` of the gym environment.([rl_train/envs/](https://github.com/neumovelab/myoassist/tree/main/rl_train/envs/))
 Within this, the order of `qpos` (joint position), `qvel` (joint velocity), and joint/sensor keys can be found in the configuration file (e.g., `observation_joint_pos_keys`, `observation_joint_vel_keys`, `observation_joint_sensor_keys`).  
 Each observation component is concatenated, so you can determine the index of each element in the full observation vector.  
 The number of activations corresponds to the number of muscles.
