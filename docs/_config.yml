@@ -3,7 +3,7 @@ description: Documentation for MyoAssist - A musculoskeletal simulation framewor
 theme: just-the-docs
 
 # Site settings
-url: https://your-github-username.github.io/myoassist
+url: https://myoassist.neumove.org
 baseurl: ""
 repo_branch: main
 
