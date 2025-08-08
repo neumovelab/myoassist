@@ -81,6 +81,27 @@ After creating and activating the virtual environment, you can install the requi
 pip install -e .
 ```
 
+> **Note:**  
+> If you encounter FFmpeg installation errors during the setup process, you can install FFmpeg manually:
+> 
+> - **Windows**(in powershell):
+>   ```bash
+>   winget install --id=Gyan.FFmpeg -e
+>   ```
+> 
+> - **macOS**:
+>   ```bash
+>   brew install ffmpeg
+>   ```
+> 
+> - **Linux (Ubuntu/Debian)**:
+>   ```bash
+>   sudo apt update
+>   sudo apt install -y ffmpeg
+>   ```
+> 
+> After manual installation, restart your terminal and try the pip install command again.
+
 ### Step 4: Verify Installation
 
 ```bash
