@@ -13,6 +13,7 @@ from rl_train.train.train_configs.config import TrainSessionConfigBase
 import matplotlib.pyplot as plt
 import cv2
 import skvideo.io
+import imageio
 from  rl_train.envs.myoassist_leg_base import MyoAssistLegBase
 from rl_train.analyzer.gait_data import GaitData
 from rl_train.analyzer.gait_analyze import GaitAnalyzer
@@ -117,7 +118,8 @@ class GaitEvaluatorBase:
                 cam_type:str="follow",
                 use_realtime_floating:bool=False,
                 is_gait_cycle_plot:bool=False,
-                video_library:str="skvideo",#["cv2", "skvideo"]
+                video_library:str="imageio",#["cv2", "skvideo", "imageio"]
+                video_fps:int=30,
                ):
         """
         Replay the gait data and generate a video.
@@ -258,6 +260,13 @@ class GaitEvaluatorBase:
             out.release()
         elif video_library == "skvideo":
             skvideo.io.vwrite(output_video_path, np.asarray(frames),outputdict={"-pix_fmt": "yuv420p"})
+        elif video_library == "imageio":
+            writer = imageio.get_writer(output_video_path, fps=video_fps, codec='libx264', macro_block_size=None)
+            for frame in frames:
+                writer.append_data(frame)
+            writer.close()
+        else:
+            raise ValueError(f"Invalid video_library: {video_library}")
         return frames
     def __del__(self):
         self.env.close()

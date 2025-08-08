@@ -219,11 +219,21 @@ def main():
     video_path = os.path.join(run_output_folder, video_filename)
     
     try:
-        import skvideo.io
-        skvideo.io.vwrite(video_path, 
-                        np.asarray(frames),
-                        inputdict={"-r": "100"}, 
-                        outputdict={"-r": "100", "-pix_fmt": "yuv420p"})
+        import imageio
+        
+        # Convert frames to proper format
+        frames_array = np.asarray(frames)
+        if frames_array.dtype != np.uint8:
+            if frames_array.max() <= 1.0:
+                frames_array = (frames_array * 255).astype(np.uint8)
+            else:
+                frames_array = frames_array.astype(np.uint8)
+        
+        # Use imageio for reliable video generation with higher quality
+        with imageio.get_writer(video_path, fps=100, codec='libx264', quality=9) as writer:
+            for frame in frames_array:
+                writer.append_data(frame)
+                
         print(f"Video saved: {os.path.basename(video_path)} ({video_width}x{video_height})")
     except Exception as e:
         print(f"Error: Video generation failed: {e}")

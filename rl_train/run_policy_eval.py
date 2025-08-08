@@ -92,7 +92,8 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
                                                 # max_time_step=evaluate_param["num_timesteps"],
                                                 use_activation_visualization=evaluate_param["visualize_activation"],
                                                 cam_type=evaluate_param["cam_type"],
-                                                use_realtime_floating=False
+                                                use_realtime_floating=False,
+                                                video_fps=config.env_params.control_framerate
                                                 )
 
     gait_analyzer = GaitAnalyzer(gait_data, segmented_ref_data, show_plot)
