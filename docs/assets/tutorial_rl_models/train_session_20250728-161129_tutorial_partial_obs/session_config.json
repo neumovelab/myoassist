@@ -2,7 +2,7 @@
     "total_timesteps": 3e7,
     "evaluate_param_list":[
         {
-            "num_timesteps": 120,
+            "num_timesteps": 240,
             "min_target_velocity": 1.25,
             "max_target_velocity": 1.25,
             "target_velocity_period": 2,
@@ -106,7 +106,7 @@
         "terrain_type": "flat",
         "terrain_params": "",
         "flag_random_ref_index": true,
-        "out_of_trajectory_threshold": 0.2,
+        "out_of_trajectory_threshold": 0.6,
         "reference_data_keys": [
             "ankle_angle_l",
             "ankle_angle_r",
