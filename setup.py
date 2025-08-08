@@ -3,7 +3,8 @@ import re
 import sys
 import subprocess
 import platform
-
+import time
+import glob
 from setuptools import find_packages, setup
 
 if sys.version_info.major != 3:
@@ -14,7 +15,8 @@ def check_ffmpeg_installed():
     """Check if ffmpeg is installed and accessible"""
     try:
         result = subprocess.run(['ffmpeg', '-version'], 
-                              capture_output=True, text=True, timeout=10)
+                              capture_output=True, text=True, timeout=10,
+                              encoding='utf-8', errors='replace')
         if result.returncode == 0:
             print("FFmpeg is already installed")
             return True
@@ -22,95 +24,99 @@ def check_ffmpeg_installed():
         pass
     
     return False
-
-def install_ffmpeg_windows():
-    """Install FFmpeg using winget on Windows"""
-    if platform.system() != 'Windows':
-        return False
-    
+def get_user_path_from_registry():
+    """Fetch actual user PATH from Windows registry."""
     try:
-        result = subprocess.run(['winget', 'install', '--id=Gyan.FFmpeg', '-e'], 
-                              capture_output=True, text=True, timeout=120)
-        
-        if result.returncode == 0:
-            return True
-        else:
-            return False
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        return False
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment') as key:
+            value, _ = winreg.QueryValueEx(key, 'PATH')
+            return value
+    except FileNotFoundError:
+        return ''
+def add_to_user_path(path_to_add: str):
+    """Add a path to the user's PATH environment variable using Windows registry-safe logic."""
+    user_path = get_user_path_from_registry()
+    path_list = [p.strip().lower() for p in user_path.split(';') if p.strip()]
 
-def install_ffmpeg_macos():
-    """Install FFmpeg using Homebrew on macOS"""
-    if platform.system() != 'Darwin':
-        return False
-    
-    try:
-        result = subprocess.run(['brew', 'install', 'ffmpeg'], 
-                              capture_output=True, text=True, timeout=300)
-        
-        if result.returncode == 0:
-            return True
-        else:
-            return False
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        return False
+    if path_to_add.lower() in path_list:
+        print("FFmpeg path already in user PATH.")
+        return
 
-def install_ffmpeg_linux():
-    """Install FFmpeg using apt on Linux"""
-    if platform.system() != 'Linux':
-        return False
-    
-    try:
-        # Update package list first
-        subprocess.run(['sudo', 'apt', 'update'], 
-                      capture_output=True, text=True, timeout=120)
-        
-        # Install FFmpeg
-        result = subprocess.run(['sudo', 'apt', 'install', '-y', 'ffmpeg'], 
-                              capture_output=True, text=True, timeout=300)
-        
-        if result.returncode == 0:
-            return True
-        else:
-            return False
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        return False
+    new_path = user_path + ';' + path_to_add
+    subprocess.run(['setx', 'PATH', new_path], shell=True)
+    print(f"Added to user PATH: {path_to_add}")
+def find_ffmpeg_bin_from_winget():
+    """Find the ffmpeg.exe location under winget packages."""
+    base_path = os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'WinGet', 'Packages')
+    ffmpeg_dirs = glob.glob(os.path.join(base_path, 'Gyan.FFmpeg*'))
+
+    for base in ffmpeg_dirs:
+        for root, dirs, files in os.walk(base):
+            if 'ffmpeg.exe' in files:
+                return root  # This is the bin directory
+    return None
 
 def ensure_ffmpeg_installed():
-    """Ensure FFmpeg is installed, install if necessary"""
+    """Ensure FFmpeg is installed and added to PATH if needed."""
     if check_ffmpeg_installed():
         return True
-    
+
     system = platform.system()
-    
+
     if system == 'Windows':
-        if install_ffmpeg_windows():
-            import time
-            time.sleep(2)
-            return check_ffmpeg_installed()
-    
+        try:
+            result = subprocess.run(['winget', 'install', '--id=Gyan.FFmpeg', '-e'], 
+                                    capture_output=True, text=True, timeout=120,
+                                    encoding='utf-8', errors='replace')
+            
+            print(result.stdout)
+            print(result.stderr)
+
+            if result.returncode == 0:
+                time.sleep(2)
+
+                # Try to locate FFmpeg installed path from Winget
+                base_path = os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'WinGet', 'Packages')
+                ffmpeg_dirs = glob.glob(os.path.join(base_path, 'Gyan.FFmpeg*'))
+                print(f"Base path: {base_path}")
+                print(f"FFmpeg dirs: {ffmpeg_dirs}")
+                if ffmpeg_dirs:
+                    ffmpeg_bin = find_ffmpeg_bin_from_winget()
+                    if ffmpeg_bin:
+                        add_to_user_path(ffmpeg_bin)
+                        time.sleep(1)
+                    else:
+                        raise RuntimeError("FFmpeg not found in the expected location.")
+                return check_ffmpeg_installed()
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+            raise RuntimeError(f"FFmpeg installation failed: {e}")
+
     elif system == 'Darwin':  # macOS
-        if install_ffmpeg_macos():
-            import time
-            time.sleep(2)
-            return check_ffmpeg_installed()
-    
+        try:
+            result = subprocess.run(['brew', 'install', 'ffmpeg'], 
+                                  capture_output=True, text=True, timeout=300)
+            print(result.stdout)
+            print(result.stderr)
+            if result.returncode == 0:
+                time.sleep(2)
+                return check_ffmpeg_installed()
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass
+
     elif system == 'Linux':
-        if install_ffmpeg_linux():
-            import time
-            time.sleep(2)
-            return check_ffmpeg_installed()
-    
-    print("FFmpeg installation failed. Please install manually:")
-    if system == 'Windows':
-        print("winget install --id=Gyan.FFmpeg -e")
-    elif system == 'Darwin':
-        print("brew install ffmpeg")
-    elif system == 'Linux':
-        print("sudo apt install ffmpeg")
-    else:
-        print("Download from: https://ffmpeg.org/download.html")
-    
+        try:
+            subprocess.run(['sudo', 'apt', 'update'], 
+                          capture_output=True, text=True, timeout=120)
+            result = subprocess.run(['sudo', 'apt', 'install', '-y', 'ffmpeg'], 
+                                  capture_output=True, text=True, timeout=300)
+            print(result.stdout)
+            print(result.stderr)
+            if result.returncode == 0:
+                time.sleep(2)
+                return check_ffmpeg_installed()
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+            raise RuntimeError(f"FFmpeg installation failed: {e}")
+
     return False
 
 def read(fname):
@@ -138,38 +144,35 @@ def package_files(directory):
             paths.append(os.path.join('..', path, filename))
     return paths
 
-mjc_models_files = package_files('myosuite')
 rl_train_files = package_files('rl_train')
+ctrl_optim_files = package_files('ctrl_optim')
+myosuite_files = package_files('myosuite')
 
 
 if __name__ == "__main__":
     # Check and install FFmpeg if needed
-    ensure_ffmpeg_installed()
+    ffmpeg_installed = ensure_ffmpeg_installed()
+    if not ffmpeg_installed:
+        raise RuntimeError("FFmpeg installation failed. Please install manually.")
     
     setup(
-        name="MyoSuite",
-        version=find_version("myosuite/version.py"),
-        author='MyoSuite Authors - Vikash Kumar (Meta AI), Vittorio Caggiano (Meta AI), Huawei Wang (University of Twente), Guillaume Durandau (University of Twente), Massimo Sartori (University of Twente)',
-        author_email="vikashplus@gmail.com",
+        name="MyoAssist",
+        version="1.0.0",
+        author='MyoAssist Authors - Seungmoon Song, Calder Robbins, Hyoungseo Son(Northeastern University)',
+        author_email='s.song@northeastern.edu',
         license='Apache 2.0',
-        description='Musculoskeletal environments simulated in MuJoCo',
+        description='MyoAssist: Assistive musculoskeletal simulation environments in MuJoCo',
         long_description=read('README.md'),
         long_description_content_type="text/markdown",
-        url='https://sites.google.com/view/myosuite',
+        url='https://github.com/neumovelab/myoassist',
         classifiers=[
-            "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.11",
             "License :: OSI Approved :: Apache Software License",
-            "Topic :: Scientific/Engineering :: Artificial Intelligence ",
+            "Topic :: Scientific/Engineering :: Artificial Intelligence :: Simulation",
             "Operating System :: OS Independent",
         ],
-        package_data={'': mjc_models_files + rl_train_files + ['../myosuite_init.py']},
-        packages=find_packages(exclude=("myosuite.agents")),
-        python_requires=">=3.8",
+        package_data={'': rl_train_files + ctrl_optim_files + myosuite_files},
+        packages=find_packages(include=("myosuite*", "myoassist*", "rl_train*", "ctrl_optim*")),
+        python_requires=">=3.11",
         install_requires=fetch_requirements(),
-        entry_points={
-            'console_scripts': [
-                'myoapi_init = myosuite_init:fetch_simhive',
-                'myoapi_clean = myosuite_init:clean_simhive',
-            ],
-        },
     )
