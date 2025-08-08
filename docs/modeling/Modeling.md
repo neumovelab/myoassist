@@ -1,7 +1,7 @@
 ---
 title: Modeling Guide
 parent: Modeling
-nav_order: 3
+nav_order: 2
 layout: home
 ---
 
@@ -86,7 +86,7 @@ Positioning can be a painstaking process of small adjustments. The best practice
 Here, the actuator is added as a child of the `tibia_r` (right tibia) body.
 ```xml
 ...
-<body name="tibia_r" ... >
+<body name="tibia_r">
     ...
     <body name="actuator_r" pos="0 0 0">
         <inertial diaginertia="0 0 0" mass="0"/>
@@ -184,3 +184,34 @@ The **Joint** panel on the right of the visualizer allow you to interactively po
 - **Static Body:** Hides or shows non-moving bodies like the ground plane.
 - **Tendon:** Hides or shows muscle and actuator tendons.
 - **Group Enable:** This section lets you toggle the visibility of different geom groups defined in the XML. Most notably, the foot and toe touch sensor sites are in `Site groups -> "Site 3"`, and you can toggle this group to check their positions.
+
+### Visualizer Hotkeys and Shortcuts
+
+The MuJoCo visualizer provides several keyboard and mouse shortcuts for navigation and control:
+
+#### Basic Controls
+- **Space**: Play/Pause simulation
+- **+/-**: Speed Up/Down
+- **Left/Right Arrow**: Step Back/Forward
+- **Tab/Shift-Tab**: Toggle Left/Right UI
+- **[ ]**: Cycle camera
+- **Esc**: Free camera
+- **F1**: Help
+- **F2**: Info
+- **F3**: Profiler
+- **F4**: Sensors
+- **F5**: Full screen
+
+#### Mouse Controls
+- **Scroll, middle drag**: Zoom
+- **Left drag**: View Orbit
+- **Double-click**: Select
+- **Page Up**: Select parent
+- **Right double-click**: Center camera on mouse location
+- **[Shift] right drag**: View Pan
+- **Ctrl [Shift] drag**: Object Rotate
+- **Ctrl [Shift] right drag**: Object Translate
+
+#### Additional Features
+- **UI right-button hold**: Show shortcuts
+- **UI title double-click**: Expand/collapse all
