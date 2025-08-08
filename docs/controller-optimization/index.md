@@ -30,31 +30,23 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
 - **Exoskeleton Control Testing**: Design, deploy, and optimize controllers for various assistive devices
 - **Result Analysis**: Built-in tools for processing and visualizing optimization results
 
-### Key Scripts
-
-- **`run_ctrl_minimal.py`**: Simple reflex control testing with random parameters
-- **`run_ctrl.py`**: Full simulation with video generation and parameter loading
-- **`run_optim.py`**: CMA-ES optimization runner for controller tuning
-- **`run_eval.py`**: Results evaluation and analysis
-
 <div style="display: flex; gap: 20px; margin: 20px 0;">
   <div style="flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
     <h4>Getting Started</h4>
     <p>Learn the basics of reflex control and start your first optimization</p>
     <ul>
+      <li><a href="Reflex_Control_Overview">Reflex Control Overview</a></li>
       <li><a href="Running_Reflex_Control">Running Reflex Control</a></li>
       <li><a href="Running_Optimizations">Running Optimizations</a></li>
-      <li><a href="Evaluating_Results">Evaluating Results</a></li>
-
     </ul>
   </div>
   <div style="flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
-    <h4>Additional Topics</h4>
+    <h4>Additional Topics and Tools</h4>
     <p>Customize cost functions and analyze optimization results</p>
     <ul>
-      <li><a href="Exoskeleton_Controllers">Exoskeleton Controllers</a></li>
-      <li><a href="Reflex_Control_Overview">Reflex Control Overview</a></li>
       <li><a href="Understanding_Cost">Understanding Cost Functions</a></li>
+      <li><a href="Evaluating_Results">Evaluating Results</a></li>
+      <li><a href="Exoskeleton_Controllers">Exoskeleton Controllers</a></li>
     </ul>
   </div>
 </div>
@@ -65,10 +57,10 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
 
 ```
 ctrl_optim/
-├── run_ctrl_minimal.py          # Quick testing script
-├── run_ctrl.py                  # Main simulation script
-├── run_optim.py                 # Optimization runner
-├── run_eval.py                  # Evaluation script
+├── run_ctrl_minimal.py          # Quick testing script (53 lines)
+├── run_ctrl.py                  # Main simulation script (239 lines)
+├── run_optim.py                 # Optimization runner (164 lines)
+├── run_eval.py                  # Evaluation script (18 lines)
 ├── results/
 │   ├── evaluation_outputs/      # Simulation videos and outputs
 │   ├── optim_results/           # Optimization results
@@ -81,6 +73,14 @@ ctrl_optim/
     ├── config/                  # Configuration files
     └── training_configs/        # Training configurations
 ```
+
+### Key Scripts
+
+- **`run_ctrl_minimal.py`**: Simple reflex control testing with random parameters
+- **`run_ctrl.py`**: Full simulation with video generation and parameter loading
+- **`run_optim.py`**: CMA-ES optimization runner for controller tuning
+- **`run_eval.py`**: Results evaluation and analysis
+
 
 ### Basic Reflex Control Testing
 

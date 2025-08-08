@@ -191,6 +191,7 @@
                     </body>
                     
                     <body name="talus_r" pos="0 -0.40 0">
+                        <inertial diaginertia="0.0001 0.0001 0.0001" mass="0.1" pos="0 0 0"/>
                         <joint axis="0 0 1" name="ankle_angle_r" pos="0 0 0" range="-1.134 0.349"/>
                         <geom mesh="talus_r_geom_1_talus" name="talus_r_geom_1" rgba="1 1 1 1" type="mesh"/>
 

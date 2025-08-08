@@ -93,7 +93,7 @@ For automated workflows or macOS users, you can run the evaluation script from t
 
 ```bash
 cd ctrl_optim
-python run_eval.py --config your_config.json
+python run_eval.py --config path/to/your_config.json
 ```
 
 ### JSON Configuration File
@@ -170,9 +170,9 @@ ctrl_optim/results/evaluation_outputs/MMDD_HHMM/
    python run_eval.py
    ```
 
-2. **GUI not working**: Use the command-line interface instead:
+2. **GUI not working on macOS**: Use the command-line interface instead:
    ```bash
-   python run_eval.py --config example_config.json
+   python run_eval.py --config eval_config/example_config.json
    ```
 
 3. **No parameter files found**: Verify the results directory contains `_Best.txt` or `_BestLast.txt` files
