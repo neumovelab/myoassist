@@ -118,3 +118,8 @@ a:hover {
         margin-right: 0 !important;
     }
 }
+
+/* Hide the Just the Docs template marker */
+.site-footer {
+    display: none !important;
+}
