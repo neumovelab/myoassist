@@ -1,5 +1,7 @@
 import numpy as np
 from dataclasses import dataclass
+import os
+os.environ["GIT_PYTHON_REFRESH"] = "quiet"
 from myosuite.utils import gym
 from myosuite.envs import env_base
 from rl_train.train.train_configs.config import TrainSessionConfigBase
