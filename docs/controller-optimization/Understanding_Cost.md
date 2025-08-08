@@ -1,7 +1,7 @@
 ---
 title: Understanding Cost Functions
 parent: Controller Optimization
-nav_order: 3
+nav_order: 5
 layout: home
 ---
 

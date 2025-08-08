@@ -1,7 +1,7 @@
 ---
 title: Evaluating Results
 parent: Controller Optimization
-nav_order: 6
+nav_order: 3
 layout: home
 ---
 
@@ -12,8 +12,8 @@ This guide explains how to use the evaluation pipeline located in `ctrl_optim/re
 ## Overview
 
 The evaluation module provides two primary ways to analyze results:
-1. **A Graphical User Interface (GUI)** for interactive, single-run analysis or batch processing multiple results folders (Windows/Linux only).
-2. **A Command-Line Interface** that uses a JSON file for automated, scriptable processing or batch processing (all platforms).
+1. **Graphical User Interface (GUI)** for interactive, single-run analysis or batch processing multiple results folders (Windows).
+2. **Command-Line Interface** that uses a JSON configuration file for scriptable processing or batch processing (all platforms).
 
 The primary output for both methods includes simulation videos, kinematics plots, and detailed analysis reports.
 
@@ -31,9 +31,9 @@ cd ctrl_optim
 python run_eval.py
 ```
 
-This will launch the GUI interface (on Windows/Linux) or provide command-line options.
+This will launch the GUI interface (on Windows) or provide command-line options.
 
-## Method 1: Using the GUI (Windows/Linux Only)
+## Method 1: Using the GUI (Windows)
 
 **Note: The GUI interface does not work on macOS due to tkinter compatibility issues. Mac users should use Method 2 (Command-Line) instead.**
 
@@ -93,7 +93,7 @@ For automated workflows or macOS users, you can run the evaluation script from t
 
 ```bash
 cd ctrl_optim
-python run_eval.py --config your_config.json
+python run_eval.py --config path/to/your_config.json
 ```
 
 ### JSON Configuration File
@@ -150,12 +150,12 @@ ctrl_optim/results/evaluation_outputs/MMDD_HHMM/
 
 ## Platform Compatibility
 
-### Windows/Linux
+### Windows
 - GUI interface available
 - Command-line interface available
 - All features supported
 
-### macOS
+### macOS/Linux
 - GUI interface NOT supported (tkinter compatibility issues)
 - Command-line interface available
 - All evaluation features supported via JSON configuration
@@ -172,7 +172,7 @@ ctrl_optim/results/evaluation_outputs/MMDD_HHMM/
 
 2. **GUI not working**: Use the command-line interface instead:
    ```bash
-   python run_eval.py --config example_config.json
+   python run_eval.py --config eval_config/example_config.json
    ```
 
 3. **No parameter files found**: Verify the results directory contains `_Best.txt` or `_BestLast.txt` files
@@ -200,9 +200,4 @@ You can create custom evaluation configurations by:
 
 ## Quick Visualization
 
-For simple video generation without detailed analysis, you can also use the simulation scripts:
-
-- **`run_ctrl_minimal.py`**: Quick testing with random parameters
-- **`run_ctrl.py`**: Detailed simulation with video generation
-
-See the **[Running Reflex Control](Running_Reflex_Control)** guide for more details on these scripts. 
+For simple video generation without detailed analysis, you can also use the `run_ctrl.py` imulation script. See the **[Running Reflex Control](Running_Reflex_Control)** guide for more details.

@@ -9,20 +9,33 @@ layout: home
 
 This section covers the modeling aspects of MyoAssist, including available models and model preparation.
 
-## Available Models
+<div style="text-align: center; display: flex; justify-content: center; gap: 20px;">
+  <div style="flex: 1; max-width: 600px;">
+    <img src="../assets/modeling.png" alt="Modeling Overview" style="width: 100%; height: 400px; object-fit: contain;">
+  </div>
+  <div style="flex: 1; max-width: 645px;">
+    <img src="../assets/modeling_xml.png" alt="Model XML Structure" style="width: 100%; height: 400px; object-fit: contain;">
+  </div>
+</div>
 
-MyoAssist supports multiple musculoskeletal models:
+## [Available Models](Available_Models)
+Overview of the pre-configured musculoskeletal models included with MyoAssist:
+- 22-muscle 2D models for rapid prototyping
+- 26-muscle 3D models for detailed analysis
+- Pre-configured variants for different assistive devices
 
-- **22-muscle 2D models**: Basic 2D models for initial testing
-- **26-muscle 3D models**: More complex 3D models
-- **80-muscle models**: Full complexity models for advanced research
+## [Modeling Guide](Modeling)
+Technical documentation for model development:
+- Model and mesh file preparation
+- XML file structure and components
+- Adding devices to models
+- Configuring actuators and sensors
+- Tips for using the MuJoCo visualizer
 
-## Model Preparation
 
-Learn how to prepare and configure your models for simulation.
-
-## Quick Links
-
-- [Available Models](Available_Models)
-- [Model Preparation](model_prep)
-- [Modeling Guide](Modeling)
+## [Model Preparation](model_prep)
+Step-by-step guide for preparing and modifying models:
+- Setting up the simulation environment
+- Importing and scaling models
+- Configuring contact properties
+- Validating model behavior

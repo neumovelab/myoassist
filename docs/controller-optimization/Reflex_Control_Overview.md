@@ -1,7 +1,7 @@
 ---
 title: Reflex Control Overview
 parent: Controller Optimization
-nav_order: 4
+nav_order: 6
 layout: home
 ---
 

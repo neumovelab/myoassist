@@ -120,7 +120,7 @@ def ensure_ffmpeg_installed():
     elif system == 'Darwin':  # macOS
         try:
             result = subprocess.run(['brew', 'install', 'ffmpeg'], 
-                                  capture_output=True, text=True, timeout=300),
+                                  capture_output=True, text=True, timeout=300,
                                   encoding='utf-8', errors='replace')
             if result.returncode == 0:
                 time.sleep(2)

@@ -45,16 +45,15 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
       <li><a href="Running_Reflex_Control">Running Reflex Control</a></li>
       <li><a href="Running_Optimizations">Running Optimizations</a></li>
       <li><a href="Evaluating_Results">Evaluating Results</a></li>
-
     </ul>
   </div>
   <div style="flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
-    <h4>Additional Topics</h4>
+    <h4>Additional Topics and Tools</h4>
     <p>Customize cost functions and analyze optimization results</p>
     <ul>
       <li><a href="Exoskeleton_Controllers">Exoskeleton Controllers</a></li>
-      <li><a href="Reflex_Control_Overview">Reflex Control Overview</a></li>
       <li><a href="Understanding_Cost">Understanding Cost Functions</a></li>
+      <li><a href="Reflex_Control_Overview">Reflex Control Overview</a></li>
     </ul>
   </div>
 </div>
@@ -72,7 +71,7 @@ ctrl_optim/
 ├── results/
 │   ├── evaluation_outputs/      # Simulation videos and outputs
 │   ├── optim_results/           # Optimization results
-│   └── preoptimized/           # Pre-optimized controllers
+│   └── preoptimized/            # Pre-optimized controllers
 ├── ctrl/                        # Controller implementations
 │   ├── reflex/                  # Reflex controller modules
 │   └── exo/                     # Exoskeleton controller modules
@@ -82,9 +81,10 @@ ctrl_optim/
     └── training_configs/        # Training configurations
 ```
 
-### Basic Reflex Control Testing
 
-Start with the minimal script to test reflex control:
+### Basic Reflex Control
+
+Start with the minimal script to run reflex control:
 
 ```bash
 cd ctrl_optim
