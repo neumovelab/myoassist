@@ -205,7 +205,7 @@ if __name__ == "__main__":
         install_requires=fetch_requirements(),
     )
 
-    # Check and install FFmpeg if needed
-    ffmpeg_installed = ensure_ffmpeg_installed()
-    if not ffmpeg_installed:
-        raise RuntimeError("FFmpeg installation failed. Please install manually.")
+    # # Check and install FFmpeg if needed
+    # ffmpeg_installed = ensure_ffmpeg_installed()
+    # if not ffmpeg_installed:
+    #     raise RuntimeError("FFmpeg installation failed. Please install manually.")
