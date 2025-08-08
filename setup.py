@@ -90,8 +90,6 @@ def ensure_ffmpeg_installed():
                                     capture_output=True, text=True, timeout=120,
                                     encoding='utf-8', errors='replace')
             
-            print(result.stdout.encode('utf-8', errors='replace').decode('utf-8'))
-            print(result.stderr.encode('utf-8', errors='replace').decode('utf-8'))
 
             if result.returncode == 0:
                 time.sleep(2)
@@ -122,9 +120,8 @@ def ensure_ffmpeg_installed():
     elif system == 'Darwin':  # macOS
         try:
             result = subprocess.run(['brew', 'install', 'ffmpeg'], 
-                                  capture_output=True, text=True, timeout=300)
-            print(result.stdout)
-            print(result.stderr)
+                                  capture_output=True, text=True, timeout=300),
+                                  encoding='utf-8', errors='replace')
             if result.returncode == 0:
                 time.sleep(2)
                 ok, out = get_ffmpeg_version_silent('ffmpeg')
@@ -140,9 +137,9 @@ def ensure_ffmpeg_installed():
             subprocess.run(['sudo', 'apt', 'update'], 
                           capture_output=True, text=True, timeout=120)
             result = subprocess.run(['sudo', 'apt', 'install', '-y', 'ffmpeg'], 
-                                  capture_output=True, text=True, timeout=300)
-            print(result.stdout)
-            print(result.stderr)
+                                  capture_output=True, text=True, timeout=300,
+                                  encoding='utf-8', errors='replace')
+
             if result.returncode == 0:
                 time.sleep(2)
                 ok, out = get_ffmpeg_version_silent('ffmpeg')
