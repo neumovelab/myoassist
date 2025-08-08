@@ -11,19 +11,6 @@ if sys.version_info.major != 3:
     print("This Python is only compatible with Python 3, but you are running "
           "Python {}. The installation will likely fail.".format(sys.version_info.major))
 
-def check_ffmpeg_installed():
-    """Check if ffmpeg is installed and accessible"""
-    try:
-        result = subprocess.run(['ffmpeg', '-version'], 
-                              capture_output=True, text=True, timeout=10,
-                              encoding='utf-8', errors='replace')
-        if result.returncode == 0:
-            print("FFmpeg is already installed")
-            return True
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        pass
-    
-    return False
 def get_user_path_from_registry():
     """Fetch actual user PATH from Windows registry."""
     try:
@@ -36,6 +23,9 @@ def get_user_path_from_registry():
 def add_to_user_path(path_to_add: str):
     """Add a path to the user's PATH environment variable using Windows registry-safe logic."""
     user_path = get_user_path_from_registry()
+    if user_path == '':
+        print("No user PATH found. Please check your Windows registry.")
+        return
     path_list = [p.strip().lower() for p in user_path.split(';') if p.strip()]
 
     if path_to_add.lower() in path_list:
@@ -45,6 +35,36 @@ def add_to_user_path(path_to_add: str):
     new_path = user_path + ';' + path_to_add
     subprocess.run(['setx', 'PATH', new_path], shell=True)
     print(f"Added to user PATH: {path_to_add}")
+
+def get_ffmpeg_version_silent(ffmpeg_exe_path: str | None = None):
+    """Run 'ffmpeg -version' without opening a new window and return (ok, output).
+    On Windows, this hides the console window.
+    """
+    cmd = [ffmpeg_exe_path or 'ffmpeg', '-version']
+    startupinfo = None
+    creationflags = 0
+    if os.name == 'nt':  # Windows
+        try:
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = subprocess.CREATE_NO_WINDOW
+        except Exception:
+            startupinfo = None
+            creationflags = 0
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            startupinfo=startupinfo,
+            creationflags=creationflags,
+        )
+        output = (result.stdout or '') + ("\n" + result.stderr if result.stderr else '')
+        return result.returncode == 0, output.strip()
+    except Exception as e:
+        return False, str(e)
 def find_ffmpeg_bin_from_winget():
     """Find the ffmpeg.exe location under winget packages."""
     base_path = os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'WinGet', 'Packages')
@@ -58,7 +78,8 @@ def find_ffmpeg_bin_from_winget():
 
 def ensure_ffmpeg_installed():
     """Ensure FFmpeg is installed and added to PATH if needed."""
-    if check_ffmpeg_installed():
+    ffmpeg_ok, _ = get_ffmpeg_version_silent()
+    if ffmpeg_ok:
         return True
 
     system = platform.system()
@@ -69,8 +90,8 @@ def ensure_ffmpeg_installed():
                                     capture_output=True, text=True, timeout=120,
                                     encoding='utf-8', errors='replace')
             
-            print(result.stdout)
-            print(result.stderr)
+            print(result.stdout.encode('utf-8', errors='replace').decode('utf-8'))
+            print(result.stderr.encode('utf-8', errors='replace').decode('utf-8'))
 
             if result.returncode == 0:
                 time.sleep(2)
@@ -85,9 +106,16 @@ def ensure_ffmpeg_installed():
                     if ffmpeg_bin:
                         add_to_user_path(ffmpeg_bin)
                         time.sleep(1)
+                        # Verify silently using absolute path to ffmpeg.exe
+                        ffmpeg_exe = os.path.join(ffmpeg_bin, 'ffmpeg.exe')
+                        ok, out = get_ffmpeg_version_silent(ffmpeg_exe)
+                        print("FFmpeg verification (silent):", ok)
+                        if out:
+                            print(out.splitlines()[0])
+                        return ok
                     else:
                         raise RuntimeError("FFmpeg not found in the expected location.")
-                return check_ffmpeg_installed()
+                return False
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
             raise RuntimeError(f"FFmpeg installation failed: {e}")
 
@@ -99,7 +127,11 @@ def ensure_ffmpeg_installed():
             print(result.stderr)
             if result.returncode == 0:
                 time.sleep(2)
-                return check_ffmpeg_installed()
+                ok, out = get_ffmpeg_version_silent('ffmpeg')
+                print("FFmpeg verification (silent):", ok)
+                if out:
+                    print(out.splitlines()[0])
+                return ok
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 
@@ -113,7 +145,11 @@ def ensure_ffmpeg_installed():
             print(result.stderr)
             if result.returncode == 0:
                 time.sleep(2)
-                return check_ffmpeg_installed()
+                ok, out = get_ffmpeg_version_silent('ffmpeg')
+                print("FFmpeg verification (silent):", ok)
+                if out:
+                    print(out.splitlines()[0])
+                return ok
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
             raise RuntimeError(f"FFmpeg installation failed: {e}")
 
@@ -150,11 +186,6 @@ myosuite_files = package_files('myosuite')
 
 
 if __name__ == "__main__":
-    # Check and install FFmpeg if needed
-    ffmpeg_installed = ensure_ffmpeg_installed()
-    if not ffmpeg_installed:
-        raise RuntimeError("FFmpeg installation failed. Please install manually.")
-    
     setup(
         name="MyoAssist",
         version="1.0.0",
@@ -176,3 +207,8 @@ if __name__ == "__main__":
         python_requires=">=3.11",
         install_requires=fetch_requirements(),
     )
+
+    # Check and install FFmpeg if needed
+    ffmpeg_installed = ensure_ffmpeg_installed()
+    if not ffmpeg_installed:
+        raise RuntimeError("FFmpeg installation failed. Please install manually.")
