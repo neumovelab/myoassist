@@ -186,16 +186,6 @@ mjpython rl_train/run_train.py --config_file_path rl_train/train/train_configs/i
 This file is the default example configuration we provide.  
 For more details, see the [Understanding Configuration](./configuration.html) section.
 
-## Transfer Learning
-<img src="../assets/transfer_learning_explanation.png" alt="Transfer Learning" style="max-width: 100%; height: auto;">
-
-```bash
-python rl_train/run_train.py --config_file_path [path/to/transfer_learning/config.json] --config.env_params.prev_trained_policy_path [path/to/pretrained_model]
-```
-
-or you can specify the `env_params.prev_trained_policy_path` in config(.json) file
-
-> **Note:** The `[path/to/pretrained_model]` should point to a `.zip` file, but do not include the `.zip` extension in the path.
 
 ## Policy Evaluation
 
@@ -229,6 +219,19 @@ This folder contains various plots and videos that visualize your agent's perfor
 The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
 For more details on how to customize these parameters, see the [Understanding Configuration](./configuration.html) section.
+
+
+## Transfer Learning
+<img src="../assets/transfer_learning_explanation.png" alt="Transfer Learning" style="max-width: 100%; height: auto;">
+
+```bash
+python rl_train/run_train.py --config_file_path [path/to/transfer_learning/config.json] --config.env_params.prev_trained_policy_path [path/to/pretrained_model]
+```
+
+or you can specify the `env_params.prev_trained_policy_path` in config(.json) file
+
+> **Note:** The `[path/to/pretrained_model]` should point to a `.zip` file, but do not include the `.zip` extension in the path.
+
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
