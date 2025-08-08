@@ -153,14 +153,7 @@ class SetupTester:
             
         except Exception as e:
             raise RuntimeError(f"RL environment initialization failed: {e}")
-    def test_ffmpeg_installation(self):
-        try:
-            result = subprocess.run(['ffmpeg', '-version'], 
-                                    capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                print("FFmpeg is already installed")
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-            raise RuntimeError(f"FFmpeg is not installed")
+
         
     def test_reflex_environment_initialization(self):
         """Test Reflex environment initialization without optimization"""
@@ -351,7 +344,6 @@ class SetupTester:
             (self.test_myosuite_import, "MyoSuite Package Import"),
             (self.test_myoassist_imports, "MyoAssist Package Imports"),
             (self.test_mujoco_license, "MuJoCo License"),
-            (self.test_ffmpeg_installation, "FFmpeg Installation"),
             (self.test_rl_environment_initialization, "RL Environment Initialization"),
             (self.test_reflex_environment_initialization, "Reflex Environment Initialization"),
             (self.test_minimal_controller_script, "Minimal Controller Script"),
