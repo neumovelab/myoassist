@@ -11,11 +11,15 @@ MyoAssist’s reinforcement learning (RL) pipeline is built on top of **[Stable-
 
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
-    <img src="../assets/train_session_20250728-161129_tutorial_partial_obs_replay.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
+    <img src="../assets/partial_flat_short.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
     <!-- <div>Flat Terrain</div> -->
   </div>
   <div style="flex: 1; text-align: center;">
-    <img src="../assets/train_session_20250802-135821_rough_replay.gif" alt="Rough replay" style="max-width: 100%; height: auto;">
+    <img src="../assets/rough_short.gif" alt="Rough replay" style="max-width: 100%; height: auto;">
+    <!-- <div>Rough Terrain</div> -->
+  </div>
+  <div style="flex: 1; text-align: center;">
+    <img src="../assets/speed_control_shortest.gif" alt="Speed control replay" style="max-width: 100%; height: auto;">
     <!-- <div>Rough Terrain</div> -->
   </div>
 </div>

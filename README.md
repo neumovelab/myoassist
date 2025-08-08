@@ -4,7 +4,7 @@
 
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
-    <img src="docs/assets/train_session_20250728-161129_tutorial_partial_obs_replay.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
+    <img src="docs/assets/partial_flat_short.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
     <!-- <div>Flat Terrain</div> -->
   </div>
 </div>
