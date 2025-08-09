@@ -75,9 +75,9 @@ Try to provide context:
 - Include your MyoAssist version and system information
 
 **Note**: If you're unable to create a GitHub issue or have further questions, please contact us at
-- [General: s.song@northeastern.edu](mailto:s.song@northeastern.edu)
-- [RL: son.hyo@northeastern.edu](mailto:son.hyo@northeastern.edu)
-- [Modeling, Controller Optimization: robbins.cal@northeastern.edu](mailto:robbins.cal@northeastern.edu)
+- General: [s.song@northeastern.edu](mailto:s.song@northeastern.edu)
+- RL: [son.hyo@northeastern.edu](mailto:son.hyo@northeastern.edu)
+- Modeling, Controller Optimization: [robbins.cal@northeastern.edu](mailto:robbins.cal@northeastern.edu)
 
 ### Suggesting Enhancements
 
