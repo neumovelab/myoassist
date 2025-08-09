@@ -83,8 +83,8 @@ Try to provide context:
 
 Before submitting an enhancement suggestion:
 
-- Check if you're using the [latest version](https://github.com/your-org/myoassist/releases/latest) of MyoAssist
-- Perform a quick [search](https://github.com/your-org/myoassist/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one
+- Check if you're using the [latest version](https://github.com/neumovelab/myoassist/releases) of MyoAssist
+- Perform a quick [search](https://github.com/neumovelab/myoassist/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one
 
 How to submit a good enhancement suggestion:
 

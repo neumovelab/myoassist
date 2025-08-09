@@ -190,8 +190,8 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 
 ## Related Documentation
 
-- [Terrain Types](terrain-types) - Detailed explanation of terrain types and parameters
-- [Network Index Handler](network-index-handler) - Network indexing information and structure
+- [Terrain Types](03_terrain-types) - Detailed explanation of terrain types and parameters
+- [Network Index Handler](04_network-index-handler) - Network indexing information and structure
 
 ## Example Configuration
 
