@@ -16,7 +16,7 @@ To start, create a copy of `myoLeg22_2D_BASELINE.xml`, rename it, and open `myoL
 1. [Loading Mesh Files](#loading-mesh-files)
 2. [Adding Device Bodies](#adding-device-bodies)
 3. [Defining Actuators](#defining-actuators)
-4. [Keyframe Adjustments](#keyframe-adjustments)
+4. [Keyframe Adjustments](#optional:-keyframe-adjustments)
 
 ## Loading Mesh Files
 
