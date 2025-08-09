@@ -179,7 +179,7 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `net_arch` | Network architecture for human actor, exo actor, and common critic | {"human_actor": [64, 64], "exo_actor": [8, 8], "common_critic": [64, 64]} |
-| `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](network-index-handler) |
+| `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](04_network-index-handler) |
 | `log_std_init` | Initial log standard deviation | 0.0 |
 
 ### Auto Reward Adjust Parameters
