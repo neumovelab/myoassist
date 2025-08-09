@@ -100,7 +100,7 @@ class BaseCustomActorCriticPolicy(BasePolicy):
 
         self.log_std = nn.Parameter(th.ones(self.action_space.shape[0], device=self.device) * custom_policy_params.log_std_init, requires_grad=True)
         
-        print(f"{self.parameters()=}")
+
         self.apply(self.init_weights)
         
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)

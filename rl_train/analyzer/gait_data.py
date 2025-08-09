@@ -39,10 +39,7 @@ class GaitData:
                  ):
         # TODO: there is no lumbar extension ctrl!!
         muscle_act_ind = mj_model.actuator_dyntype == mujoco.mjtDyn.mjDYN_MUSCLE
-        if printing:
-            print(f"{type(mj_data)=}, {type(mj_model)=}")
-            # print(f"{mj_model.nu=}, {mj_model.na=}")
-            # print(f"{muscle_act_ind=}")
+
 
         self.metadata["data_length"] += 1
 
