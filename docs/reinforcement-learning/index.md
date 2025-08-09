@@ -151,7 +151,7 @@ python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imi
 
 **What this does:**
 - Runs actual reinforcement learning training
-- Training for only 12 timesteps (very fast)
+- Training for only a few short timesteps
 - Uses 1 environment (minimal resource usage)
 - Enables rendering to see the simulation
 - Logs results after every rollout (4 steps) for immediate feedback

@@ -1,6 +1,6 @@
 {
     "comment":"This is a test configuration for the RL training. very short, rendering enabled",
-    "total_timesteps": 10000,
+    "total_timesteps": 1000,
     "evaluate_param_list":[
         {
             "num_timesteps": 100,
