@@ -5,7 +5,6 @@
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
     <img src="docs/assets/partial_flat_short.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
-    <!-- <div>Flat Terrain</div> -->
   </div>
 </div>
 
@@ -40,25 +39,23 @@ Tools to generate control policies or optimize behavior in simulation.
 
 ## <span style="color:gray">3. **Motion Library** (planned)</span>
 <span style="color:gray">A curated dataset of human movement, both real and simulated.</span>
-=======
-A comprehensive Python framework for neuromechanical simulation and control, built for assistive device research. Built on top of MyoSuite, this project provides tools for reinforcement learning, reflex-based control optimization, and exoskeleton integration.
 
 ## Features
 
 - **Multi-Model Support**: 22-muscle 2D, 26-muscle 3D, and 80-muscle musculoskeletal models
-- **Exoskeleton Integration**: Support for multiple exoskeleton   platforms (Dephy, HMEDI, Humotech, OSL, and more to come soon!)
+- **Exoskeleton Integration**: Support for multiple exoskeleton platforms (Dephy, HMEDI, Humotech, OSL, and more to come soon!)
 - **Reinforcement Learning**: PPO-based training environments for imitation learning and terrain adaptation
 - **Reflex Control Optimization**: CMA-ES based optimization for neuromuscular reflex controllers
 - **Modular Architecture**: Extensible framework for custom model and controller development
-- **Documentation**: Guides for simulation, optimization, and analysis
+- **Documentation**: Comprehensive guides for simulation, optimization, and analysis
 
 ## Table of Contents
 
 - [Installation](#installation)
+- [Quick Start](#quick-start)
 - [Available Models](#available-models)
 - [Project Structure](#project-structure)
 - [Core Components](#core-components)
-- [Quick Start](#quick-start)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -67,68 +64,44 @@ A comprehensive Python framework for neuromechanical simulation and control, bui
 
 ### Prerequisites
 - Python 3.11+
-- MuJoCo 3.1.5
+- MuJoCo 3.3.3
 - Git
 
 ### Setup
-1. Clone this repository:
+
+1. **Clone this repository:**
    ```bash
-   git clone <https://github.com/neumovelab/myoassist.git>
+   git clone https://github.com/neumovelab/myoassist.git
    cd myoassist
    ```
 
-2. Install the package:
+2. **Set up virtual environment (recommended):**
+   ```bash
+   # Linux/macOS
+   python3.11 -m venv .my_venv
+   source .my_venv/bin/activate
+   
+   # Windows
+   py -3.11 -m venv .my_venv
+   .my_venv\Scripts\activate
+   ```
+
+3. **Install the package:**
    ```bash
    pip install -e .
    ```
 
+4. **Verify installation:**
+   ```bash
+   python test_setup.py
+   ```
+
 ## Quick Start
 
-### Running Reinforcement Learning Training
+Please refer to the documentation for the latest Quick Start instructions:
 
-1. **Imitation learning:**
-This execution file is just for testing the environment. If you want to actually train the model try to use `train_imitation_tutorial_22_flat_full.<bat|sh>`.
-   - **Windows (PowerShell/CMD)**
-     ```powershell
-     myoassist_rl\rl_train\train_configs\test_imitation_tutorial_22_flat.bat
-     ```
-   - **macOS / Linux (bash)**
-     ```bash
-     myoassist_rl/rl_train/train_configs/test_imitation_tutorial_22_flat.sh
-     ```
-
-### Running Reflex Control Optimization 
-( **[Running_Optimizations](./docs/Running_Optimizations.md)**)
-
-1. **Basic optimization:**
-   - **Windows (PowerShell/CMD)**
-     ```powershell
-     cd myoassist_reflex
-     run_training.bat tutorial
-     ```
-   - **macOS / Linux (bash)**
-     ```bash
-     cd myoassist_reflex
-     run_training.sh tutorial
-     ```
-
-## Documentations
-
-### Reinforcement Learning
-- **[RL Tutorial](./docs/RL_MYOASSIST_TUTORIAL.md)**: Comprehensive RL guide
-- **[Modeling Guide](./docs/Modeling.md)**: Musculoskeletal modeling details
-
-### Interactive Tutorials
-- `rl_imitation_tutorial.ipynb`: Imitation learning tutorial
-- `rl_analyze_tutorial.ipynb`: Result analysis tutorial
-- `rl_terrain_tutorial.ipynb`: Terrain adaptation tutorial
-
-### Reflex Control
-- **[Running Simulations](./docs/Running_Simulations.md)**: Model loading and visualization
-- **[Running Optimizations](./docs/Running_Optimizations.md)**: Optimization configuration and execution
-- **[Understanding Cost Functions](./docs/Understanding_Cost.md)**: Cost function design and evaluation
-- **[Exoskeleton Controllers](./docs/Exoskeleton_Controllers.md)**: Controller architecture and implementation
-- **[Processing Results](./docs/Processing_Results.md)**: Result analysis and visualization
+- Getting Started: [Getting Started](https://myoassist.neumove.org/getting-started/)
+- Documentation Home: [https://myoassist.neumove.org](https://myoassist.neumove.org)
 
 ## Available Models
 
@@ -137,10 +110,10 @@ This execution file is just for testing the environment. If you want to actually
 | Model Type | Variant | File Name | Location | Description |
 |------------|---------|-----------|----------|-------------|
 | **22-muscle 2D** | BASELINE | `myoLeg22_2D_BASELINE.xml` | `models/22muscle_2D/` | Basic 2D leg model without exoskeleton |
-| | DEPHY | `myoLeg22_2D_DEPHY.xml` | `models/22muscle_2D/` | Baseline with Dephy exoskeleton   |
-| | HMEDI | `myoLeg22_2D_HMEDI.xml` | `models/22muscle_2D/` | Baseline with HMEDI exoskeleton   |
-| | HUMOTECH | `myoLeg22_2D_HUMOTECH.xml` | `models/22muscle_2D/` | Baseline with Humotech exoskeleton   |
-| | OSL_A | `myoLeg22_2D_OSL_A.xml` | `models/22muscle_2D/` | Baseline with OSL ankle prosthetic   |
+| | DEPHY | `myoLeg22_2D_DEPHY.xml` | `models/22muscle_2D/` | Baseline with Dephy exoskeleton |
+| | HMEDI | `myoLeg22_2D_HMEDI.xml` | `models/22muscle_2D/` | Baseline with HMEDI exoskeleton |
+| | HUMOTECH | `myoLeg22_2D_HUMOTECH.xml` | `models/22muscle_2D/` | Baseline with Humotech exoskeleton |
+| | OSL_A | `myoLeg22_2D_OSL_A.xml` | `models/22muscle_2D/` | Baseline with OSL ankle prosthetic |
 | | TUTORIAL | `myoLeg22_2D_TUTORIAL.xml` | `models/22muscle_2D/` | Tutorial model for learning purposes |
 | **26-muscle 3D** | BASELINE | `myoLeg26_BASELINE.xml` | `models/26muscle_3D/` | Basic 3D leg model without exoskeleton |
 | | DEPHY | `myoLeg26_DEPHY.xml` | `models/26muscle_3D/` | 3D Baseline with Dephy exoskeleton |
@@ -161,7 +134,7 @@ This execution file is just for testing the environment. If you want to actually
 | **Exoskeleton Meshes** | `models/mesh/Dephy/` | Dephy exoskeleton components |
 | | `models/mesh/HMEDI/` | HMEDI exoskeleton components |
 | | `models/mesh/Humotech/` | Humotech exoskeleton components |
-| | `models/mesh/OSL/` | OSL ankle prosthetic components. Knee components in MyoSuite directory. |
+| | `models/mesh/OSL/` | OSL ankle prosthetic components |
 | | `models/mesh/Tutorial/` | Tutorial exoskeleton components |
 
 ## Project Structure
@@ -169,32 +142,32 @@ This execution file is just for testing the environment. If you want to actually
 ```
 myoassist/
 ├── Core Framework
-│   ├── myoassist_reflex/     # Reflex control optimization
-│   ├── myoassist_rl/         # Reinforcement learning environments
-│   ├── myoassist_utils/      # Shared utilities
-│   └── myosuite/             # Base musculoskeletal simulation
+│   ├── ctrl_optim/          # Reflex control optimization
+│   ├── rl_train/            # Reinforcement learning environments
+│   ├── myoassist_utils/     # Shared utilities
+│   └── myosuite/            # Base musculoskeletal simulation
 │
 ├── Models & Assets
 │   ├── models/
-│   │   ├── 22muscle_2D/      # 2D musculoskeletal models
-│   │   ├── 26muscle_3D/      # 3D musculoskeletal models
-│   │   ├── 80muscle/         # Full myoLegs models
-│   │   └── mesh/             # 3D mesh assets
-│   └── terrain_config.xml    # Terrain configuration
+│   │   ├── 22muscle_2D/     # 2D musculoskeletal models
+│   │   ├── 26muscle_3D/     # 3D musculoskeletal models
+│   │   ├── 80muscle/        # Full myoLegs models
+│   │   └── mesh/            # 3D mesh assets
+│   └── terrain_config.xml   # Terrain configuration
 │
 ├── Documentation
-│   ├── docs/                 # Framework documentation
-│   └── README.md            # You are here!
+│   ├── docs/                # Framework documentation
+│   └── README.md           # You are here!
 │
 └── Configuration
-    ├── setup.py              # Package configuration
-    ├── requirements.txt      # Dependencies
-    └── myosuite_init.py     # Initialization script
+    ├── setup.py             # Package configuration
+    ├── requirements.txt     # Dependencies
+    └── test_setup.py       # Installation verification
 ```
 
 ## Core Components
 
-### 1. MyoAssist RL (`myoassist_rl/`)
+### 1. Reinforcement Learning (`rl_train/`)
 Reinforcement learning environments for musculoskeletal control.
 
 **Key Features:**
@@ -205,20 +178,23 @@ Reinforcement learning environments for musculoskeletal control.
 
 **Structure:**
 ```
-myoassist_rl/
+rl_train/
 ├── envs/                    # RL environments
 │   ├── myoassist_leg_base.py
-│   ├── myoassist_leg_imitation.py
-│   └── myoassist_leg_imitation_exo.py
-├── rl_train/               # Training infrastructure
-│   ├── train_ppo.py        # PPO training script
-│   ├── rl_agents/          # Agent implementations
-│   ├── train_configs/      # Training configurations
-│   └── analyzer/           # Result analysis tools
-└── reference_data/         # Training reference data
+│   ├── environment_handler.py
+│   └── myoassist_leg_imitation.py
+├── train/                   # Training infrastructure
+│   ├── policies/            # Policy implementations
+│   ├── train_configs/       # Training configurations
+│   └── train_commands/      # Training scripts
+├── analyzer/                # Result analysis tools
+│   ├── gait_analyze.py
+│   ├── gait_evaluate.py
+│   └── gait_data.py
+└── reference_data/          # Training reference data
 ```
 
-### 2. MyoAssist Reflex (`myoassist_reflex/`)
+### 2. Controller Optimization (`ctrl_optim/`)
 Neuromuscular reflex control optimization framework.
 
 **Key Features:**
@@ -229,17 +205,17 @@ Neuromuscular reflex control optimization framework.
 
 **Structure:**
 ```
-myoassist_reflex/
+ctrl_optim/
 ├── train.py                 # Main optimization entry point
 ├── config/                  # Configuration and argument parsing
 ├── cost_functions/          # Cost evaluation logic
-├── optimization/            # CMA-ES optimizer utilities
+├── optim_utils/             # CMA-ES optimizer utilities
 ├── preoptimized/            # Preoptimized control parameters
-├── reflex/                  # Core reflex controller
-├── exo/                     # Exoskeleton controllers
-├── processing/              # Result analysis tools
-├── training_configs/        # Predefined configurations
-└── results/                 # Optimization outputs
+├── ctrl/                    # Core controllers
+│   ├── reflex/              # Reflex controllers
+│   └── exo/                 # Exoskeleton controllers
+├── results/                 # Optimization outputs
+└── training_configs/        # Predefined configurations
 ```
 
 ### 3. MyoSuite (`myosuite/`)
@@ -262,6 +238,19 @@ myosuite/
 └── agents/                  # Baseline controllers
 ```
 
+## Documentation
+
+### Getting Started
+- **[Installation Guide](https://myoassist.neumove.org/getting-started/#installation)**: Complete setup instructions
+
+### Modeling
+- **[Modeling Guide](https://myoassist.neumove.org/modeling/)**: Musculoskeletal modeling details
+
+### Reinforcement Learning
+- **[RL Tutorial](https://myoassist.neumove.org/reinforcement-learning/)**: Comprehensive RL guide
+
+### Controller Optimization
+- **[Controller Optimization](https://myoassist.neumove.org/controller-optimization/)**: Optimization 
 ## Contributing
 
 We welcome contributions! 
