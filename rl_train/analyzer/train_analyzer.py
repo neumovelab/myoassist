@@ -123,7 +123,7 @@ class TrainAnalyzer:
                                                 # max_time_step=evaluate_param["num_timesteps"],
                                                 use_activation_visualization=evaluate_param["visualize_activation"],
                                                 cam_type=evaluate_param["cam_type"],
-                                                use_realtime_floating=False,
+                                                realtime_plotting_info=evaluate_param.get("realtime_plotting_info", []),
                                                 video_fps=config.env_params.control_framerate
                                                 )
             

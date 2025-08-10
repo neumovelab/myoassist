@@ -2,73 +2,50 @@
     "evaluate_param_list": [
         {
             "num_timesteps": 1200,
-            "min_target_velocity": 0.8,
-            "max_target_velocity": 2.0,
-            "target_velocity_period": 4,
-            "velocity_mode": "SINUSOIDAL",
-            "cam_type": "average_speed",
-            "cam_distance": 2.5,
-            "visualize_activation": true
-        },
-        {
-            "num_timesteps": 1200,
             "min_target_velocity": 1.0,
             "max_target_velocity": 2.2,
             "target_velocity_period": 4,
             "velocity_mode": "SINUSOIDAL",
             "cam_type": "average_speed",
             "cam_distance": 2.5,
-            "visualize_activation": true
+            "visualize_activation": true,
+            "realtime_plotting_info": [
+                {
+                    "category": "joint_data",
+                    "name": "pelvis_tx",
+                    "property_type": "qvel",
+                    "y_lim": [0.8, 2.4]
+                }
+            ]
         },
         {
             "num_timesteps": 1200,
-            "min_target_velocity": 0.8,
-            "max_target_velocity": 2.0,
+            "min_target_velocity": 1.0,
+            "max_target_velocity": 2.2,
+            "target_velocity_period": 7,
+            "velocity_mode": "SINUSOIDAL",
+            "cam_type": "average_speed",
+            "cam_distance": 2.5,
+            "visualize_activation": true,
+            "realtime_plotting_info": [
+                {
+                    "category": "joint_data",
+                    "name": "pelvis_tx",
+                    "property_type": "qvel",
+                    "y_lim": [0.8, 2.4]
+                }
+            ]
+        },
+        {
+            "num_timesteps": 1200,
+            "min_target_velocity": 1.0,
+            "max_target_velocity": 2.2,
             "target_velocity_period": 20,
             "velocity_mode": "SINUSOIDAL",
             "cam_type": "average_speed",
             "cam_distance": 2.5,
             "visualize_activation": true
-        },
-        {
-            "num_timesteps": 1200,
-            "min_target_velocity": 0.8,
-            "max_target_velocity": 2.0,
-            "target_velocity_period": 20,
-            "velocity_mode": "SINUSOIDAL",
-            "cam_type": "average_speed",
-            "cam_distance": 2.5,
-            "visualize_activation": true
-        },
-        {
-            "num_timesteps": 1200,
-            "min_target_velocity": 0.8,
-            "max_target_velocity": 2.0,
-            "target_velocity_period": 1.5,
-            "velocity_mode": "STEP",
-            "cam_type": "follow",
-            "cam_distance": 2.5,
-            "visualize_activation": true
-        },
-        {
-            "num_timesteps": 1200,
-            "min_target_velocity": 0.8,
-            "max_target_velocity": 2.0,
-            "target_velocity_period": 5,
-            "velocity_mode": "STEP",
-            "cam_type": "follow",
-            "cam_distance": 2.5,
-            "visualize_activation": true
-        },
-        {
-            "num_timesteps": 300,
-            "min_target_velocity": 1.25,
-            "max_target_velocity": 1.25,
-            "target_velocity_period": 5,
-            "velocity_mode": "UNIFORM",
-            "cam_type": "average_speed",
-            "cam_distance": 2.5,
-            "visualize_activation": true
+
         }
     ],
     "total_timesteps": 100000000.0,

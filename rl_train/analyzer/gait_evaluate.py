@@ -116,8 +116,7 @@ class GaitEvaluatorBase:
                 # max_time_step:int=600,
                 use_activation_visualization:bool=False,
                 cam_type:str="follow",
-                use_realtime_floating:bool=False,
-                is_gait_cycle_plot:bool=False,
+                realtime_plotting_info:list[dict]=[],
                 video_library:str="imageio",#["cv2", "skvideo", "imageio"]
                 video_fps:int=30,
                ):
@@ -157,8 +156,10 @@ class GaitEvaluatorBase:
                 raise ValueError(f"Invalid cam_type: {cam_type}")
             self.free_cam.distance, self.free_cam.azimuth, self.free_cam.elevation, self.free_cam.lookat = cam_distance, 90, 0, cam_target_pos
 
-        
-        fig, axs = plt.subplots(3, 1, figsize=(8, 11), dpi=600)
+        if len(realtime_plotting_info) > 0:
+            fig, axs = plt.subplots(len(realtime_plotting_info), 1, figsize=(4, len(realtime_plotting_info) * 2), dpi=300)
+            if len(realtime_plotting_info) == 1:
+                axs = [axs]
         for time_step in range(max_timestep):
             gait_data.apply_to_env(time_index=time_step, mj_model=self.env.sim.model, mj_data=self.env.sim.data)
 
@@ -173,15 +174,18 @@ class GaitEvaluatorBase:
             def plotting():
                 fig_width = fig.canvas.get_width_height()[0]
                 fig_height = fig.canvas.get_width_height()[1]
-                plot_height_ratio = 0.6# height ratio to the frame height
-                plot_target_height = int(frame.shape[0] * plot_height_ratio)
-                plot_target_width = int(plot_target_height * fig_width / fig_height)
+                plot_ratio = 0.25# height ratio to the frame height (or width ratio)
+                # plot_target_height = int(frame.shape[0] * plot_height_ratio)
+                # plot_target_width = int(plot_target_height * fig_width / fig_height)
+                plot_target_width = int(frame.shape[1] * plot_ratio)
+                plot_target_height = int(plot_target_width * fig_height / fig_width)
                 # plotting
                 most_recent_segment_index = max((index for index in gait_segment_indexes if index[0] <= time_step), default=None)
                 # print(f"{most_recent_segment_index=} {time_step=}")
                 if most_recent_segment_index is None:
                     most_recent_segment_index = (0,None,None)
                 # if most_recent_segment_index[0] == time_step:
+                is_gait_cycle_plot = False
                 for ax in axs:
                     ax.clear()
                     # TODO: We can set it as a gait_cycle since we have entire time series data
@@ -198,45 +202,90 @@ class GaitEvaluatorBase:
                             -100, 100,  # Assuming the y-limits for the fill area
                             color='#cccccc', alpha=0.5
                         )
-
-
-                    x_range = [most_recent_segment_index[0], most_recent_segment_index[2]]
-
-                    # Interpolate x to range 0-100 for plotting
                     x_original = np.arange(most_recent_segment_index[0], most_recent_segment_index[2])
                     if is_gait_cycle_plot:
                         x_entire = np.linspace(0, 100, len(x_original))
                     else:
                         x_entire = np.arange(0, most_recent_segment_index[2] - most_recent_segment_index[0])
-
-                    # Plot interpolated data
-                    y_hip_entire = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["hip_flexion_r"]["qpos"][most_recent_segment_index[0]:most_recent_segment_index[2]]]
-                    y_knee_entire = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["knee_angle_r"]["qpos"][most_recent_segment_index[0]:most_recent_segment_index[2]]]
-                    y_ankle_entire = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["ankle_angle_r"]["qpos"][most_recent_segment_index[0]:most_recent_segment_index[2]]]
-                    axs[0].plot(x_entire, y_hip_entire, color='#cccccc')
-                    axs[1].plot(x_entire, y_knee_entire, color='#cccccc')
-                    axs[2].plot(x_entire, y_ankle_entire, color='#cccccc')
-
-                    # Interpolate x for the current time step
                     x_current = np.arange(most_recent_segment_index[0], time_step + 1)
                     if is_gait_cycle_plot:
                         x_current = np.linspace(0, 100, len(x_current))
                     else:
                         x_current = np.arange(0, time_step + 1 - most_recent_segment_index[0])
 
-                    # y data
-                    y_hip_current = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["hip_flexion_r"]["qpos"][most_recent_segment_index[0]:time_step+1]]
-                    y_knee_current = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["knee_angle_r"]["qpos"][most_recent_segment_index[0]:time_step+1]]
-                    y_ankle_current = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["ankle_angle_r"]["qpos"][most_recent_segment_index[0]:time_step+1]]
+                    for plot_idx, plot_info in enumerate(realtime_plotting_info):
+                        data_category = plot_info["category"]# joint_data
+                        data_name = plot_info["name"]# pelvis_tx
+                        property_type = plot_info["property_type"]# qpos
+                        y_lim = plot_info["y_lim"]
+                        entire_data = gait_data.series_data[data_category][data_name][property_type][most_recent_segment_index[0]:most_recent_segment_index[2]]
+                        axs[plot_idx].plot(x_entire, entire_data, color='#eeeeee')
+                        current_data = [data[0] for data in gait_data.series_data[data_category][data_name][property_type][most_recent_segment_index[0]:time_step+1]]
+                        axs[plot_idx].plot(x_current, current_data, color='#000000')
+                        #########################################################
+                        # # Create colormap based on y_lim range
+                        # y_min, y_max = y_lim
+                        # norm = plt.Normalize(vmin=y_min, vmax=y_max)
+                        # from matplotlib.colors import LinearSegmentedColormap
 
-                    # Plot current interpolated data
-                    axs[0].plot(x_current, y_hip_current, color='#000000')
-                    axs[1].plot(x_current, y_knee_current, color='#000000')
-                    axs[2].plot(x_current, y_ankle_current, color='#000000')
-                    
-                    axs[0].set_ylim(self.JOINT_LIMIT["HIP"])
-                    axs[1].set_ylim(self.JOINT_LIMIT["KNEE"])
-                    axs[2].set_ylim(self.JOINT_LIMIT["ANKLE"])
+                        # cmap = LinearSegmentedColormap.from_list(
+                        #         # "blue_purple_red", ["#0000ff", "#800080", "#ff0000"]
+                        #         "blue_purple_red", ["#0000ff", "#aaaaaa", "#ff0000"]
+                        #     )
+                        
+                        # # Create line segments for color mapping
+                        # points = np.array([x_current, current_data]).T.reshape(-1, 1, 2)
+                        # segments = np.concatenate([points[:-1], points[1:]], axis=1)
+                        
+                        # # Create LineCollection with colors based on data values
+                        # from matplotlib.collections import LineCollection
+                        # lc = LineCollection(segments, cmap=cmap, norm=norm)
+                        # lc.set_array(np.array(current_data[:-1]))  # Use data values for coloring
+                        # lc.set_linewidth(2)
+                        
+                        # axs[plot_idx].add_collection(lc)
+
+                        ######################################################
+
+                        axs[plot_idx].set_ylim(*y_lim)
+                    if False:
+                        x_range = [most_recent_segment_index[0], most_recent_segment_index[2]]
+
+                        # Interpolate x to range 0-100 for plotting
+                        x_original = np.arange(most_recent_segment_index[0], most_recent_segment_index[2])
+                        if is_gait_cycle_plot:
+                            x_entire = np.linspace(0, 100, len(x_original))
+                        else:
+                            x_entire = np.arange(0, most_recent_segment_index[2] - most_recent_segment_index[0])
+
+                        # Plot interpolated data
+                        y_hip_entire = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["hip_flexion_r"]["qpos"][most_recent_segment_index[0]:most_recent_segment_index[2]]]
+                        y_knee_entire = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["knee_angle_r"]["qpos"][most_recent_segment_index[0]:most_recent_segment_index[2]]]
+                        y_ankle_entire = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["ankle_angle_r"]["qpos"][most_recent_segment_index[0]:most_recent_segment_index[2]]]
+                        axs[0].plot(x_entire, y_hip_entire, color='#cccccc')
+                        axs[1].plot(x_entire, y_knee_entire, color='#cccccc')
+                        axs[2].plot(x_entire, y_ankle_entire, color='#cccccc')
+
+                        # Interpolate x for the current time step
+                        x_current = np.arange(most_recent_segment_index[0], time_step + 1)
+                        if is_gait_cycle_plot:
+                            x_current = np.linspace(0, 100, len(x_current))
+                        else:
+                            x_current = np.arange(0, time_step + 1 - most_recent_segment_index[0])
+
+                        # y data
+                        y_hip_current = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["hip_flexion_r"]["qpos"][most_recent_segment_index[0]:time_step+1]]
+                        y_knee_current = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["knee_angle_r"]["qpos"][most_recent_segment_index[0]:time_step+1]]
+                        y_ankle_current = [np.rad2deg(data[0]) for data in gait_data.series_data["joint_data"]["ankle_angle_r"]["qpos"][most_recent_segment_index[0]:time_step+1]]
+
+                        # Plot current interpolated data
+                        axs[0].plot(x_current, y_hip_current, color='#000000')
+                        axs[1].plot(x_current, y_knee_current, color='#000000')
+                        axs[2].plot(x_current, y_ankle_current, color='#000000')
+                        
+                        axs[0].set_ylim(self.JOINT_LIMIT["HIP"])
+                        axs[1].set_ylim(self.JOINT_LIMIT["KNEE"])
+                        axs[2].set_ylim(self.JOINT_LIMIT["ANKLE"])
 
                 
                 fig.tight_layout()
@@ -245,11 +294,12 @@ class GaitEvaluatorBase:
                 fig_array = fig_array.reshape([fig_height, fig_width, 4])
                 fig_array_resized = cv2.resize(fig_array, (plot_target_width, plot_target_height))  # Resize to match frame height
                 frame[:fig_array_resized.shape[0], :fig_array_resized.shape[1], :] = fig_array_resized[:, :, :3]  # Replace left side of frame with fig
-            if use_realtime_floating:
+            if len(realtime_plotting_info) > 0:
                 plotting()
 
             frames.append(frame)
-        plt.close(fig)  # Close the figure to free up memory
+        if len(realtime_plotting_info) > 0:
+            plt.close(fig)  # Close the figure to free up memory
         if video_library == "cv2":
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or 'avc1' for H.264(much more file size)
             out = cv2.VideoWriter(output_video_path, fourcc, 30, (1920, 1080))

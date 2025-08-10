@@ -65,7 +65,7 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
     is_regen_evaluating_data = True if user_input == "y" else False
 
     from rl_train.analyzer.gait_evaluate import ImitationGaitEvaluator
-    gait_evaluator = ImitationGaitEvaluator(log_handler, config)
+    gait_evaluator: ImitationGaitEvaluator = ImitationGaitEvaluator(log_handler, config)
     gait_evaluator.load_reference_data()
     gait_evaluator.initialize_env()
     if is_regen_evaluating_data:
@@ -92,7 +92,7 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
                                                 # max_time_step=evaluate_param["num_timesteps"],
                                                 use_activation_visualization=evaluate_param["visualize_activation"],
                                                 cam_type=evaluate_param["cam_type"],
-                                                use_realtime_floating=False,
+                                                realtime_plotting_info=evaluate_param.get("realtime_plotting_info", []),
                                                 video_fps=config.env_params.control_framerate
                                                 )
 
