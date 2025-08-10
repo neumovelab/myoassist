@@ -59,6 +59,7 @@ Tools to generate control policies or optimize behavior in simulation.
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
+- [Related Projects](#related-projects)
 
 ## Installation
 

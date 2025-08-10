@@ -81,8 +81,8 @@ The agent outputs actions that control:
 
 ## Key Features
 
-- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](network-index-handler)).
-- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](terrain-types)).
+- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](04_network-index-handler)).
+- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](03_terrain-types)).
 - **Reference Motion Imitation** – Optional imitation reward using ground-truth gait trajectories.
 - **Realtime Evaluation** – Run policies in realtime with `--flag_realtime_evaluate`.
 
@@ -190,7 +190,7 @@ mjpython rl_train/run_train.py --config_file_path rl_train/train/train_configs/i
 ```
 
 This file is the default example configuration we provide.  
-For more details, see the [Understanding Configuration](./configuration.html) section.
+For more details, see the [Understanding Configuration](02_configuration) section.
 
 
 ## Policy Evaluation
@@ -224,7 +224,7 @@ This folder contains various plots and videos that visualize your agent's perfor
 
 The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
-For more details on how to customize these parameters, see the [Understanding Configuration](./configuration.html) section.
+For more details on how to customize these parameters, see the [Understanding Configuration](02_configuration) section.
 
 
 ## Transfer Learning

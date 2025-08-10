@@ -75,16 +75,16 @@ Try to provide context:
 - Include your MyoAssist version and system information
 
 **Note**: If you're unable to create a GitHub issue or have further questions, please contact us at
-- [General: s.song@northeastern.edu](mailto:s.song@northeastern.edu)
-- [RL: son.hyo@northeastern.edu](mailto:son.hyo@northeastern.edu)
-- [Modeling, Controller Optimization: robbins.cal@northeastern.edu](mailto:robbins.cal@northeastern.edu)
+- General: [s.song@northeastern.edu](mailto:s.song@northeastern.edu)
+- RL: [son.hyo@northeastern.edu](mailto:son.hyo@northeastern.edu)
+- Modeling, Controller Optimization: [robbins.cal@northeastern.edu](mailto:robbins.cal@northeastern.edu)
 
 ### Suggesting Enhancements
 
 Before submitting an enhancement suggestion:
 
-- Check if you're using the [latest version](https://github.com/your-org/myoassist/releases/latest) of MyoAssist
-- Perform a quick [search](https://github.com/your-org/myoassist/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one
+- Check if you're using the [latest version](https://github.com/neumovelab/myoassist/releases) of MyoAssist
+- Perform a quick [search](https://github.com/neumovelab/myoassist/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one
 
 How to submit a good enhancement suggestion:
 
