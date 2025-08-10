@@ -179,18 +179,18 @@ rl_train/results/train_session_[date-time]/
 
 Once you've verified everything works, run full training:
 
-- windows:
 ```bash
 python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
 ```
 
-- mac:
-```bash
-mjpython rl_train/run_train.py --config_file_path rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json
-```
-
 This file is the default example configuration we provide.  
 For more details, see the [Understanding Configuration](02_configuration) section.
+
+> **Note:**  
+> The provided config sets `num_envs` to 32.  
+> Depending on your PC's capability, try lowering this to 4, 8, or 16.  
+> You should also adjust `n_steps` accordingly.  
+> For example, if you use `num_envs=16` (half of 32), you should double `n_steps` to keep the total batch size the same.
 
 
 ## Policy Evaluation
