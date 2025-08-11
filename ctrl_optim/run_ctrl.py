@@ -66,9 +66,9 @@ def main():
     """Main function to run the simulation."""
     
     # --- Load from Optimization Results ---
-    LOAD_FROM_FILE = True
+    LOAD_FROM_FILE = False
     notebook_dir = os.getcwd()
-    PARAMS_FILE_PATH = os.path.join(notebook_dir, "results", "optim_results", "exo_npoint_tutorial", "myorfl_Kine_2D_1_25_2025Jul25_1827_None_BestLast.txt")
+    PARAMS_FILE_PATH = os.path.join(notebook_dir, "results", "optim_results","your_results_folder", "your_results_file.txt")
     
     if LOAD_FROM_FILE:
         if not os.path.exists(PARAMS_FILE_PATH):
