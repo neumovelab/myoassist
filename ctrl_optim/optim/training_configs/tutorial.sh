@@ -13,13 +13,13 @@ exec "$PYTHON_CMD" -m ctrl_optim.optim.train \
     --trunk_err_type ref_diff \
     --tgt_sym_th 0.1 \
     --tgt_grf_th 1.5 \
-    -kine \
+    -eff \
     --ExoOn 1 \
     --use_4param_spline \
     --max_torque 100.0 \
     --popsize 8 \
-    --maxiter 75 \
+    --maxiter 50 \
     --threads 8 \
     --sigma_gain 10 \
-    --param_path ../results/optim_results/exo_npoint_tutorial \
-    --save_path results/exo_4param
+    --param_path ../results/optim_results/tutorial_prep \
+    --save_path tutorial

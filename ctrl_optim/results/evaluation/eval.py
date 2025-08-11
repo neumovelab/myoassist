@@ -467,7 +467,7 @@ class ParameterSelector:
         bat_paths = filedialog.askopenfilenames(
             title="Select Configuration Files",
             initialdir=initial_dir,
-            filetypes=[("Batch files", "*.bat"), ("All files", "*.*")]
+            filetypes=[("Config files", "*.bat;*.sh"), ("Batch files", "*.bat"), ("Shell scripts", "*.sh"), ("All files", "*.*")]
         )
 
         added = 0
@@ -1959,19 +1959,31 @@ def prompt_to_continue():
     return result[0]
 
 
-def parse_bat_file(bat_path):
-    """Parse a .bat configuration file and return settings"""
+def parse_bat_file(config_path):
+    """Parse a configuration file (.bat or .sh) and return settings"""
     try:
-        with open(bat_path, 'r') as f:
+        with open(config_path, 'r') as f:
             lines = f.readlines()
         
-        config_text = ' '.join(lines[1:]).replace('^', ' ').replace('\n', ' ')
+        # Handle both .bat and .sh files
+        if config_path.endswith('.bat'):
+            config_text = ' '.join(lines[1:]).replace('^', ' ').replace('\n', ' ')
+        else:  # .sh file
+            config_text = ' '.join(lines[1:]).replace('\\', ' ').replace('\n', ' ')
         
-        if 'python -m myoassist_reflex.train' not in config_text:
-            raise ValueError("Not a valid MyoAssist configuration file")
+        # Check for python command - be more flexible about the exact format
+        if not any(cmd in config_text for cmd in ['python ', '$PYTHON_EXECUTABLE ']):
+            raise ValueError("Not a valid Python configuration file")
         
-        # Parse arguments
-        args = config_text.split()[3:] 
+        # Parse arguments - find the python command and get everything after it
+        words = config_text.split()
+        for i, word in enumerate(words):
+            if word in ['python', '$PYTHON_EXECUTABLE']:
+                # Skip the python command and script name
+                args = words[i+2:]
+                break
+        else:
+            args = words[3:]  # fallback to original behavior
         settings = {
             'model': "baseline",  # defaults
             'mode': "2D",

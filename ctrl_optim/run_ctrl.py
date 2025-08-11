@@ -68,7 +68,7 @@ def main():
     # --- Load from Optimization Results ---
     LOAD_FROM_FILE = True
     notebook_dir = os.getcwd()
-    PARAMS_FILE_PATH = os.path.join(notebook_dir, "results", "optim_results", "exo_npoint_tutorial", "myorfl_Kine_2D_1_25_2025Jul25_1827_None_BestLast.txt")
+    PARAMS_FILE_PATH = os.path.join(notebook_dir, "results", "optim_results","tutorial_example", "myorfl_Kine_2D_1_25_2025Aug11_1439_None_BestLast.txt")
     
     if LOAD_FROM_FILE:
         if not os.path.exists(PARAMS_FILE_PATH):
@@ -78,8 +78,8 @@ def main():
     SIMULATION_TIME = 5      # seconds
     SLOPE_DEG = 0             # env slope degrees
     MODEL = "tutorial"           # Options: dephy, hmedi, humotech, osl, baseline
-    EXO_BOOL = False           # Enable or disable exoskeleton
-    USE_4PARAM_SPLINE = False # Use 4-parameter spline for exoskeleton
+    EXO_BOOL = True           # Enable or disable exoskeleton
+    USE_4PARAM_SPLINE = True # Use 4-parameter spline for exoskeleton
     N_POINTS = 4              # Number of points for n-point spline
     MAX_TORQUE = 100          # Maximum exoskeleton torque
 
