@@ -1,5 +1,5 @@
 ---
-title: Reflex Control Overview
+title: Reflex Control
 parent: Controller Optimization
 nav_order: 6
 layout: home
@@ -127,31 +127,13 @@ For 3D control, additional modules handle frontal plane motion:
 - **Frontal Plane Coordination**: Module M4 extended for contralateral frontal plane effects
 - **Frontal Plane Swing Control**: Module M6 extended with <code>α<sub>f</sub></code> target tracking
 
-The frontal plane uses leg-specific sign conventions:
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>α<sub>target_global</sub> = α<sub>0</sub> - C<sub>d</sub> × distance - C<sub>v</sub> × velocity</strong>
-</div>
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>α<sub>target</sub> = α<sub>target_global</sub> - θ<sub>trunk</sub></strong>
-</div>
-
 ## Supraspinal Control Layer
 
 The supraspinal layer provides:
 
 - **Foot placement targets**: Calculated from COM position and velocity relative to stance foot
 - **Swing leg selection**: During double support, selects leg farther from target for swing
-- **Target angle computation**:
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>sign<sub>frontal</sub> = 1 if leg == 'r_leg' else -1</strong>
-</div>
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>α<sub>target_f</sub> = α<sub>global_f</sub> - (sign<sub>frontal</sub> × θ<sub>f</sub>)</strong>
-</div>
+- **Target angle computation**: The target frontal angle is calculated by adjusting the global frontal angle based on the leg side (right or left).
 
 ## Implementation Details
 
@@ -190,36 +172,6 @@ Automatic phase detection based on:
 - **Load thresholds**: Stance initiation/termination  
 - **Swing initiation**: Supraspinal swing selection during double support
 - **Sub-phase transitions**: Sw1-Sw4 trigger events
-
-## Formulation
-
-### Alpha Angle Control (Body Frame)
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>α = φ<sub>hip</sub> - 0.5 × φ<sub>knee</sub> (body frame leg angle)</strong>
-</div>
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>α<sub>target</sub> = α<sub>global</sub> - θ<sub>trunk</sub> (converted to body frame)</strong>
-</div>
-
-### Force Feedback
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>S<sub>muscle</sub> = Σ(gain<sub>i</sub> × max(F<sub>muscle_i</sub>, 0)) (positive feedback only)</strong>
-</div>
-
-### Phase-Dependent Modulation
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>S<sub>muscle</sub> = phase_factor × load_modulation × Σ(module_contributions)</strong>
-</div>
-
-### Load-Dependent Stance Transition
-
-<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #155257;">
-  <strong>transition_factor = clip(1 - Tr_St_sup × F<sub>contralateral</sub>, 0, 1)</strong>
-</div>
 
 ## References
 

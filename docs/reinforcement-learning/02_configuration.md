@@ -1,5 +1,5 @@
 ---
-title: Understanding Configuration
+title: RL Configuration
 parent: Reinforcement Learning
 nav_order: 2
 layout: home

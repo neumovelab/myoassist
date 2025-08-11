@@ -22,7 +22,6 @@ Before you begin, ensure you have the following tools and resources:
 <img src="../assets/materials.png" width="400"/>
 </div>
 <div align="center">
-<i>Example programs and materials; not sponsored</i>
 </div>
 
 ## 2. General Tips
@@ -46,7 +45,64 @@ The MuJoCo world frame uses a **(+x forward, +y left, +z up)** coordinate system
 <i>Rubber duckie defined in the world frame at life-size vs. defined in the body frame at model-scale</i>
 </div>
 
-## 4. Loading Mesh Files
+## 3. Using the MuJoCo Visualizer
+
+The visualizer is your primary tool for inspecting and debugging your model.
+
+**Important:** When loading or reloading a model, you **must** reset it to a keyframe pose via the `Simulation -> Key` menu. The initial pose when loading a model is *always* incorrect.
+
+### Key Menus
+The **Joint** panel on the right of the visualizer allow you to interactively pose the model and see the corresponding `qpos` values, which is helpful for finding new or tuning keyframe positions. The **Control** panel allows you to adjust muscle or other actuator control values and (if the simulation is *not* paused, assess the resulting behavior of the model. The **Simulation** and **Rendering** sections provide the most useful options.
+
+#### Simulation Menu
+- **Reset:** Resets the model to a selected keyframe pose.
+- **Reload:** Fully reloads the XML file to reflect any saved changes.
+- **Run/Pause:** Toggles the physics simulation. It should typically be paused when editing.
+- **Copy Pose:** Copies the current `qpos` and `qvel` vectors to the clipboard, which is useful for updating keyframes after posing the model.
+
+#### Rendering Menu
+- **Inertia:** Renders the inertial "bounding box" for every body.
+- **Contact Point / Contact Force:** Visualizes contact locations and forces, as described above.
+- **Center of Mass:** Renders the model's calculated center of mass.
+- **Static Body:** Hides or shows non-moving bodies like the ground plane.
+- **Tendon:** Hides or shows muscle and actuator tendons.
+- **Group Enable:** This section lets you toggle the visibility of different geom groups defined in the XML. Most notably, the foot and toe touch sensor sites are in `Site groups -> "Site 3"`, and you can toggle this group to check their positions.
+
+### Visualizer Hotkeys and Shortcuts
+
+The MuJoCo visualizer provides several keyboard and mouse shortcuts for navigation and control:
+
+#### Basic Controls
+- **Space**: Play/Pause simulation
+- **+/-**: Speed Up/Down
+- **Left/Right Arrow**: Step Back/Forward
+- **Ctrl [Shift] Tab**: Hide right UI
+- **Ctrl Tab**: Hide left UI
+- **[ ]**: Cycle camera
+- **Esc**: Free camera
+- **F1**: Help
+- **F2**: Info
+- **F3**: Profiler
+- **F4**: Sensors
+- **F5**: Full screen
+
+#### Mouse Controls
+- **Scroll, middle drag**: Zoom
+- **Left drag**: View Orbit
+- **Double-click**: Select
+- **Page Up**: Select parent
+- **Right double-click**: Center camera on mouse location
+- **[Shift] right drag**: View Pan
+- **Ctrl [Shift] drag**: Object Rotate
+- **Ctrl [Shift] right drag**: Object Translate
+
+#### Additional Features
+- **UI right-button hold**: Show shortcuts
+- **UI title double-click**: Expand/collapse all
+
+**Note:** For the following steps, see [Model Preparation](model_prep) for additional details.
+
+## 5. Loading Mesh Files
 
 Once your `.stl` files are ready, you declare them in the `<asset>` section of your XML model file. Use the `<mesh>` tag to set the file path and assign a unique name to each component. It is important to maintain this naming convention when referencing these assets later in the file.
 
@@ -73,7 +129,7 @@ For device components that appear identically more than once, a mesh import can 
 </asset>
 ```
 
-## 5. Adding Device Bodies
+## 6. Adding Device Bodies
 
 ### Modifying the Musculoskeletal Model for an Exoskeleton
 Each component of your device can be added to the model's kinematic tree within the `<worldbody>` section. This requires careful consideration of how your device attaches to the body.
@@ -126,7 +182,7 @@ For this transtibial amputation, the `tibia_r` body is replaced with a cut geome
                     ...
 ```
 
-## 6. Defining Actuators
+## 7. Defining Actuators
 
 Powered devices require actuators, which are defined in the `<actuator>` section. The type of actuator you use will depend on your device's specifications (e.g., motors, cable-driven systems).
 
@@ -144,7 +200,7 @@ These `general` actuators apply assistive torque to the biological ankle joints.
 </actuator>
 ```
 
-## 7. Sensors and Contact Points
+## 8. Sensors and Contact Points
 
 It is critical to verify how your model interacts with its environment. The `Contact Point` and `Contact Force` visualizations in the MuJoCo viewer are used for this.
 
@@ -161,57 +217,3 @@ When adding devices to the feet (e.g., shoes), you must update the model's initi
 <div align="center">
 <i>Incorrect contacts and forces vs. corrected contacts and forces</i>
 </div>
-
-## 8. Using the MuJoCo Visualizer
-
-The visualizer is your primary tool for inspecting and debugging your model.
-
-**Important:** When loading or reloading a model, you **must** reset it to a keyframe pose via the `Simulation -> Key` menu. The initial pose when loading a model is *always* incorrect.
-
-### Key Menus
-The **Joint** panel on the right of the visualizer allow you to interactively pose the model and see the corresponding `qpos` values, which is helpful for finding new or tuning keyframe positions. The **Control** panel allows you to adjust muscle or other actuator control values and (if the simulation is *not* paused, assess the resulting behavior of the model. The **Simulation** and **Rendering** sections provide the most useful options.
-
-#### Simulation Menu
-- **Reset:** Resets the model to a selected keyframe pose.
-- **Reload:** Fully reloads the XML file to reflect any saved changes.
-- **Run/Pause:** Toggles the physics simulation. It should typically be paused when editing.
-- **Copy Pose:** Copies the current `qpos` and `qvel` vectors to the clipboard, which is useful for updating keyframes after posing the model.
-
-#### Rendering Menu
-- **Inertia:** Renders the inertial "bounding box" for every body.
-- **Contact Point / Contact Force:** Visualizes contact locations and forces, as described above.
-- **Center of Mass:** Renders the model's calculated center of mass.
-- **Static Body:** Hides or shows non-moving bodies like the ground plane.
-- **Tendon:** Hides or shows muscle and actuator tendons.
-- **Group Enable:** This section lets you toggle the visibility of different geom groups defined in the XML. Most notably, the foot and toe touch sensor sites are in `Site groups -> "Site 3"`, and you can toggle this group to check their positions.
-
-### Visualizer Hotkeys and Shortcuts
-
-The MuJoCo visualizer provides several keyboard and mouse shortcuts for navigation and control:
-
-#### Basic Controls
-- **Space**: Play/Pause simulation
-- **+/-**: Speed Up/Down
-- **Left/Right Arrow**: Step Back/Forward
-- **Tab/Shift-Tab**: Toggle Left/Right UI
-- **[ ]**: Cycle camera
-- **Esc**: Free camera
-- **F1**: Help
-- **F2**: Info
-- **F3**: Profiler
-- **F4**: Sensors
-- **F5**: Full screen
-
-#### Mouse Controls
-- **Scroll, middle drag**: Zoom
-- **Left drag**: View Orbit
-- **Double-click**: Select
-- **Page Up**: Select parent
-- **Right double-click**: Center camera on mouse location
-- **[Shift] right drag**: View Pan
-- **Ctrl [Shift] drag**: Object Rotate
-- **Ctrl [Shift] right drag**: Object Translate
-
-#### Additional Features
-- **UI right-button hold**: Show shortcuts
-- **UI title double-click**: Expand/collapse all

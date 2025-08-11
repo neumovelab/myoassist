@@ -1,5 +1,5 @@
 ---
-title: Evaluating Results
+title: Result Evaluation
 parent: Controller Optimization
 nav_order: 3
 layout: home

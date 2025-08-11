@@ -10,7 +10,7 @@ layout: home
 **Reflex-based controller for assistive devices using parameter optimization**
 
 <div style="text-align: center;">
-  <img src="../assets/exo_vis.gif" alt="Controller Optimization Demo" style="max-width: 75%; height: auto;">
+  <img src="../assets/exo_vis_r.gif" alt="Controller Optimization Demo" style="max-width: 75%; height: auto;">
   <!-- <div>Controller Optimization Demo</div> -->
 </div>
 
@@ -44,7 +44,7 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
     <ul>
       <li><a href="Running_Reflex_Control">Running Reflex Control</a></li>
       <li><a href="Running_Optimizations">Running Optimizations</a></li>
-      <li><a href="Evaluating_Results">Evaluating Results</a></li>
+      <li><a href="Evaluating_Results">Result Evaluation</a></li>
     </ul>
   </div>
   <div style="flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
@@ -52,8 +52,8 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
     <p>Customize cost functions and analyze optimization results</p>
     <ul>
       <li><a href="Exoskeleton_Controllers">Exoskeleton Controllers</a></li>
-      <li><a href="Understanding_Cost">Understanding Cost Functions</a></li>
-      <li><a href="Reflex_Control_Overview">Reflex Control Overview</a></li>
+      <li><a href="Understanding_Cost">Cost Functions</a></li>
+      <li><a href="Reflex_Control_Overview">Reflex Control</a></li>
     </ul>
   </div>
 </div>

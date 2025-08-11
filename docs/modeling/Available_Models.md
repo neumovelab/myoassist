@@ -7,40 +7,42 @@ layout: home
 
 # Available Devices
 
-<div style="display: flex; flex-direction: column; gap: 10px; margin: 20px 0;">
+
+### Devices
+<div style="display: flex; flex-direction: column; gap: 5px; margin: 20px 0;">
 
 <!-- Row 1 -->
-<div style="display: flex; justify-content: space-between; gap: 10px;">
+<div style="display: flex; justify-content: space-between; gap: 5px;">
     <div style="flex: 1; text-align: center;">
-        <img src="../assets/humotech.png" alt="HUMOTECH Device" style="width: 400px; height: 250px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; position: relative; background-color: white;" onmouseover="this.style.transform='scale(1.9)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.4)'; this.style.zIndex='9999'; this.style.backgroundColor='white'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='1'" onclick="showDeviceDetails('humotech')">
+        <img src="../assets/humotech.png" alt="HUMOTECH Device" style="width: 450px; height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background-color: white;" onclick="showDeviceDetails('humotech')">
         <p><strong><a href="#humotech-exo-010" style="text-decoration: none; color: inherit;">HUMOTECH</a></strong></p>
     </div>
     <div style="flex: 1; text-align: center;">
-        <img src="../assets/openexo.png" alt="OPENEXO Device" style="width: 400px; height: 250px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; position: relative; background-color: white;" onmouseover="this.style.transform='scale(1.9)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.4)'; this.style.zIndex='9999'; this.style.backgroundColor='white'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='1'" onclick="showDeviceDetails('openexo')">
+        <img src="../assets/openexo.png" alt="OPENEXO Device" style="width: 450px; height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background-color: white;" onclick="showDeviceDetails('openexo')">
         <p><strong><a href="#openexo-ankle-module" style="text-decoration: none; color: inherit;">OPENEXO</a></strong></p>
     </div>
 </div>
 
 <!-- Row 2 -->
-<div style="display: flex; justify-content: space-between; gap: 10px;">
+<div style="display: flex; justify-content: space-between; gap: 5px;">
     <div style="flex: 1; text-align: center;">
-        <img src="../assets/dephy.png" alt="DEPHY Device" style="width: 400px; height: 250px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; position: relative; background-color: white;" onmouseover="this.style.transform='scale(1.9)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.4)'; this.style.zIndex='9999'; this.style.backgroundColor='white'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='1'" onclick="showDeviceDetails('dephy')">
+        <img src="../assets/dephy.png" alt="DEPHY Device" style="width: 450px; height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background-color: white;" onclick="showDeviceDetails('dephy')">
         <p><strong><a href="#dephy-exoboots" style="text-decoration: none; color: inherit;">DEPHY</a></strong></p>
     </div>
     <div style="flex: 1; text-align: center;">
-        <img src="../assets/hmedi.png" alt="HMEDI Device" style="width: 400px; height: 250px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; position: relative; background-color: white;" onmouseover="this.style.transform='scale(1.9)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.4)'; this.style.zIndex='9999'; this.style.backgroundColor='white'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='1'" onclick="showDeviceDetails('hmedi')">
+        <img src="../assets/hmedi.png" alt="HMEDI Device" style="width: 450px; height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background-color: white;" onclick="showDeviceDetails('hmedi')">
         <p><strong><a href="#hurotics-h-medi" style="text-decoration: none; color: inherit;">HMEDI</a></strong></p>
     </div>
 </div>
 
 <!-- Row 3 -->
-<div style="display: flex; justify-content: space-between; gap: 10px;">
+<div style="display: flex; justify-content: space-between; gap: 5px;">
     <div style="flex: 1; text-align: center;">
-        <img src="../assets/osl_a.png" alt="OSL Ankle Device" style="width: 400px; height: 250px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; position: relative; background-color: white;" onmouseover="this.style.transform='scale(1.9)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.4)'; this.style.zIndex='9999'; this.style.backgroundColor='white'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='1'" onclick="showDeviceDetails('osl_a')">
+        <img src="../assets/osl_a.png" alt="OSL Ankle Device" style="width: 450px; height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background-color: white;" onclick="showDeviceDetails('osl_a')">
         <p><strong><a href="#open-source-leg" style="text-decoration: none; color: inherit;">OSL Ankle</a></strong></p>
     </div>
     <div style="flex: 1; text-align: center;">
-        <img src="../assets/osl_ka.png" alt="OSL Knee-Ankle Device" style="width: 400px; height: 250px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; position: relative; background-color: white;" onmouseover="this.style.transform='scale(1.9)'; this.style.boxShadow='0 20px 40px rgba(0,0,0,0.4)'; this.style.zIndex='9999'; this.style.backgroundColor='white'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='1'" onclick="showDeviceDetails('osl_ka')">
+        <img src="../assets/osl_ka.png" alt="OSL Knee-Ankle Device" style="width: 450px; height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; background-color: white;" onclick="showDeviceDetails('osl_ka')">
         <p><strong><a href="#open-source-leg" style="text-decoration: none; color: inherit;">OSL Knee-Ankle</a></strong></p>
     </div>
 </div>

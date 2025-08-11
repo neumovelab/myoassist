@@ -55,17 +55,17 @@ Virtual environments (venv) are essential because they allow you to create isola
      .my_venv\Scripts\activate
      ```
 
-> **Note:**  
->  
-> After activation, your command prompt will display `(.my_venv)` in front of the current directory.
-> The virtual environment must always be activated when working on this project. If you encounter issues while following the documentation, please double-check that your virtual environment is active.  
->  
-> **Example:**  
-> ```bash
-> (.my_venv) D:\your\project\directory\myoassist
-> ```
->  
-> This indicates that the virtual environment is currently active.
+   > **Note:**  
+   >  
+   > After activation, your command prompt will display `(.my_venv)` in front of the current directory.
+   > The virtual environment must always be activated when working on this project. If you encounter issues while following the documentation, please double-check that your virtual environment is active.  
+   >  
+   > **Example:**  
+   > ```bash
+   > (.my_venv) D:\your\project\directory\myoassist
+   > ```
+   >  
+   > This indicates that the virtual environment is currently active.
 
 3. **Deactivate the virtual environment (optional):**
    ```bash
