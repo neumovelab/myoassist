@@ -8,6 +8,7 @@ import sys
 import subprocess
 import glob
 import platform
+import shutil
 from pathlib import Path
 
 env = os.environ.copy()
@@ -79,16 +80,26 @@ def execute_config(config_name, original_dir):
     script_dir = get_script_directory()
     config_dir = script_dir / "optim" / "training_configs"
     
-    # Try both .bat and .sh extensions
-    config_file_bat = config_dir / f"{config_name}.bat"
-    config_file_sh = config_dir / f"{config_name}.sh"
+    # Select script type based on OS
+    is_windows = platform.system() == "Windows"
+    
+    # Determine which script to use
+    if is_windows:
+        primary_config = config_dir / f"{config_name}.bat"
+        fallback_config = config_dir / f"{config_name}.sh"
+    else:
+        primary_config = config_dir / f"{config_name}.sh"
+        fallback_config = config_dir / f"{config_name}.bat"
     
     config_file = None
-    if config_file_bat.exists():
-        config_file = config_file_bat
-    elif config_file_sh.exists():
-        config_file = config_file_sh
-    else:
+    if primary_config.exists():
+        config_file = primary_config
+    elif fallback_config.exists():
+        print(f"Warning: Preferred script type for your OS ({primary_config.suffix}) not found.")
+        print(f"Attempting to use {fallback_config.suffix} script instead.")
+        config_file = fallback_config
+    
+    if not config_file:
         print(f"Error: Configuration '{config_name}' not found")
         print()
         print("Available configurations:")
@@ -103,12 +114,14 @@ def execute_config(config_name, original_dir):
     try:
         # Execute the configuration file
         if platform.system() == "Windows":
-            # On Windows, use cmd to execute .bat files
             if config_file.suffix == ".bat":
                 result = subprocess.run(["cmd", "/c", str(config_file)], 
                                       shell=True, check=True)
             else:
-                # For .sh files on Windows, try using bash if available
+                # For .sh files on Windows, we need bash
+                if not shutil.which('bash'):
+                    print("Error: bash is required to run .sh files on Windows")
+                    return False
                 result = subprocess.run(["bash", str(config_file)], 
                                       shell=True, check=True)
         else:
@@ -119,9 +132,9 @@ def execute_config(config_name, original_dir):
                 result = subprocess.run([str(config_file)], 
                                       shell=True, check=True)
             else:
-                # For .bat files on Unix, try using wine or cmd if available
-                result = subprocess.run(["cmd", "/c", str(config_file)], 
-                                      shell=True, check=True)
+                print("Error: .bat files are not supported on Unix-like systems")
+                print("Please use the equivalent .sh file instead")
+                return False
         
         return True
         
