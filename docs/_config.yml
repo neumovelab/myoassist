@@ -48,12 +48,18 @@ defaults:
     values:
       layout: "page"
 
-# Auxiliary links
+# Auxiliary links (top-right)
 aux_links:
-  "MyoAssist Repository": https://github.com/neumovelab/myoassist
+  "Give feedback": https://docs.google.com/forms/d/e/1FAIpQLSdyd8T8Vqt4vtIVDGpYT7h2VOHeG4zd06EURFyuUW0XA8RKTA/viewform?usp=header
+  "MyoAssist repository": https://github.com/neumovelab/myoassist
   "Issues": https://github.com/neumovelab/myoassist/issues
+aux_links_new_tab: true
 
 markdown: kramdown
 kramdown:
   math_engine: mathjax
   syntax_highlighter: rouge
+
+
+# Optional: use one site-wide variable wherever you need the URL
+feedback_url: "https://YOUR_SURVEY_URL"
