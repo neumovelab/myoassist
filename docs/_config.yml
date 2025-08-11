@@ -50,7 +50,7 @@ defaults:
 
 # Auxiliary links (top-right)
 aux_links:
-  "Give feedback": https://docs.google.com/forms/d/e/1FAIpQLSdyd8T8Vqt4vtIVDGpYT7h2VOHeG4zd06EURFyuUW0XA8RKTA/viewform?usp=header
+  "Survey": https://docs.google.com/forms/d/e/1FAIpQLSdyd8T8Vqt4vtIVDGpYT7h2VOHeG4zd06EURFyuUW0XA8RKTA/viewform?usp=header
   "MyoAssist repository": https://github.com/neumovelab/myoassist
   "Issues": https://github.com/neumovelab/myoassist/issues
 aux_links_new_tab: true

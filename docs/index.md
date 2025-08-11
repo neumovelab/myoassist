@@ -8,6 +8,8 @@ nav_order: 1
 
 **An open-source Python toolkit for simulating and optimizing assistive devices in neuromechanical simulations**
 
+> This site is a hands-on tutorial for MyoAssist. Once you finish the tutorial, please share your feedback via the [**Survey**](https://docs.google.com/forms/d/e/1FAIpQLSdyd8T8Vqt4vtIVDGpYT7h2VOHeG4zd06EURFyuUW0XA8RKTA/viewform?usp=header) link in the header.
+
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
     <img src="assets/partial_flat_short.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
