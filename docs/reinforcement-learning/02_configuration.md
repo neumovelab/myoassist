@@ -5,7 +5,7 @@ nav_order: 2
 layout: home
 ---
 
-# Configuration
+# RL Configuration
 
 Configuration files define training parameters for reinforcement learning experiments. The system uses JSON files that are converted to dataclasses for easy access.
 

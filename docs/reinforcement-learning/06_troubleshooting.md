@@ -1,5 +1,5 @@
 ---
-title: Trouble Shooting
+title: Troubleshooting
 parent: Reinforcement Learning
 nav_order: 6
 layout: home
