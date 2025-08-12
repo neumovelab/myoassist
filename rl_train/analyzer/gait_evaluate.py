@@ -186,17 +186,22 @@ class GaitEvaluatorBase:
                     most_recent_segment_index = (0,None,None)
                 # if most_recent_segment_index[0] == time_step:
                 is_gait_cycle_plot = False
-                for ax in axs:
-                    ax.clear()
-                    # TODO: We can set it as a gait_cycle since we have entire time series data
-                    if is_gait_cycle_plot:
-                        ax.set_xlim(0, 100)
+                for (ax_idx, ax) in enumerate(axs):
+                    if "plot_duration_type" in realtime_plotting_info[ax_idx] and realtime_plotting_info[ax_idx]["plot_duration_type"] == "total":
+                        ax.set_xlim(0, max_timestep)
                     else:
-                        ax.set_xlim(0, 50)
+                        ax.clear()
+                        # TODO: We can set it as a gait_cycle since we have entire time series data
+                        if is_gait_cycle_plot:
+                            ax.set_xlim(0, 100)
+                        else:
+                            ax.set_xlim(0, 50)
 
                 if most_recent_segment_index[1] is not None:
                 # Fill the x area with gray color
-                    for ax in axs:
+                    for (ax_idx, ax) in enumerate(axs):
+                        if "plot_duration_type" in realtime_plotting_info[ax_idx] and realtime_plotting_info[ax_idx]["plot_duration_type"] == "total":
+                            continue
                         ax.fill_between(
                             range(0, most_recent_segment_index[1] - most_recent_segment_index[0]),
                             -100, 100,  # Assuming the y-limits for the fill area
@@ -214,6 +219,8 @@ class GaitEvaluatorBase:
                         x_current = np.arange(0, time_step + 1 - most_recent_segment_index[0])
 
                     for plot_idx, plot_info in enumerate(realtime_plotting_info):
+                        if "plot_duration_type" in plot_info and plot_info["plot_duration_type"] == "total":
+                            continue
                         data_category = plot_info["category"]# joint_data
                         data_name = plot_info["name"]# pelvis_tx
                         property_type = plot_info["property_type"]# qpos
@@ -291,7 +298,22 @@ class GaitEvaluatorBase:
                         axs[1].set_ylim(self.JOINT_LIMIT["KNEE"])
                         axs[2].set_ylim(self.JOINT_LIMIT["ANKLE"])
 
+                for plot_idx, plot_info in enumerate(realtime_plotting_info):
+                    if "plot_duration_type" in plot_info and plot_info["plot_duration_type"] == "total":
+                        data_category = plot_info["category"]# joint_data
+                        data_name = plot_info["name"]# pelvis_tx
+                        y_lim = plot_info["y_lim"]
+                        property_type = plot_info["property_type"]# qpos
+                        if "y_scale" in plot_info:
+                            y_scale = plot_info["y_scale"]
+                        else:
+                            y_scale = 1
+                        entire_data = np.array(gait_data.series_data[data_category][data_name][property_type][:time_step])
+                        axs[plot_idx].plot(np.arange(0, len(entire_data)), y_scale * entire_data, color='#000000')
                 
+                for plot_idx, plot_info in enumerate(realtime_plotting_info):
+                        y_lim = plot_info["y_lim"]
+                        axs[plot_idx].set_ylim(*y_lim)
                 fig.tight_layout()
                 fig.canvas.draw()
                 fig_array = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
