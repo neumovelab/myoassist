@@ -15,6 +15,27 @@
                     "name": "pelvis_tx",
                     "property_type": "qvel",
                     "y_lim": [0.8, 2.4]
+                },
+                {
+                    "category": "joint_data",
+                    "name": "hip_flexion_r",
+                    "property_type": "qpos",
+                    "y_scale": 57.2958,
+                    "y_lim": [-30, 35]
+                },
+                {
+                    "category": "joint_data",
+                    "name": "knee_angle_r",
+                    "property_type": "qpos",
+                    "y_scale": 57.2958,
+                    "y_lim": [-70, 5]
+                },
+                {
+                    "category": "joint_data",
+                    "name": "ankle_angle_r",
+                    "property_type": "qpos",
+                    "y_scale": 57.2958,
+                    "y_lim": [-30, 25]
                 }
             ]
         },
@@ -33,6 +54,27 @@
                     "name": "pelvis_tx",
                     "property_type": "qvel",
                     "y_lim": [0.8, 2.4]
+                },
+                {
+                    "category": "joint_data",
+                    "name": "hip_flexion_r",
+                    "property_type": "qpos",
+                    "y_scale": 57.2958,
+                    "y_lim": [-30, 35]
+                },
+                {
+                    "category": "joint_data",
+                    "name": "knee_angle_r",
+                    "property_type": "qpos",
+                    "y_scale": 57.2958,
+                    "y_lim": [-70, 5]
+                },
+                {
+                    "category": "joint_data",
+                    "name": "ankle_angle_r",
+                    "property_type": "qpos",
+                    "y_scale": 57.2958,
+                    "y_lim": [-30, 25]
                 }
             ]
         },

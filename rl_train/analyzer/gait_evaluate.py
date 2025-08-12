@@ -218,10 +218,14 @@ class GaitEvaluatorBase:
                         data_name = plot_info["name"]# pelvis_tx
                         property_type = plot_info["property_type"]# qpos
                         y_lim = plot_info["y_lim"]
-                        entire_data = gait_data.series_data[data_category][data_name][property_type][most_recent_segment_index[0]:most_recent_segment_index[2]]
-                        axs[plot_idx].plot(x_entire, entire_data, color='#eeeeee')
-                        current_data = [data[0] for data in gait_data.series_data[data_category][data_name][property_type][most_recent_segment_index[0]:time_step+1]]
-                        axs[plot_idx].plot(x_current, current_data, color='#000000')
+                        if "y_scale" in plot_info:
+                            y_scale = plot_info["y_scale"]
+                        else:
+                            y_scale = 1
+                        entire_data = np.array(gait_data.series_data[data_category][data_name][property_type][most_recent_segment_index[0]:most_recent_segment_index[2]])
+                        axs[plot_idx].plot(x_entire, y_scale * entire_data, color='#eeeeee')
+                        current_data = np.array([data[0] for data in gait_data.series_data[data_category][data_name][property_type][most_recent_segment_index[0]:time_step+1]])
+                        axs[plot_idx].plot(x_current, y_scale * current_data, color='#000000')
                         #########################################################
                         # # Create colormap based on y_lim range
                         # y_min, y_max = y_lim
