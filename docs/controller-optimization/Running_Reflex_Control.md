@@ -63,7 +63,7 @@ To visualize a controller that you have already optimized:
 ```python
 # In run_ctrl.py, set:
 LOAD_FROM_FILE = True
-PARAMS_FILE_PATH = "results/optim_results/exo_npoint_tutorial/myorfl_Kine_2D_1_25_2025Jul25_1827_None_BestLast.txt"
+PARAMS_FILE_PATH = "results/optim_results/results_folder/parameters.txt"
 ```
 
 The script will automatically:
@@ -143,19 +143,6 @@ Video saved: simulation_regular.mp4 (1920x1080)
 Video opened in new window: simulation_regular.mp4
 All outputs saved to: results/evaluation_outputs/run_ctrl_date_time
 Simulation completed successfully!
-```
-
-## File Structure
-
-```
-ctrl_optim/
-├── run_ctrl_minimal.py          # Quick testing script
-├── run_ctrl.py                  # Main simulation script
-├── results/
-│   ├── evaluation_outputs/      # Simulation videos and outputs
-│   ├── optim_results/           # Optimization results
-│   └── preoptimized/           # Pre-optimized controllers
-└── ctrl/                        # Controller implementations
 ```
 
 ## Troubleshooting

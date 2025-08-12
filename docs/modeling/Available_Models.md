@@ -92,11 +92,11 @@ function showDeviceDetails(device) {
 
 | Asset Type | Location | Description |
 |------------|----------|-------------|
-| **Anatomical Meshes** | `models/mesh/` | Individual bone and joint STL files |
-| **Exoskeleton Meshes** | `models/mesh/Dephy/` | Dephy exoskeleton components |
-| | `models/mesh/HMEDI/` | HMEDI exoskeleton components |
-| | `models/mesh/Humotech/` | Humotech exoskeleton components |
-| | `models/mesh/OpenExo/` | Tutorial exoskeleton components |
+| **Anatomical Meshes** | `models/mesh/` | Individual skeletal .stl files |
+| **Exoskeleton Meshes** | `models/mesh/Dephy/` | Dephy components |
+| | `models/mesh/HMEDI/` | HMEDI components |
+| | `models/mesh/Humotech/` | Humotech components |
+| | `models/mesh/OpenExo/` | OpenExo components |
 | | `models/mesh/OSL/` | OSL ankle prosthetic components. Knee components in MyoSuite directory. |
 | | `models/mesh/Tutorial/` | Tutorial exoskeleton components |
 
