@@ -139,6 +139,9 @@ If you see the error message `ModuleNotFoundError: No module named 'flatten_dict
 - Shows an example of creating a Gym wrapped MuJoCo simulation environment
 - No actual training - just environment creation example
 
+
+> Terminated vs Truncated [In-depth explanation of the terminated and truncated values in Gymnasium's Env.step API](https://farama.org/Gymnasium-Terminated-Truncated-Step-API)
+
 ### 2. Quick Training Test
 
 Run a minimal training session to verify everything works:
