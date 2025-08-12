@@ -50,7 +50,17 @@ TrainSessionConfigBase
 
 ## Configuration Components
 
-### Core Parameters
+
+## Components Table of Contents
+
+- [General Parameters](#general-parameters)
+- [Evaluate Parameters](#evaluate-parameters)
+- [Logger Parameters](#logger-parameters)
+- [Environment Parameters](#environment-parameters)
+- [PPO Parameters](#PPO-Parameters)
+- [Policy Parameters](#policy-parameters)
+
+### General Parameters
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
