@@ -12,6 +12,12 @@
             "realtime_plotting_info": [
                 {
                     "plot_duration_type": "total",
+                    "filter":{
+                        "type": "butter",
+                        "order": 2,
+                        "cutoff": 2.0,
+                        "fs": 30.0
+                    },
                     "category": "joint_data",
                     "name": "pelvis_tx",
                     "property_type": "qvel",
@@ -53,6 +59,12 @@
             "realtime_plotting_info": [
                 {
                     "plot_duration_type": "total",
+                    "filter":{
+                        "type": "butter",
+                        "order": 2,
+                        "cutoff": 2.0,
+                        "fs": 30.0
+                    },
                     "category": "joint_data",
                     "name": "pelvis_tx",
                     "property_type": "qvel",

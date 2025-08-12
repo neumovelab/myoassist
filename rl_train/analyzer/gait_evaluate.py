@@ -18,6 +18,7 @@ from  rl_train.envs.myoassist_leg_base import MyoAssistLegBase
 from rl_train.analyzer.gait_data import GaitData
 from rl_train.analyzer.gait_analyze import GaitAnalyzer
 from rl_train.envs.environment_handler import EnvironmentHandler
+from scipy.signal import butter, filtfilt
 
 class GaitEvaluatorBase:
     JOINT_LIMIT = {
@@ -308,7 +309,30 @@ class GaitEvaluatorBase:
                             y_scale = plot_info["y_scale"]
                         else:
                             y_scale = 1
-                        entire_data = np.array(gait_data.series_data[data_category][data_name][property_type][:time_step])
+                        if "filter" in plot_info:
+                            filter_type = plot_info["filter"]["type"]
+                            filter_order = plot_info["filter"]["order"]
+                            filter_cutoff = plot_info["filter"]["cutoff"]
+                            filter_fs = plot_info["filter"]["fs"]
+                            entire_data = np.array(gait_data.series_data[data_category][data_name][property_type])
+                            # cut after filtering
+                            if filter_type == "butter":
+                                def lowpass_filter(data, cutoff=2.0, fs=100.0, order=2):
+                                    # cutoff: desired cutoff frequency of the filter, Hz
+                                    # fs: sample rate, Hz
+                                    # order: filter order
+                                    nyq = 0.5 * fs
+                                    normal_cutoff = cutoff / nyq
+                                    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+                                    if data.ndim != 1:
+                                        data = data.reshape(-1)
+                                    y = filtfilt(b, a, data)
+                                    return y
+                                entire_data = lowpass_filter(entire_data, filter_cutoff, filter_fs, filter_order)[:time_step]
+                            else:
+                                raise ValueError(f"Invalid filter type: {filter_type}")
+                        else:
+                            entire_data = np.array(gait_data.series_data[data_category][data_name][property_type][:time_step])
                         axs[plot_idx].plot(np.arange(0, len(entire_data)), y_scale * entire_data, color='#000000')
                 
                 for plot_idx, plot_info in enumerate(realtime_plotting_info):
