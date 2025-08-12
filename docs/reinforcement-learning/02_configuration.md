@@ -159,6 +159,9 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 | `foot_force_penalty` | Foot force penalty | 0.5 |
 
 ### PPO Parameters
+> For more detailed explanations of each PPO parameter, please refer to the Stable-Baselines3 documentation:  
+> https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html#parameters
+
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
