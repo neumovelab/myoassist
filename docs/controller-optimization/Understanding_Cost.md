@@ -7,7 +7,7 @@ layout: home
 
 # Understanding Cost Functions
 
-The heart of any optimization is its objective function—the "cost" that the optimizer tries to minimize. In this framework, the cost function is a sophisticated, multi-stage process designed to guide the CMA-ES optimizer from a random set of parameters to a controller that produces stable, efficient, and biologically plausible locomotion.
+The heart of any optimization is its objective function—the "cost" that the optimizer tries to minimize. In this framework, there is a multi-stage cost function progression designed to guide the CMA-ES optimizer from a random set of parameters to a controller that produces stable and realistic locomotion.
 
 ## A Brief Introduction to CMA-ES
 

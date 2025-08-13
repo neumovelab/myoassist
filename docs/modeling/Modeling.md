@@ -45,14 +45,14 @@ The MuJoCo world frame uses a **(+x forward, +y left, +z up)** coordinate system
 <i>Rubber duckie defined in the world frame at life-size vs. defined in the body frame at model-scale</i>
 </div>
 
-## 3. Using the MuJoCo Visualizer
+## 4. Using the MuJoCo Visualizer
 
 The visualizer is your primary tool for inspecting and debugging your model.
 
 **Important:** When loading or reloading a model, you **must** reset it to a keyframe pose via the `Simulation -> Key` menu. The initial pose when loading a model is *always* incorrect.
 
 ### Key Menus
-The **Joint** panel on the right of the visualizer allow you to interactively pose the model and see the corresponding `qpos` values, which is helpful for finding new or tuning keyframe positions. The **Control** panel allows you to adjust muscle or other actuator control values and (if the simulation is *not* paused, assess the resulting behavior of the model. The **Simulation** and **Rendering** sections provide the most useful options.
+The **Joint** panel on the right of the visualizer allow you to interactively pose the model and see the corresponding `qpos` values, which is helpful for finding new or tuning keyframe positions. The **Control** panel allows you to adjust muscle or other actuator control values and (and if the simulation is *not* paused, assess the resulting behavior of the model). The **Simulation** and **Rendering** sections provide the most useful options.
 
 #### Simulation Menu
 - **Reset:** Resets the model to a selected keyframe pose.
