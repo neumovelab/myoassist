@@ -174,13 +174,13 @@
                     <site name="fdl_r-P2" pos="-0.0176 -0.3645 -0.0124"/>
 
                     <body name="exo_shaft_r" pos="-0.025 -0.215 0.05">
-                        <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="-0.025 -0.2 0.075" quat="1 0 0 0"/>
+                        <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="0 0 0.025" quat="1 0 0 0"/>
                         <geom name="exo_shaft_r_geom" mesh="exo_shaft_r_geom" type="mesh"
                             rgba="0.4 0.4 0.4 1"/>
                     </body>
 
                     <body name="exo_cuff_r" pos="-0.05 -0.13 -0.065">
-                        <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 -0.075 0.05" quat="1 0 0 0"/>
+                        <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0.025 0 0.05" quat="1 0 0 0"/>
                         <geom name="exo_cuff_r_geom" mesh="exo_cuff_r_geom" type="mesh"
                             rgba="0.3 0.3 0.3 1"/>
                     </body>
@@ -204,7 +204,7 @@
                             <site name="r_foot_touch" type="box" pos="0.01 -0.002 -0.01" size=".03 .02 .03" euler="0 0 0" class="myo_leg_touch"/>
 
                             <body name="exo_blade_r" pos="0.1 0.055 -0.0575" euler="0 -0.15 0">
-                                <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 0.075 0.05" quat="1 0 0 0"/>
+                                <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 -0.06 0.05" quat="1 0 0 0"/>
                                 <geom name="exo_blade_r_geom" mesh="exo_blade_r_geom" type="mesh"
                                 rgba="0.3 0.3 0.3 1"/>
                             </body>
@@ -291,13 +291,13 @@
                     <site name="fdl_l-P2" pos="-0.0176 -0.3645 0.0124"/>
 
                     <body name="exo_shaft_l" pos="-0.025 -0.215 -0.095">
-                        <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="-0.025 -0.2 0.075" quat="1 0 0 0"/>
+                        <inertial diaginertia="0.00465 0.00065 0.00501" mass="0.732" pos="0 0 0.025" quat="1 0 0 0"/>
                         <geom name="exo_shaft_l_geom" mesh="exo_shaft_l_geom" type="mesh"
                             rgba="0.4 0.4 0.4 1"/>
                     </body>
 
                     <body name="exo_cuff_l" pos="-0.05 -0.13 -0.055">
-                        <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 -0.075 0.05" quat="1 0 0 0"/>
+                        <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0.025 0 0.05" quat="1 0 0 0"/>
                         <geom name="exo_cuff_l_geom" mesh="exo_cuff_l_geom" type="mesh"
                             rgba="0.3 0.3 0.3 1"/>
                     </body>
@@ -320,7 +320,7 @@
                             <site name="fdl_l-P5" pos="0.1658 -0.0081 -0.0116"/>
 
                             <body name="exo_blade_l" pos="0.075 0.055 -0.0775" euler="0 0.15 0">
-                                <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="-0.01 0 0.05" quat="1 0 0 0"/>
+                                <inertial diaginertia="0.00002 0.00011 0.00009" mass="0.04872" pos="0 -0.06 0.09" quat="1 0 0 0"/>
                                 <geom name="exo_blade_l_geom" mesh="exo_blade_l_geom" type="mesh"
                                 rgba="0.3 0.3 0.3 1"/>
                             </body>
