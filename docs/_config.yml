@@ -9,6 +9,9 @@ repo_branch: main
 
 logo: "/assets/myoassist_logo.png"
 
+# Google Analytics
+ga_tracking: "G-LHB5MGPDRH"
+
 # Just the Docs theme settings
 just_the_docs:
 
