@@ -66,7 +66,7 @@ class SimulationConfig:
         self.max_torque = 0
         self.init_pose = "walk_left"
         self.evaluation_mode = "short"  # short, long (full commented out)
-        self.output_dir = os.path.join("results", "evaluation_outputs")
+        self.output_dir = os.path.join("ctrl_optim", "results", "evaluation_outputs")
         self.n_points = 3
         self.result_dirs = []  # selected results folders
 
@@ -2137,6 +2137,9 @@ def main():
                     raise ValueError("Config file must contain 'results_dir' or 'results_dirs'")
                 config_data['results_dir'] = resolve_path(config_data['results_dir'])
 
+            # Ensure output_dir is within ctrl_optim/results/evaluation_outputs
+            if not config_data['output_dir'].startswith('ctrl_optim/results/evaluation_outputs'):
+                config_data['output_dir'] = os.path.join('ctrl_optim/results/evaluation_outputs', config_data['output_dir'])
             config_data['output_dir'] = resolve_path(config_data['output_dir'])
             
             # Validate required fields
