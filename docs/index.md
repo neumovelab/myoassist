@@ -8,7 +8,7 @@ nav_order: 1
 
 **An open-source Python toolkit for simulating and optimizing assistive devices in neuromechanical simulations**
 
-> This site is a hands-on tutorial for MyoAssist. Once you finish the tutorial, please share your feedback via the [**Survey**](https://docs.google.com/forms/d/e/1FAIpQLSdyd8T8Vqt4vtIVDGpYT7h2VOHeG4zd06EURFyuUW0XA8RKTA/viewform?usp=header) link in the header.
+> This site is a hands-on tutorial for MyoAssist. Once you finish the tutorial, please share your feedback via the [**Survey**](https://docs.google.com/forms/d/e/1FAIpQLSdyd8T8Vqt4vtIVDGpYT7h2VOHeG4zd06EURFyuUW0XA8RKTA/viewform?usp=header) link in the header. If you encounter any technical issues, please open a ticket in the GitHub repo via the [**Issues**](https://github.com/neumovelab/myoassist/issues) link in the header.
 
 <div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
   <div style="flex: 1; text-align: center;">
