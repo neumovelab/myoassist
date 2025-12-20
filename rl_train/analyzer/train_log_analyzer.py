@@ -76,7 +76,7 @@ class TrainLogAnalyzer:
                         weight_value = modified_log_datas[0].reward_weights.get(key, 1.0)
                         if isinstance(weight_value, dict):
                             # Sum all values in the dictionary for each timestep
-                            reward_weights[key] = [sum(weight_dict.values()) for weight_dict in 
+                            reward_weights[key] = [sum(weight_dict) for weight_dict in 
                                                    (log_data.reward_weights.get(key, {}).values() for log_data in modified_log_datas)]
                         else:
                             # Directly use the weight if it's not a dictionary
