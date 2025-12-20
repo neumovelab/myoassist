@@ -109,7 +109,7 @@ for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
 
     gait_analyzer.plot_entire_result(result_dir=analyze_result_dir,is_right_foot_based=True)
 
-    gait_analyzer.plot_exo_segmented_data(result_dir=analyze_result_dir)
+    gait_analyzer.plot_exo_segmented_data(result_dir=analyze_result_dir) if config.env_params.env_id in ["myoAssistLegImitationExo-v0"] else None
 
     gait_analyzer.plot_segmented_kinematics_result(result_dir=analyze_result_dir)
 
