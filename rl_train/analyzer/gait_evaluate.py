@@ -50,6 +50,13 @@ class GaitEvaluatorBase:
                                                         height=1080)
         self.env.sim.renderer._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONVEXHULL] = 0 if not convex_hull_flag else 1
         # self.env.sim.renderer._scene_option.flags[mujoco.mjtVisFlag.mjVIS_ACTIVATION] = 1
+        # Disable shadows + reflections for a cleaner snapshot
+        for _flag_name in ("mjRND_SHADOW", "mjRND_REFLECTION"):
+            try:
+                _flag = getattr(mujoco.mjtRndFlag, _flag_name)
+                self.env.sim.renderer._scene.flags[_flag] = 0
+            except (AttributeError, IndexError):
+                pass
         
     def evaluate(self, result_dir:str, file_name:str, *,
                  velocity_mode:MyoAssistLegBase.VelocityMode,
@@ -368,6 +375,37 @@ class GaitEvaluatorBase:
         else:
             raise ValueError(f"Invalid video_library: {video_library}")
         return frames
+
+    def render_snapshot(self, gait_data_path: str, *,
+                        width: int = 1920, height: int = 960,
+                        cam_distance: float = 2.5) -> np.ndarray:
+        """Render a single follow-camera frame at the requested dimensions from
+        mid-rollout. MJRenderer caches its offscreen buffer at first-call dims and
+        silently ignores later size requests, so we drop the cache to force a
+        re-allocation at (width, height)."""
+        gait_data = GaitData()
+        gait_data.read_json_data(gait_data_path)
+        mid = gait_data.metadata["data_length"] // 2
+        gait_data.apply_to_env(time_index=mid,
+                               mj_model=self.env.sim.model,
+                               mj_data=self.env.sim.data)
+        self.env.just_forward()
+        target = self.env.unwrapped.sim.data.body("pelvis").xpos.copy()
+        target[2] = 0.8
+        self.free_cam.distance = cam_distance
+        self.free_cam.azimuth = 90
+        self.free_cam.elevation = 0
+        self.free_cam.lookat = target
+
+        renderer = self.env.unwrapped.sim.renderer
+        try:
+            renderer._renderer = None  # force buffer re-allocation at new dims
+        except AttributeError:
+            pass
+        return renderer.render_offscreen(
+            camera_id=self.free_cam, width=width, height=height
+        )
+
     def __del__(self):
         self.env.close()
 

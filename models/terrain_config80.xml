@@ -7,7 +7,10 @@
 
 <mujocoinclude>
     <asset>
-        <texture type="skybox" builtin="gradient" rgb1="0.11 0.11 0.11" rgb2="0.11 0.11 0.11" width="512" height="3072"/>
+        <!-- <texture type="skybox" builtin="gradient" rgb1="0.11 0.11 0.11" rgb2="0.11 0.11 0.11" width="512" height="3072"/> -->
+
+        <texture type="skybox" builtin="gradient" rgb1="0.8 0.8 0.8" rgb2="0.8 0.8 0.8" width="512" height="3072"/>
+
 
         <!-- Plain white -->
         <!-- <texture name="texfloor" type="2d" height="1" width="1" file="mesh/floor0.png"/>

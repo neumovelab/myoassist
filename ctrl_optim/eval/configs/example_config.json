@@ -1,0 +1,35 @@
+{
+    "_comment": "Example eval config for ctrl_optim/run_eval.py. Copy this file, rename it, and fill in real values for your run. Fields with default values may be omitted entirely.",
+
+    "results_dir": "ctrl_optim/results/preoptimized/<your_run_dir>",
+    "param_type": "Best",
+    "param_file": null,
+    "pkl_file":   null,
+    "output_dir": null,
+
+    "sim_time":         10.0,
+    "target_velocity":  1.25,
+
+    "mode":              "2D",
+    "init_pose":         "walk_left",
+    "slope_deg":         0.0,
+    "delayed":           false,
+    "exo_bool":          true,
+    "fixed_exo":         false,
+    "use_4param_spline": true,
+    "max_torque":        100.0,
+    "model":             "tutorial",
+    "n_points":          4,
+
+    "camera_speed":     null,
+    "camera_distance":  3.5,
+    "camera_elevation": -10.0,
+    "camera_height":    null,
+    "camera_azimuth":   null,
+    "render_width":     1920,
+    "render_height":    960,
+    "show_actuators":   true,
+
+    "export_video": false,
+    "video_fps":    100
+}

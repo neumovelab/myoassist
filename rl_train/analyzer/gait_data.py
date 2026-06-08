@@ -69,6 +69,12 @@ class GaitData:
 
             joint_dict["qpos"].append(numpy_utils.numpy2array(joint_data.qpos.copy()))
             joint_dict["qvel"].append(numpy_utils.numpy2array(joint_data.qvel.copy()))
+            # Active actuator-driven joint moment (Nm). Slice into qfrc_actuator
+            # for this joint's dof range (handles hinge/slide/ball/free uniformly).
+            dof_start = mj_model.jnt_dofadr[idx]
+            dof_end = mj_model.jnt_dofadr[idx + 1] if idx + 1 < mj_model.njnt else mj_model.nv
+            qfrc = mj_data.qfrc_actuator[dof_start:dof_end].copy()
+            joint_dict.setdefault("qfrc_actuator", []).append(numpy_utils.numpy2array(qfrc))
         for idx in range(mj_model.nsensor):
             sensor_name = mj_model.sensor(idx).name
             sensor_model = mj_model.sensor(sensor_name)
