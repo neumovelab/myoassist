@@ -546,14 +546,20 @@ def build_composite(inputs: CompositeInputs,
     left_axes = [fig.add_subplot(left2[i, 0]) for i in range(3)]
     right_axes = [fig.add_subplot(right2[i, 0]) for i in range(3)]
     if norm is not None:
-        draw_gait_metrics(left_axes, inputs.gait_data, fs, norm=norm, cmap=cmap)
-        draw_segmented_kinematics(right_axes, inputs.gait_data, inputs.ref_data, norm=norm, cmap=cmap)
-        left_axes[0].set_title("Speed & Gait Metrics", fontsize=9, pad=4)
-        right_axes[0].set_title("Kinematics (deg)", fontsize=9, pad=4)
+        # Keep kinematics in the LEFT slot (same position/size as the constant
+        # composite); speed & gait metrics on the right.
+        draw_segmented_kinematics(left_axes, inputs.gait_data, inputs.ref_data, norm=norm, cmap=cmap)
+        draw_gait_metrics(right_axes, inputs.gait_data, fs, norm=norm, cmap=cmap)
+        left_axes[0].set_title("Kinematics (deg)", fontsize=9, pad=4)
+        right_axes[0].set_title("Speed & Gait Metrics", fontsize=9, pad=4)
+        # Shared speed colorbar in a fixed axes at the figure's right margin, so
+        # it does NOT shrink any panel (kinematics keeps its original width/aspect).
         sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap); sm.set_array([])
-        fig.colorbar(sm, ax=right_axes, location="right", fraction=0.04, pad=0.02
-                     ).set_label("stride mean speed (m/s)", fontsize=7)
-        _section_header(outer[1], "Speed / Gait Metrics & Kinematics")
+        p_top = left_axes[0].get_position(); p_bot = left_axes[-1].get_position()
+        p_right = right_axes[0].get_position()
+        cax = fig.add_axes([p_right.x1 + 0.012, p_bot.y0, 0.009, p_top.y1 - p_bot.y0])
+        fig.colorbar(sm, cax=cax).set_label("stride mean speed (m/s)", fontsize=7)
+        _section_header(outer[1], "Kinematics & Speed / Gait Metrics")
     else:
         draw_segmented_kinematics(left_axes, inputs.gait_data, inputs.ref_data)
         draw_kinetics(right_axes, inputs.gait_data)
