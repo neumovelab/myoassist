@@ -39,6 +39,12 @@ def _parse_args():
                    help="Skip the pop-out composite window.")
     p.add_argument("--regen", action="store_true",
                    help="Regenerate evaluated gait data even if it already exists.")
+    p.add_argument("--varying", action="store_true",
+                   help="Override evaluate_param_list with a single SINUSOIDAL "
+                        "varying-speed rollout (0.8-1.4 m/s) and emit the "
+                        "speed-tracking composite.")
+    p.add_argument("--cmap", choices=("rainbow", "teal", "bluered"), default="rainbow",
+                   help="Speed colour map for varying-speed composites.")
     return p.parse_args()
 
 
@@ -58,11 +64,27 @@ def main():
     from rl_train.analyzer.train_log_analyzer import TrainLogAnalyzer
     from rl_train.analyzer.gait_analyze import GaitAnalyzer
     from rl_train.analyzer.gait_evaluate import GaitData, ImitationGaitEvaluator
-    from myoassist_utils.eval_utils import build_composite, CompositeInputs
+    from myoassist_utils.eval_utils import build_composite, CompositeInputs, CMAPS
 
     with open(os.path.join(log_dir, "session_config.json"), "r") as f:
         config_dict = json.load(f)
     config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
+
+    if args.varying:
+        base = dict(config.evaluate_param_list[0]) if config.evaluate_param_list else {}
+        base.update({
+            "velocity_mode": "SINUSOIDAL",
+            "min_target_velocity": 0.8,
+            "max_target_velocity": 1.4,
+            "target_velocity_period": 20.0,
+            "num_timesteps": 1200,
+        })
+        base.setdefault("cam_distance", 3.0)
+        base.setdefault("cam_type", "follow")
+        base.setdefault("visualize_activation", True)
+        base.setdefault("realtime_plotting_info", [])
+        config.evaluate_param_list = [base]
+        print("  --varying: SINUSOIDAL 0.8-1.4 m/s (period 20 s, 1200 steps)")
 
     print("=" * 60)
     print("RL Policy Evaluation")
@@ -163,6 +185,11 @@ def main():
             "Target velocity": f"{evaluate_param['min_target_velocity']:.2f}–{evaluate_param['max_target_velocity']:.2f} m/s",
         }
 
+        # Varying-speed rollout -> speed-aware composite (per-stride teal kinematics
+        # + speed-tracking / cadence / step-length row).
+        is_varying = (evaluate_param["velocity_mode"] != "UNIFORM"
+                      or evaluate_param["min_target_velocity"] != evaluate_param["max_target_velocity"])
+
         composite_path = os.path.join(analyze_result_dir, "composite.png")
         build_composite(
             CompositeInputs(
@@ -175,6 +202,9 @@ def main():
             ),
             save_path=composite_path,
             show=show_composite,
+            speed_varying=is_varying,
+            fs=config.env_params.control_framerate,
+            cmap=CMAPS[args.cmap],
         )
 
 

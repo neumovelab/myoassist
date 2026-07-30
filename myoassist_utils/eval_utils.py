@@ -22,6 +22,8 @@ from typing import Optional
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import LineCollection
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 from rl_train.analyzer.gait_data import GaitData
 from rl_train.analyzer.gait_analyze import GaitAnalyzer
@@ -42,6 +44,7 @@ TOE_OFF_STYLE = dict(color=LINE_BLACK, linestyle="--", linewidth=0.8, alpha=0.5)
 
 LINE_W_DATA = 1.6   # primary data traces (kinematics, muscles, CMA best)
 LINE_W_REF = 1.2    # reference / median / worst overlays
+TRAJ_LW = 1.0       # global scale for speed-coloured trajectory line widths
 
 
 def _ensure_gui_backend() -> None:
@@ -191,20 +194,36 @@ REF_KEYS = {"hip_flexion_r": "q_hip_flexion_r",
             "ankle_angle_r": "q_ankle_angle_r"}
 
 
-def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict]) -> None:
-    """axes: iterable of 3 Axes (hip/knee/ankle, top to bottom). Independent autoscale."""
+def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict],
+                              norm=None, cmap=None) -> None:
+    """axes: iterable of 3 Axes (hip/knee/ankle, top to bottom).
+
+    Constant speed (norm is None): mean +- SD black trace.
+    Varying speed (norm given):     one teal-coloured trace per stride, shaded by
+                                    the stride's mean speed (see SPEED_CMAP)."""
     segments = _segments_r(gait_data)
     toe_off = _toe_off_pct(gait_data, right=True)
     joint_data = gait_data.series_data["joint_data"]
+    vx = np.asarray([v[0] for v in joint_data["pelvis_tx"]["qvel"]], float)
+    x = np.linspace(0, 100, 101)
+    cmap = cmap or SPEED_CMAP
 
     for ax, (jkey, _lim_key, label) in zip(axes, JOINT_KEYS):
-        x, mean, std, _ = _segment_and_average(joint_data[jkey]["qpos"], segments)
-        if mean is not None:
-            mean_deg = np.rad2deg(mean)
-            std_deg = np.rad2deg(std)
-            ax.plot(x, mean_deg, color=LINE_BLACK, linestyle="-", label="Simulation")
-            ax.fill_between(x, mean_deg - std_deg, mean_deg + std_deg,
-                            color=FILL_GREY, alpha=0.5, linewidth=0)
+        if norm is None:
+            _x, mean, std, _ = _segment_and_average(joint_data[jkey]["qpos"], segments)
+            if mean is not None:
+                mean_deg = np.rad2deg(mean)
+                std_deg = np.rad2deg(std)
+                ax.plot(_x, mean_deg, color=LINE_BLACK, linestyle="-", label="Simulation")
+                ax.fill_between(_x, mean_deg - std_deg, mean_deg + std_deg,
+                                color=FILL_GREY, alpha=0.5, linewidth=0)
+        else:
+            for (start, _toe, end) in segments:
+                c = _resample_stride(joint_data[jkey]["qpos"], start, end)
+                if c is None:
+                    continue
+                ax.plot(x, np.rad2deg(c), color=cmap(norm(vx[start:end].mean())),
+                        lw=TRAJ_LW, alpha=0.85)
         if ref_data is not None and REF_KEYS[jkey] in ref_data:
             ref = np.rad2deg(np.asarray(ref_data[REF_KEYS[jkey]]))
             xref = np.linspace(0, 100, len(ref))
@@ -212,12 +231,10 @@ def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict
         ax.axvline(toe_off, **TOE_OFF_STYLE)
         ax.set_xlim(0, 100)
         ax.set_ylabel(label)
-    # Only the bottom axis shows tick labels and x-label
     for ax in axes[:-1]:
         ax.tick_params(labelbottom=False)
     axes[-1].set_xlabel("Gait cycle (%)")
-    # Only show legend when there's a reference overlay to disambiguate
-    if ref_data is not None:
+    if ref_data is not None and norm is None:
         handles, labels = axes[0].get_legend_handles_labels()
         if handles:
             axes[0].legend(handles, labels, loc="upper right", frameon=False, fontsize=6)
@@ -227,13 +244,19 @@ def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict
 # Panel: joint kinetics (active actuator-driven joint moment, R leg)
 # -----------------------------------------------------------------------------
 
-def draw_kinetics(axes, gait_data: GaitData) -> None:
+def draw_kinetics(axes, gait_data: GaitData, norm=None, cmap=None) -> None:
     """Draw active joint moments (Nm) per gait cycle for hip/knee/ankle (R leg).
     Reads `qfrc_actuator` populated by `GaitData.add_data`. Gracefully shows a
-    placeholder for older gait JSONs that predate the moment capture."""
+    placeholder for older gait JSONs that predate the moment capture.
+
+    Constant speed (norm is None): mean +- SD. Varying (norm given): per-stride
+    teal traces shaded by the stride's mean speed."""
     segments = _segments_r(gait_data)
     toe_off = _toe_off_pct(gait_data, right=True)
     joint_data = gait_data.series_data["joint_data"]
+    vx = np.asarray([v[0] for v in joint_data["pelvis_tx"]["qvel"]], float)
+    x = np.linspace(0, 100, 101)
+    cmap = cmap or SPEED_CMAP
 
     for ax, (jkey, _lim_key, label) in zip(axes, JOINT_KEYS):
         jdict = joint_data.get(jkey, {})
@@ -246,11 +269,18 @@ def draw_kinetics(axes, gait_data: GaitData) -> None:
             ax.set_ylabel(label)
             ax.set_yticks([])
             continue
-        x, mean, std, _ = _segment_and_average(qfrc, segments)
-        if mean is not None:
-            ax.plot(x, mean, color=LINE_BLACK, linestyle="-", label="Simulation")
-            ax.fill_between(x, mean - std, mean + std,
-                            color=FILL_GREY, alpha=0.5, linewidth=0)
+        if norm is None:
+            _x, mean, std, _ = _segment_and_average(qfrc, segments)
+            if mean is not None:
+                ax.plot(_x, mean, color=LINE_BLACK, linestyle="-", label="Simulation")
+                ax.fill_between(_x, mean - std, mean + std,
+                                color=FILL_GREY, alpha=0.5, linewidth=0)
+        else:
+            for (start, _toe, end) in segments:
+                c = _resample_stride(qfrc, start, end)
+                if c is None:
+                    continue
+                ax.plot(x, c, color=cmap(norm(vx[start:end].mean())), lw=TRAJ_LW, alpha=0.85)
         ax.axvline(toe_off, **TOE_OFF_STYLE)
         ax.set_xlim(0, 100)
         ax.set_ylabel(label)
@@ -282,14 +312,28 @@ def _collect_right_actuators(gait_data: GaitData) -> list[str]:
     return sorted(names, key=rank)
 
 
-def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4) -> None:
+def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None, cmap=None) -> None:
     """axes_flat: flat iterable of Axes (>= muscles + exo). Empty axes hidden.
-    Activations on [0,1] scale; Exo on autoscaled torque (Nm)."""
+    Activations on [0,1] scale; Exo on autoscaled torque (Nm).
+
+    Constant speed (norm is None): mean +- SD (black). Varying (norm given): one
+    trace per stride, colour-mapped by the stride's mean speed with the same
+    colormap as the kinematics (unified)."""
     segments = _segments_r(gait_data)
     toe_off = _toe_off_pct(gait_data, right=True)
     actuator_data = gait_data.series_data["actuator_data"]
+    joint_data = gait_data.series_data["joint_data"]
+    vx = np.asarray([v[0] for v in joint_data["pelvis_tx"]["qvel"]], float)
+    xg = np.linspace(0, 100, 101)
+    cmap = cmap or SPEED_CMAP
     names = _collect_right_actuators(gait_data)
-    n_total = len(axes_flat)
+
+    def _per_stride(values, transform):
+        for (start, _toe, end) in segments:
+            c = _resample_stride(values, start, end)
+            if c is None:
+                continue
+            yield transform(c), cmap(norm(vx[start:end].mean()))
 
     for i, ax in enumerate(axes_flat):
         if i >= len(names):
@@ -299,21 +343,29 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4) -> None:
         ad = actuator_data[name]
         is_exo = "exo" in name.lower()
         if is_exo:
-            x, mean, std, _ = _segment_and_average(ad["force"], segments)
             unit_label = name[:-2] + " (Nm)"
-            if mean is not None:
-                ax.plot(x, -mean, color=LINE_BLACK)
-                ax.fill_between(x, -mean - std, -mean + std,
-                                color=FILL_GREY, alpha=0.5, linewidth=0)
+            if norm is None:
+                x, mean, std, _ = _segment_and_average(ad["force"], segments)
+                if mean is not None:
+                    ax.plot(x, -mean, color=LINE_BLACK)
+                    ax.fill_between(x, -mean - std, -mean + std,
+                                    color=FILL_GREY, alpha=0.5, linewidth=0)
+            else:
+                for y, col in _per_stride(ad["force"], lambda c: -c):
+                    ax.plot(xg, y, color=col, lw=0.8 * TRAJ_LW, alpha=0.85)
         else:
-            x, mean, std, _ = _segment_and_average(ad["ctrl"], segments)
             unit_label = name[:-2]
-            if mean is not None:
-                mean_a = np.abs(mean)
-                ax.plot(x, mean_a, color=LINE_BLACK)
-                ax.fill_between(x, mean_a - std, mean_a + std,
-                                color=FILL_GREY, alpha=0.5, linewidth=0)
-                ax.set_ylim(0, 1)
+            if norm is None:
+                x, mean, std, _ = _segment_and_average(ad["ctrl"], segments)
+                if mean is not None:
+                    mean_a = np.abs(mean)
+                    ax.plot(x, mean_a, color=LINE_BLACK)
+                    ax.fill_between(x, mean_a - std, mean_a + std,
+                                    color=FILL_GREY, alpha=0.5, linewidth=0)
+            else:
+                for y, col in _per_stride(ad["ctrl"], np.abs):
+                    ax.plot(xg, y, color=col, lw=0.8 * TRAJ_LW, alpha=0.85)
+            ax.set_ylim(0, 1)
         ax.axvline(toe_off, **TOE_OFF_STYLE)
         ax.set_xlim(0, 100)
         ax.set_title(unit_label, fontsize=8, pad=2)
@@ -329,23 +381,37 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4) -> None:
 # Panel: timeseries kinematics + foot sensors
 # -----------------------------------------------------------------------------
 
-def draw_timeseries(axes, gait_data: GaitData) -> None:
-    """axes: 5 Axes top->bot: right hip, right knee, right ankle, pelvis y, foot sensors."""
+def draw_timeseries(axes, gait_data: GaitData, norm=None, fs: float = 30.0, cmap=None) -> None:
+    """axes: 5 Axes top->bot: right hip, right knee, right ankle, pelvis y, foot sensors.
+
+    Constant speed (norm is None): solid black. Varying (norm given): the four
+    continuous rows are colour-mapped point-wise by the low-pass filtered pelvis
+    speed (same signal as the 'simulated (filtered)' speed trace), so the colour
+    tracks the commanded speed instead of the raw per-step jitter."""
     joint_data = gait_data.series_data["joint_data"]
     sensor_data = gait_data.series_data["sensor_data"]
+    vx = np.asarray([v[0] for v in joint_data["pelvis_tx"]["qvel"]], float)
+    vx_c = _lowpass(vx, fs=fs) if norm is not None else vx
+    cmap = cmap or SPEED_CMAP
 
     def _ts(key):
         return np.rad2deg([v[0] for v in joint_data[key]["qpos"]])
 
-    axes[0].plot(_ts("hip_flexion_r"), color=LINE_BLACK)
-    axes[0].set_ylabel("hip (deg)")
-    axes[1].plot(_ts("knee_angle_r"), color=LINE_BLACK)
-    axes[1].set_ylabel("knee (deg)")
-    axes[2].plot(_ts("ankle_angle_r"), color=LINE_BLACK)
-    axes[2].set_ylabel("ankle (deg)")
+    kin = [("hip_flexion_r", "hip (deg)"), ("knee_angle_r", "knee (deg)"),
+           ("ankle_angle_r", "ankle (deg)")]
+    for ax, (key, ylabel) in zip(axes[:3], kin):
+        if norm is None:
+            ax.plot(_ts(key), color=LINE_BLACK)
+        else:
+            _colored_line(ax, _ts(key), vx_c, norm, cmap=cmap, lw=0.9)
+        ax.set_ylabel(ylabel)
 
     if "pelvis_ty" in joint_data:
-        axes[3].plot([v[0] for v in joint_data["pelvis_ty"]["qpos"]], color=LINE_BLACK)
+        py = [v[0] for v in joint_data["pelvis_ty"]["qpos"]]
+        if norm is None:
+            axes[3].plot(py, color=LINE_BLACK)
+        else:
+            _colored_line(axes[3], py, vx_c, norm, cmap=cmap, lw=0.9)
     axes[3].set_ylabel("pelvis y (m)")
 
     # Foot sensors: right (solid black), left (dashed grey)
@@ -385,15 +451,38 @@ def build_composite(inputs: CompositeInputs,
                     *,
                     save_path: Optional[str] = None,
                     show: bool = True,
-                    muscle_grid_shape: tuple = (3, 4)) -> plt.Figure:
+                    muscle_grid_shape: tuple = (3, 4),
+                    speed_varying: bool = False,
+                    fs: float = 30.0,
+                    cmap=None,
+                    mono_timeseries: bool = False) -> plt.Figure:
+    """Unified B&W composite (fixed 4-row layout).
+
+    Constant speed (speed_varying=False): the classic panels —
+        Kinematics | Kinetics (mean +- SD), B&W activation and timeseries.
+    Varying speed (speed_varying=True): same layout, no rows/cols added, but the
+    two Row-2 slots are repurposed —
+        left  = Speed tracking (commanded vs simulated) + step length + cadence
+        right = Kinematics (R leg), one teal trace per stride shaded by stride speed
+    and the Activation grid + Timeseries are velocity-colour-mapped (teal)."""
     apply_style()
     if show:
         _ensure_gui_backend()
     plt.close("all")
+    cmap = cmap or SPEED_CMAP
+    if speed_varying and SPEED_CMAP_CLIP != (0.0, 1.0):
+        cmap = _truncate_cmap(cmap, *SPEED_CMAP_CLIP)
 
     n_mrows, n_mcols = muscle_grid_shape
     n_timeseries = 5
     fig_width = 14.0
+
+    # Varying-speed prep: per-stride speeds -> colour normalization
+    norm = None
+    if speed_varying:
+        _spd, *_ = stride_metrics(inputs.gait_data, _segments_r(inputs.gait_data), fs)
+        if len(_spd):
+            norm = Normalize(vmin=float(_spd.min()), vmax=float(_spd.max()))
 
     # Snapshot row: normalize to a uniform wide aspect so RL and CO render
     # the snapshot at identical dimensions regardless of source resolution.
@@ -406,21 +495,15 @@ def build_composite(inputs: CompositeInputs,
     else:
         skel_height_in = 2.5
 
-    # Row heights — give timeseries more vertical room
     kin_h = 3.0
     mus_h = 1.0 * n_mrows + 0.4
     ts_h = 5.0
-    other_h = kin_h + mus_h + ts_h
-    fig_height = skel_height_in + other_h + 2.4  # +pad for hspace + headers
+    heights = [skel_height_in, kin_h, mus_h, ts_h]
+    fig_height = sum(heights) + 2.4
 
     fig = plt.figure(figsize=(fig_width, fig_height))
-    outer = fig.add_gridspec(
-        nrows=4, ncols=1,
-        height_ratios=[skel_height_in, kin_h, mus_h, ts_h],
-        hspace=0.40,
-    )
+    outer = fig.add_gridspec(nrows=4, ncols=1, height_ratios=heights, hspace=0.40)
 
-    # Section header helper — places bold text just above each row's gridspec cell
     def _section_header(spec, label: str, offset: float = 0.012) -> None:
         bbox = spec.get_position(fig)
         fig.text(0.5, bbox.y1 + offset, label,
@@ -429,7 +512,6 @@ def build_composite(inputs: CompositeInputs,
     if inputs.title:
         fig.suptitle(inputs.title, fontsize=13, fontweight="bold", y=0.995)
 
-    # Metadata block — fills the space under the title with key:value pairs in two columns
     if inputs.metadata:
         items = list(inputs.metadata.items())
         mid = (len(items) + 1) // 2
@@ -457,38 +539,180 @@ def build_composite(inputs: CompositeInputs,
     else:
         ax_perf.axis("off")
 
-    # Row 2: kinematics (left) + kinetics (right), equal width
+    # Row 2: two equal columns, repurposed for varying speed.
     row2 = outer[1].subgridspec(nrows=1, ncols=2, width_ratios=[1.0, 1.0], wspace=0.22)
     left2 = row2[0, 0].subgridspec(nrows=3, ncols=1, hspace=0.12)
     right2 = row2[0, 1].subgridspec(nrows=3, ncols=1, hspace=0.12)
-    kin_axes = [fig.add_subplot(left2[i, 0]) for i in range(3)]
-    kinetics_axes = [fig.add_subplot(right2[i, 0]) for i in range(3)]
-    draw_segmented_kinematics(kin_axes, inputs.gait_data, inputs.ref_data)
-    draw_kinetics(kinetics_axes, inputs.gait_data)
-    # Per-block sub-headers so the two columns are clearly labeled
-    kin_axes[0].set_title("Kinematics (deg)", fontsize=9, pad=4)
-    kinetics_axes[0].set_title("Kinetics (Nm)", fontsize=9, pad=4)
-    _section_header(outer[1], "Kinematics & Kinetics")
+    left_axes = [fig.add_subplot(left2[i, 0]) for i in range(3)]
+    right_axes = [fig.add_subplot(right2[i, 0]) for i in range(3)]
+    if norm is not None:
+        draw_gait_metrics(left_axes, inputs.gait_data, fs, norm=norm, cmap=cmap)
+        draw_segmented_kinematics(right_axes, inputs.gait_data, inputs.ref_data, norm=norm, cmap=cmap)
+        left_axes[0].set_title("Speed & Gait Metrics", fontsize=9, pad=4)
+        right_axes[0].set_title("Kinematics (deg)", fontsize=9, pad=4)
+        sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap); sm.set_array([])
+        fig.colorbar(sm, ax=right_axes, location="right", fraction=0.04, pad=0.02
+                     ).set_label("stride mean speed (m/s)", fontsize=7)
+        _section_header(outer[1], "Speed / Gait Metrics & Kinematics")
+    else:
+        draw_segmented_kinematics(left_axes, inputs.gait_data, inputs.ref_data)
+        draw_kinetics(right_axes, inputs.gait_data)
+        left_axes[0].set_title("Kinematics (deg)", fontsize=9, pad=4)
+        right_axes[0].set_title("Kinetics (Nm)", fontsize=9, pad=4)
+        _section_header(outer[1], "Kinematics & Kinetics")
 
-    # Row 3: muscle grid (3 rows x 4 cols by default)
+    # Row 3: muscle grid (velocity-colour-mapped when varying)
     row3 = outer[2].subgridspec(nrows=n_mrows, ncols=n_mcols, hspace=0.65, wspace=0.30)
     mus_axes = [fig.add_subplot(row3[r, c]) for r in range(n_mrows) for c in range(n_mcols)]
-    draw_muscle_grid(mus_axes, inputs.gait_data, n_cols=n_mcols)
+    draw_muscle_grid(mus_axes, inputs.gait_data, n_cols=n_mcols, norm=norm, cmap=cmap)
     _section_header(outer[2], "Activation")
 
-    # Row 4: timeseries (shared x via sharex pattern; only bottom shows tick labels)
+    # Row 4: timeseries (velocity-colour-mapped when varying)
     row4 = outer[3].subgridspec(nrows=n_timeseries, ncols=1, hspace=0.12)
     ts_axes = [fig.add_subplot(row4[i, 0]) for i in range(n_timeseries)]
-    draw_timeseries(ts_axes, inputs.gait_data)
+    draw_timeseries(ts_axes, inputs.gait_data,
+                    norm=(None if mono_timeseries else norm), fs=fs, cmap=cmap)
     _section_header(outer[3], "Timeseries Kinematics & Sensor Data")
 
     if save_path:
         os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
         fig.savefig(save_path, bbox_inches="tight")
-        print(f"  Composite saved to {save_path}")
+        fig.savefig(os.path.splitext(save_path)[0] + ".svg", bbox_inches="tight")
+        print(f"  Composite saved to {save_path} (+ .svg)")
     if show:
         plt.show()
     return fig
+
+
+# -----------------------------------------------------------------------------
+# Varying-speed helpers (used by build_composite when speed_varying=True)
+# -----------------------------------------------------------------------------
+# For a single rollout with a time-varying commanded speed (SINUSOIDAL / STEP),
+# every stride is coloured by its own mean speed (MyoSuite teal) instead of being
+# collapsed to a mean +- SD. build_composite repurposes the Row-2 slots for a
+# speed-tracking + step-length + cadence column alongside the coloured kinematics.
+
+# Colour policy for varying-speed composites: ONLY two things carry hue —
+#   (1) the speed colour map (applied to velocity-encoded "trajectories":
+#       kinematics by-cycle, kinematics timeseries, and the speed trace), and
+#   (2) the MyoSuite brand colour (green/teal), used as the single accent for
+#       every other data line (step length, cadence, raw speed, muscle traces).
+# Neutrals (black/grey) are used for references/axes only.
+MYOSUITE_LIGHT = (0.314, 0.663, 0.667)
+MYOSUITE_DARK = (0.129, 0.325, 0.341)
+MYOSUITE_ACCENT = MYOSUITE_DARK           # single non-colormap accent colour
+_TEAL_LIGHT_EXT = (0.690, 0.848, 0.850)
+_TEAL_DARK_EXT = (0.058, 0.146, 0.153)
+# teal option (slow=dark -> fast=light)
+TEAL_CMAP = LinearSegmentedColormap.from_list(
+    "myosuite_teal_wide",
+    [_TEAL_DARK_EXT, MYOSUITE_DARK, MYOSUITE_LIGHT, _TEAL_LIGHT_EXT])
+# blue -> light grey -> red (slow -> fast). A diverging map with a light neutral
+# midpoint: mid speeds read as grey (clearly distinct from blue/red) and the map
+# stays light overall instead of the dark look a purple midpoint gave.
+BR_CMAP = LinearSegmentedColormap.from_list(
+    "blue_grey_red",
+    [(0.0, 0.0, 1.0), (0.78, 0.78, 0.78), (1.0, 0.0, 0.0)])
+# fraction of the colormap used for the speed range (1.0 slice -> use full map)
+SPEED_CMAP_CLIP = (0.0, 1.0)
+
+
+def _truncate_cmap(cmap, lo=0.0, hi=1.0, n=256):
+    """Return a colormap using only the [lo, hi] slice of `cmap`."""
+    return LinearSegmentedColormap.from_list(
+        f"{cmap.name}_clip", cmap(np.linspace(lo, hi, n)))
+CMAPS = {"teal": TEAL_CMAP, "bluered": BR_CMAP, "rainbow": plt.get_cmap("rainbow")}
+SPEED_CMAP = CMAPS["rainbow"]   # default speed colormap
+VEL_CUTOFF_HZ = 2.0   # low-pass cutoff for the displayed pelvis velocity
+
+
+def _lowpass(x, cutoff=VEL_CUTOFF_HZ, fs=30.0, order=4):
+    from scipy.signal import butter, filtfilt
+    b, a = butter(order, cutoff / (0.5 * fs), btype="low")
+    return filtfilt(b, a, np.asarray(x, float))
+
+
+def _resample_stride(values, start, end, length=101):
+    seg = np.asarray([v[0] for v in values[start:end]], float)
+    if len(seg) < 3:
+        return None
+    return np.interp(np.linspace(0, 100, length), np.linspace(0, 100, len(seg)), seg)
+
+
+def stride_metrics(gait_data: GaitData, segments, fs: float):
+    """Per-stride mean speed (m/s), mid-time (s), cadence (steps/min), step length (m)."""
+    jd = gait_data.series_data["joint_data"]
+    vx = np.asarray([v[0] for v in jd["pelvis_tx"]["qvel"]], float)
+    tx = np.asarray([v[0] for v in jd["pelvis_tx"]["qpos"]], float)
+    speed, tmid, cadence, steplen = [], [], [], []
+    for start, _toe, end in segments:
+        if end - start < 2:
+            continue
+        speed.append(vx[start:end].mean())
+        tmid.append(((start + end) / 2) / fs)
+        T = (end - start) / fs
+        cadence.append(120.0 / T)                # 2 steps per stride
+        steplen.append((tx[end] - tx[start]) / 2.0)
+    return (np.array(speed), np.array(tmid), np.array(cadence), np.array(steplen))
+
+
+def draw_speed_tracking(ax, gait_data: GaitData, fs: float, norm=None, cmap=None) -> None:
+    """Commanded (black dashed) vs simulated pelvis vx. Raw = faint MyoSuite accent;
+    filtered = colour-mapped by speed (same scale as the kinematics) when `norm` is
+    given, else MyoSuite accent."""
+    cmap = cmap or SPEED_CMAP
+    jd = gait_data.series_data["joint_data"]
+    vx = np.asarray([v[0] for v in jd["pelvis_tx"]["qvel"]], float)
+    tv = np.asarray([v[0] for v in gait_data.series_data["target_data"]["target_velocity"]], float)
+    t = np.arange(len(vx)) / fs
+    vf = _lowpass(vx, fs=fs)
+    ax.plot(t, vx, color=MYOSUITE_ACCENT, lw=0.6, alpha=0.25, label="simulated (raw)")
+    if norm is not None:
+        _colored_line(ax, vf, vf, norm, cmap=cmap, lw=1.7, x=t)
+    else:
+        ax.plot(t, vf, color=MYOSUITE_ACCENT, lw=1.7, label="simulated (filtered)")
+    ax.plot(t, tv, "--", color=LINE_BLACK, lw=1.8, label="commanded")
+    ymin = float(min(vx.min(), tv.min())); ymax = float(max(vx.max(), tv.max()))
+    pad = 0.05 * (ymax - ymin + 1e-9)
+    ax.set_xlim(0, t[-1]); ax.set_ylim(ymin - pad, ymax + pad)
+    ax.set_ylabel("speed\n(m/s)"); ax.set_xlabel("time (s)")
+    ax.legend(loc="upper right", ncol=2, frameon=False, fontsize=6)
+
+
+def draw_gait_metrics(axes, gait_data: GaitData, fs: float, norm=None, cmap=None) -> None:
+    """axes: 3 Axes top->bot: speed tracking (commanded vs simulated), step length,
+    cadence. Shared time (s) x-axis; only the bottom shows tick labels.
+    Step length / cadence use the MyoSuite accent colour."""
+    segments = _segments_r(gait_data)
+    _spd, tmid, cadence, steplen = stride_metrics(gait_data, segments, fs)
+    xmax = gait_data.metadata["data_length"] / fs
+
+    draw_speed_tracking(axes[0], gait_data, fs, norm=norm, cmap=cmap)
+    axes[1].plot(tmid, steplen, "-o", color=LINE_BLACK, ms=3, lw=1)
+    axes[1].set_ylabel("step length\n(m)")
+    axes[2].plot(tmid, cadence, "-o", color=LINE_BLACK, ms=3, lw=1)
+    axes[2].set_ylabel("cadence\n(steps/min)")
+    for ax in axes:
+        ax.set_xlim(0, xmax)
+    for ax in axes[:-1]:
+        ax.set_xlabel(""); ax.tick_params(labelbottom=False)
+    axes[-1].set_xlabel("time (s)")
+
+
+def _colored_line(ax, y, cvals, norm, cmap=None, lw=None, x=None):
+    """Plot y as a poly-line coloured point-wise by cvals. x defaults to index."""
+    cmap = cmap or SPEED_CMAP
+    lw = 0.8 * TRAJ_LW if lw is None else lw
+    y = np.asarray(y, float)
+    x = np.arange(len(y)) if x is None else np.asarray(x, float)
+    pts = np.array([x, y]).T.reshape(-1, 1, 2)
+    segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+    lc = LineCollection(segs, cmap=cmap, norm=norm)
+    lc.set_array(np.asarray(cvals, float)[:-1])
+    lc.set_linewidth(lw)
+    ax.add_collection(lc)
+    ax.set_xlim(float(x.min()), float(x.max()))
+    ax.set_ylim(np.nanmin(y), np.nanmax(y))
 
 
 # -----------------------------------------------------------------------------
