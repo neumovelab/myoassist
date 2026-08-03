@@ -8,7 +8,6 @@ from rl_train.train.train_configs.config import TrainSessionConfigBase
 from rl_train.utils.data_types import DictionableDataclass
 import collections
 import mujoco
-from myoassist_utils.hfield_manager import HfieldManager
 from enum import Enum
 import random
 import numpy as np
@@ -176,37 +175,16 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         # Change the alpha value to make it transparent
         self.sim.model.geom_rgba[geom_1_indices, 3] = 0
 
-        # move heightfield down if not used
-        # self.sim.model.geom_rgba[self.sim.model.geom_name2id('terrain')][-1] = 0.0
-        # self.sim.model.geom_pos[self.sim.model.geom_name2id('terrain')] = np.array([0, 0, -10])
-
-        self._terrain_type = env_params.terrain_type
-        self._terrain_params = env_params.terrain_params
-        # TODO(A4): retire HfieldManager in favour of myoassist_terrains. With the
-        # A10 compose pipeline the terrain is baked into the composed model, which
-        # has no manipulable "terrain" heightfield (only a static terrain geom), so
-        # HfieldManager would fail. Guard it: run the legacy hfield path only when
-        # the loaded model actually carries a "terrain" heightfield (the escape-
-        # hatch literal-model_path case). The full terrain-curriculum retirement
-        # is A4/D5.
-        self._hfield_manager = None
-        if self._model_has_terrain_hfield():
-            self._hfield_manager = HfieldManager(self.sim, "terrain", self.np_random)
-            self._hfield_manager.set_hfield(self._terrain_type, self._terrain_params)
+        # Terrain is baked into the composed model via
+        # myoassist_utils.compose.compose_env_model(terrain=...); there is no
+        # runtime heightfield manipulation here (the old HfieldManager path was
+        # retired in A4). A flat default ground is used when EnvParams.terrain is
+        # None; non-flat terrain selection is a terrains JSON config path.
 
         observation, _reward, done, *_, _info = self.step(np.zeros(self.sim.model.nu))
         # if qpos set to all zero, joint looks weird, 30 steps will make it normal
         for _ in range(30):
             super().step(a=np.zeros(self.sim.model.nu))
-
-    def _model_has_terrain_hfield(self) -> bool:
-        """True if the loaded model carries a heightfield named "terrain" that
-        HfieldManager can manipulate. A10-composed models do not (see TODO(A4))."""
-        try:
-            self.sim.model.hfield("terrain")
-            return True
-        except (KeyError, ValueError, TypeError):
-            return False
 
     # override from MujocoEnv
     def get_obs_dict(self, sim):

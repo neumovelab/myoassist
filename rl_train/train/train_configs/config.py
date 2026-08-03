@@ -51,12 +51,6 @@ class TrainSessionConfigBase:
         observation_joint_vel_keys: list[str] = field(default_factory=list)
         observation_joint_sensor_keys: list[str] = field(default_factory=list)
 
-        # terrain type: flat, random, sinusoidal, harmonic_sinusoidal, uphill, downhill, dev
-        # (legacy HfieldManager vocabulary; used only when the model_path escape
-        #  hatch points at a model that carries a "terrain" heightfield)
-        terrain_type: str = "flat"
-        terrain_params: str = ""
-
         # A10 compose pipeline. When both msk_key and device_key are set, the
         # model is composed via myoassist_utils.compose.compose_env_model(...)
         # (human MSK + assistive device + terrain) and the resulting XML string is
