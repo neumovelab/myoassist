@@ -10,11 +10,26 @@ class EnvironmentHandler:
     def create_environment(config, is_rendering_on:bool, is_evaluate_mode:bool = False):
 
         ref_data_dict = EnvironmentHandler.load_reference_data(config)
-    
+
+        # A10 compose pipeline: when both msk_key and device_key are set, compose
+        # the model (human MSK + assistive device + terrain) into an XML string
+        # and pass it as model_path (myosuite's SimScene routes "<mujoco" ->
+        # from_xml_string). Otherwise fall back to the literal model_path
+        # (escape hatch). Composed once here; the XML string pickles fine into
+        # SubprocVecEnv workers.
+        model_path = config.env_params.model_path
+        if getattr(config.env_params, "msk_key", None) and getattr(config.env_params, "device_key", None):
+            from myoassist_utils.compose import compose_env_model
+            model_path = compose_env_model(
+                config.env_params.msk_key,
+                config.env_params.device_key,
+                terrain=getattr(config.env_params, "terrain", None),
+            )
+
         # Base gym.make arguments
         gym_make_args = {
             'seed': config.env_params.seed,
-            'model_path': config.env_params.model_path,
+            'model_path': model_path,
             'env_params': config.env_params,
             'is_evaluate_mode': is_evaluate_mode
         }
