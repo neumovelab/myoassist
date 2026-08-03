@@ -23,8 +23,40 @@ from scipy.interpolate import PchipInterpolator
 from ctrl_optim.ctrl.exo.fourparam_spline_ctrl import FourParamSplineController
 from ctrl_optim.ctrl.exo.npoint_spline_ctrl import NPointSplineController
 
-# Use the unified model path resolver
-from ctrl_optim.optim.optim_utils.resolve_path import resolve_model_path
+# Model source: the shared MyoAssist compose pipeline (human MSK + assistive
+# device + terrain -> a loadable MJCF string), and CO's own reach-free env.
+from myoassist_utils.compose import compose_env_model
+from ctrl_optim.ctrl.reflex.reflex_env import ReflexEnvV0
+
+
+# CO's ``model`` string -> assist_sim device registry key.  compose always
+# attaches a device, so "baseline"/"tutorial" (no real exo) use the passive
+# Tutorial device; CO zeroes its Exo actuators when ``exo_bool`` is False.
+_CO_DEVICE_MAP = {
+    "baseline": "Tutorial_L1",
+    "tutorial": "Tutorial_L1",
+    "default": "Tutorial_L1",
+    "custom": "Tutorial_L1",
+    "dephy": "DephyExoBoot_L1",
+    "humotech": "Humotech_L1",
+    "hmedi": "HMEDI_L1",
+    "openexo": "OpenExo_L1",
+    "osl": "OpenSourceLeg_A_L1",
+}
+
+
+def _resolve_compose_keys(model, mode, msk_key=None, device_key=None):
+    """Map CO's ``model``/``mode`` args to compose ``(msk_key, device_key)``.
+
+    Explicit ``msk_key``/``device_key`` win; otherwise ``mode`` picks the MSK
+    (2D -> myolegs22, 3D -> myolegs26) and ``model`` picks the device.
+    """
+    if msk_key is None:
+        msk_key = "myolegs22" if mode == "2D" else "myolegs26"
+    if device_key is None:
+        device_key = _CO_DEVICE_MAP.get((model or "default").lower(), "Tutorial_L1")
+    return msk_key, device_key
+
 
 class myoLeg_reflex(object):
 
@@ -72,11 +104,12 @@ class myoLeg_reflex(object):
     height_offset = 0
     SENSOR_DATA = {'body':{}, 'r_leg':{}, 'l_leg':{}}
 
-    def __init__(self, seed=0, dt=0.01, mode='2D', sim_time=20, 
-                 init_pose='walk_left', control_params=np.ones(56,), 
+    def __init__(self, seed=0, dt=0.01, mode='2D', sim_time=20,
+                 init_pose='walk_left', control_params=np.ones(56,),
                  slope_deg=0, delayed=True, exo_bool=True,
-                 n_points=4, use_4param_spline=False, fixed_exo=False, 
-                 max_torque=10.0, model="default", model_path=None, leg_model=None):
+                 n_points=4, use_4param_spline=False, fixed_exo=False,
+                 max_torque=10.0, model="default", model_path=None, leg_model=None,
+                 msk_key=None, device_key=None):
                 
         self.dt = dt
         self.exo_bool = exo_bool
@@ -135,10 +168,22 @@ class myoLeg_reflex(object):
         self.timestep_limit = int(self.sim_time/self.dt)
 
         self.init_pose = init_pose
-                
-        # Use the unified model path resolver
-        pathAndModel = resolve_model_path(model, mode, model_path)
-        
+
+        # Slope terrain via composed models is A4; for now only flat ground is
+        # wired.  Fail fast with a clear message instead of silently ignoring.
+        if self.slope_deg != 0:
+            # TODO(A4): wire slope terrain through compose_env_model(terrain=...).
+            raise NotImplementedError(
+                "slope terrain via composed models is A4 — not yet wired")
+
+        # Model source: compose human MSK + assistive device (flat ground) into a
+        # loadable MJCF string via the shared pipeline (replaces the deleted
+        # models/ tree + resolve_model_path).  ``model``/``mode`` map to keys;
+        # explicit msk_key/device_key override.
+        self.msk_key, self.device_key = _resolve_compose_keys(
+            model, mode, msk_key, device_key)
+        model_xml = compose_env_model(self.msk_key, self.device_key, terrain=None)
+
         # Determine movement dimension from mode
         mvt_dim = 2 if mode == '2D' else 3
 
@@ -148,11 +193,15 @@ class myoLeg_reflex(object):
         if self.delayed:
             self.frame_skip = 1 # Prepare for 1 ms (0.001 sec) timestep
 
-        self.env = gym.make('myoLegStandRandom-v0', 
-                            model_path=pathAndModel,
-                            normalize_act=False,
-                            joint_random_range=(0, 0),
-                            frame_skip=self.frame_skip)
+        # CO's own reach-free env (see reflex_env.ReflexEnvV0).  Built directly
+        # rather than via gym.make so no wrappers (TimeLimit/OrderEnforcing) sit
+        # between CO and the sim; .sim/.step/.reset/.forward/.dt are exposed
+        # identically to the old wrapped env.
+        self.env = ReflexEnvV0(model_path=model_xml,
+                               normalize_act=False,
+                               joint_random_range=(0, 0),
+                               frame_skip=self.frame_skip,
+                               seed=seed)
 
         # Because we have a 2.5 ms delay for the hip, so the minimum timestep for the underlying simulator has to be 0.5 ms
         # Modify it after creating the environment
@@ -166,9 +215,6 @@ class myoLeg_reflex(object):
         self.sim_time = sim_time
         self.timestep_limit = int(self.sim_time/self.dt)
 
-        if self.slope_deg != 0:
-            self.setupTerrain(self.slope_deg)
-        
         self.CONTROL_PARAM = control_params
 
         if self.mode == '2D':
@@ -831,8 +877,17 @@ class myoLeg_reflex(object):
         self.env.sim.forward()
 
     def adjust_model_height(self):
+        # The legacy models/ tree exposed foot ground-contact reference points as
+        # *_btm sites; the composed models expose them as the foot-touch sensor
+        # sites (*_touch).  Use whichever the loaded model actually has.
+        btm_sites = ['r_heel_btm', 'r_toe_btm', 'l_heel_btm', 'l_toe_btm']
+        touch_sites = ['r_foot_touch', 'r_toes_touch', 'l_foot_touch', 'l_toes_touch']
+        site_names = {self.env.sim.model.site(i).name
+                      for i in range(self.env.sim.model.nsite)}
+        foot_sites = btm_sites if set(btm_sites) <= site_names else touch_sites
+
         temp_sens_height = 100
-        for sens_site in ['r_heel_btm', 'r_toe_btm', 'l_heel_btm', 'l_toe_btm']:
+        for sens_site in foot_sites:
             if temp_sens_height > self.env.sim.data.site(sens_site).xpos[2]:
                 temp_sens_height = self.env.sim.data.site(sens_site).xpos[2].copy()
 
