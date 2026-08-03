@@ -62,9 +62,13 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         'fixed_exo': args.fixed_exo,
         'max_torque': args.max_torque,
         'model': args.model,
-        'model_path': args.model_path
+        'model_path': args.model_path,
+        # Optional explicit compose keys; None -> myoLeg_reflex derives from
+        # model/mode. getattr keeps this robust to parsers lacking the args.
+        'msk_key': getattr(args, 'msk_key', None),
+        'device_key': getattr(args, 'device_key', None),
     }
-    
+
     return env_dict
 
 

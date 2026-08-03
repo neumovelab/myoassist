@@ -140,12 +140,11 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
         # Parse the .bat file
         config = parse_bat_config(bat_file_path)
         config.update(override_kwargs)
-        
-        # Use the unified model path resolver
-        from .resolve_path import resolve_model_path
-        resolved_model_path = resolve_model_path(config['model'], config['mode'], None)
-        
-        # Create the TestEnv instance with resolved model path
+
+        # Model source is now the compose pipeline: myoLeg_reflex maps
+        # model/mode -> (msk_key, device_key) internally (optionally overridden
+        # by explicit msk_key/device_key in the config), so no path resolution
+        # is needed here.
         TestEnv = myoLeg_reflex(
             sim_time=config['sim_time'],
             mode=config['mode'],
@@ -159,9 +158,10 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             use_4param_spline=config['use_4param_spline'],
             max_torque=config['max_torque'],
             model=config['model'],
-            model_path=resolved_model_path  # Use the resolved path
+            msk_key=config.get('msk_key'),
+            device_key=config.get('device_key'),
         )
-        
+
         return TestEnv, config
         
     except Exception as e:

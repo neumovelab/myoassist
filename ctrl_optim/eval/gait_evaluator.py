@@ -37,6 +37,10 @@ class CtrlOptimEvalConfig:
     max_torque: float = 1.0
     model: str = "tutorial"
     n_points: int = 4
+    # Compose keys (optional): override the model/mode -> (msk_key, device_key)
+    # mapping myoLeg_reflex derives by default. Leave null to use the mapping.
+    msk_key: Optional[str] = None
+    device_key: Optional[str] = None
     # Camera + render
     camera_speed: Optional[float] = None  # defaults to target_velocity
     camera_distance: float = 3.5
@@ -74,6 +78,8 @@ class CtrlOptimGaitEvaluator:
             max_torque=cfg.max_torque,
             model=cfg.model,
             n_points=cfg.n_points,
+            msk_key=cfg.msk_key,
+            device_key=cfg.device_key,
         )
         env.reset()
 

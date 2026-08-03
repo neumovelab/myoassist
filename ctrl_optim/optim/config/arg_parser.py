@@ -26,8 +26,14 @@ def initParser() -> argparse.Namespace:
     model_group.add_argument("--model", type=str, default="default", 
                            choices=["baseline", "dephy", "hmedi", "humotech", "osl", "tutorial"],
                            help="Type of model to use for simulation")
-    model_group.add_argument("--model_path", type=str, default=None, 
+    model_group.add_argument("--model_path", type=str, default=None,
                            help="Optional: Custom path to model XML file. Only used if model_type is 'custom'")
+    model_group.add_argument("--msk_key", type=str, default=None,
+                           help="Optional: explicit compose MSK key (e.g. myolegs22, myolegs26). "
+                                "Overrides the mode->MSK mapping.")
+    model_group.add_argument("--device_key", type=str, default=None,
+                           help="Optional: explicit assist_sim device key (e.g. DephyExoBoot_L1). "
+                                "Overrides the model->device mapping.")
 
     # Simulation parameters
     sim_group = parser.add_argument_group("Simulation Parameters")
