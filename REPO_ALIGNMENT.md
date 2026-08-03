@@ -89,9 +89,134 @@ extraction (device assets → assist_sim; docs → new docs repo; tutorials → 
 - Repo now: `ctrl_optim/`, `rl_train/`, `myoassist_utils/`, `setup.py`, `requirements.txt`,
   `test_setup.py`, `README`, `LICENSE`. (`requirements.txt` dependency wiring deferred to A7.)
 
----
+**2026-07-30 — wave 3 (B12: `myolegs22` in assist_sim):** branch `myolegs22` off `main`, 3 commits:
+`a75579c` (reduction util `reduce_legs.py`), `480c80f` (registry wiring — `_MskSource.reduce_to_22`),
+`d8ade34` (smoke test + registry-test updates). Validated: compiled signature nq39/nu22/njnt39/
+nkey5/neq28/nbody38/nsite92 — exact match to the reference; joint+actuator names frozen to match;
+5 keyframes 0 out-of-range; `load_combined("myolegs22", …)` builds+steps (Dephy/OSL A/KA/Humotech/
+OpenExo/Tutorial); ruff clean; **89 pytest passed**. Exported bare MSK →
+`C:\Users\calde\Work\compile_check\myolegs22_from_util.xml` (reloads; independently re-verified).
+Notes: EDL/FDL Fmax already correct in current `build_spec("myolegs26")` (util still sets it,
+idempotent); site-strip reproduces the reference's 92-site set (drops ~684 dead trunk/arm
+via-points + 8 abd/add); MjSpec gotcha — never compile the spec you mutate (compute keep-set on a
+`spec.copy().compile()`), which is what preserves joint order. **Device compatibility:** myolegs22
+(planar 2D) pairs with the *unrestricted* devices; the torso/3D-pinned ones (Anatomics, HMEDI,
+Hippo, KFoot, UTAnkleExo — `compatible_msk` = myolegs26/myolegs/myofullbody) exclude it, left
+untouched — expected for a planar model.
 
-## §A — `myoassist`: slim-down and import rewiring
+**Visual confirm (2026-07-30) found a torso bug + a scope change (agent re-engaged):**
+- **Torso bug:** the exported model's torso chain was rotated/offset from the pelvis. Body-diff vs
+  the reference isolated it to **one body — `sacrum`**: util quat `[0.5,0.5,-0.5,-0.5]` vs reference
+  `[0.7071068,0.7071068,0,0]`. Cause: the util *composed* the yaw onto sacrum's existing orientation
+  instead of *setting it absolute* (pelvis was already correct). Fix in progress: set `sacrum` quat
+  absolute; verify the body-diff vs reference is empty; re-export.
+- **Scope change (user):** myolegs22 should work with **all** devices, not just the unrestricted
+  ones. Unpin `compatible_msk` on Anatomics/HMEDI/Hippo/KFoot/UTAnkleExo and make **every device ×
+  every MSK** (myolegs22/26/myolegs/myofullbody) build+step; add per-MSK attachment overrides where
+  needed; report genuine incompatibilities. Updates the B6/E1 compatibility matrix toward universal.
+  (This supersedes the "planar model has narrower device compat" note above.)
+
+**RESOLVED 2026-07-30 (both, agent commits `7450780`/`6496c75`/`10e59df`/`0b8ebea`):**
+- **Torso bug — fixed** (`7450780`). Root cause: `sacrum` ships an `alt` orientation of type
+  **EULER**; MuJoCo uses `alt` in place of `quat` when `alt.type != QUAT`, so the quat assignment
+  was silently ignored (pelvis had `alt.type=QUAT`, hence it worked). Fix: reset `alt.type` to QUAT
+  before setting quat (`_set_body_quat`, both bodies). Independently re-verified: body-diff vs the
+  reference is **empty**; exported model's sacrum quat = `[0.7071,0.7071,0,0]`; spine seats above
+  the pelvis. Re-exported to `compile_check/myolegs22_from_util.xml`.
+- **Universal device compat — done.** Full **4 MSK × 11 device matrix = 44/44 build+step**, zero
+  breakages (the pins were only excluding myolegs22, which now has the same passive torso). Unpinned
+  the 5 configs (broadened `compatible_msk` to all four; rationale comments kept), expanded
+  `test_smoke_combinations.py` to the 44-combo cross-product, updated `available-models.md` (all 4
+  MSKs + full ✓ matrix + a myolegs22 notes section). ruff clean; **pytest 139 passed** (+50).
+  This **resolves B6** and makes E1's compatibility universal. (Smoke suite runtime ~40s→~113s from
+  the myofullbody combos — flagged; could build-once if it matters.)
+
+**2026-07-30 — wave 4 (A10: compose+load pipeline on `refactor`):** 3 commits `21b6b8c`
+(`myoassist_utils/compose.py` — `compose_env_model(msk_key, device_key, terrain=None,
+export_path=None) -> str`), `8009591` (RL wiring: `EnvParams.msk_key/device_key/terrain`;
+`environment_handler` composes → `model_path` XML string; `MyoAssistLegBase` guards `HfieldManager`
+via `_model_has_terrain_hfield` — `# TODO(A4)`), `0e23a15` (`run_sim_minimal` via the pipeline).
+Notable: replaced `build_fig`'s AABB seat (floats device models ~1 m) with a **collision-based
+seat** (margin + forward + min-gap → seat to ~5 mm penetration) — exact for mesh geoms. Validated
+(independently re-verified): `compose_env_model("myolegs22","DephyExoBoot_L1")` → XML string loads,
+nq39/nu24/ngeom72; at `stand` **ncon=4, boot soles (`DephyExoBootL1_tb_toe/mid_{r,l}`) rest on the
+terrain** (pen ~0.005 m); with a real terrain (m2_demo) ngeom133, ncon4; `export_path` loads
+standalone from any CWD. RL env builds+steps (both `environment_handler` and direct paths, 50
+frames); `run_sim_minimal` exits 0. **No MyoSuite-2.8.4 incompatibility surfaced** (de-risks A7).
+Exported sample → `compile_check/myolegs22__DephyExoBoot_L1__terrain.xml`. Deferred (as scoped):
+CO/A5, full config migration (A1/A8), full HfieldManager retirement (A4/D5).
+
+**2026-07-30 — sweep (PRs to remotes; user merges via GitHub Desktop links, `gh` CLI not installed):**
+- **terrains:** `velocity-map` → main (PR #2) merged by user; `fixes` (D1/D2/D6) rebased onto the
+  new main (resolved a complementary `pyproject.toml` conflict — kept both `scipy` + `Pillow`),
+  PR #1 merged. terrains `main` now current; stale `fixes` worktree removed. Future terrain work
+  branches off this main.
+- **assist_sim:** `docs-drift-fixes` → main (PR #1) merged. That surfaced a **red main from ruff
+  drift** (unpinned `ruff` → CI got 0.16.1, reformats 9 files; NOT our code — pytest green, ruff
+  0.15.20 green). Fixed with `pin-ruff-version` (`ruff==0.15.20`) → PR #2 merged, main green.
+  Then `myolegs22` rebased onto the green main (7 B12 commits, `registry.py` overlap auto-merged)
+  + one commit formatting 2 B12 test files that `ruff format` (0.15.20) flagged; pushed → clean
+  **green** PR (verified: ruff check/format ✓, pytest-without-myo_sim 34 passed/105 skipped/0 err).
+  **Awaiting user merge of `myolegs22`.** Lesson → new item **E7** (pin dev tooling; final sweep).
+- **myoassist `refactor`:** not pushed / not PR'd (held until functional — CO/A5 etc.).
+- Git flow confirmed: **I push/rebase branches, user one-clicks PR links** (GitHub Desktop set up
+  Git Credential Manager, so my `git push` authenticates; no `gh` CLI needed).
+
+**2026-07-30 — wave 5 (A3+A5: CO onto the shared pipeline, on `refactor`):** 3 commits `1516a84`
+(new `ctrl_optim/ctrl/reflex/reflex_env.py::ReflexEnvV0` — reach-free, subclasses myosuite
+`BaseV0`, keyframe reset, trivial obs/reward, constructed directly — not gym-registered), `3f5fef4`
+(reflex_interface: `compose_env_model` + `ReflexEnvV0`, `model`/`mode`→`msk_key`/`device_key` map:
+2D→myolegs22 / 3D→myolegs26; dephy/humotech/hmedi/openexo/osl→their device; baseline/tutorial→
+`Tutorial_L1` since compose always attaches a device — CO zeroes Exo when `exo_bool=False`),
+`5aa5553` (thread keys through config_parser/gait_evaluator/run_eval/arg_parser/environment/
+walk_cost; drop dead `resolve_model_path`). **Both RL (A10) and CO now compose via
+`compose_env_model` — RL/CO model+load pipeline unified.** Snag fixed: `adjust_model_height` used
+`*_btm` foot sites absent in composed models → fallback to `*_touch`. Slope terrain →
+`NotImplementedError` (# TODO(A4)); `setupTerrain` left intact but uncalled. Verified (independently):
+`run_ctrl_minimal` runs on composed myolegs22 (2D)+Tutorial (nq39/nv39/nu24/na22, dt0.02),
+"Walking duration: 0.280s" (early fall w/ random params — expected), no NaN; dephy+delayed runs
+50 steps (dt0.001); slope guard raises. Configs unchanged (keys default None, derived from
+model/mode). Note: composed default `opt.timestep`=0.002 → non-delayed dt=0.02 (CO uses `env.dt`
+throughout, self-consistent). Deferred: A4 (slope/terrain + HfieldManager retirement, D5), A7 deps.
+
+**2026-07-30 — wave 6 (A7: deps + install verification, on `refactor`):** commits `8d5ec07`
+(requirements.txt: `mujoco>=3.3.4`; added `myosuite` (PyPI) + git URLs for `myo_sim@dev`/`assist_sim`/
+`myoassist.terrains`, with a comment steering local multi-repo devs to editable installs),
+`d9ab989` (test_setup.py: import checks add myo_sim/assist_sim/myoassist_terrains/myoassist_utils;
+new `test_compose_pipeline` builds `compose_env_model("myolegs22","DephyExoBoot_L1")` → loads;
+fixed the RL env-init test to set msk_key/device_key), `df3fe04` (ASCII-safe test_setup output —
+`✓/✗` → `[PASS]/[FAIL]`, was crashing on Windows cp1252 consoles). setup.py already coherent (no
+removed-tree refs). Verified: `python test_setup.py` **14/14 pass**, and runs clean under the
+default Windows codepage. **Finding (→ A1/A8):** the 6 RL `train_configs/*.json` still carry literal
+`model_path: models/22muscle_2D/...` (deleted tree) and set no `msk_key`/`device_key`, so RL won't
+run *from a shipped config* until they're migrated — the A7 agent fixed only the test (in scope).
+Config migration is the A4/A1-A8 pass next.
+
+**2026-07-30 — wave 7 (A4 + config migration, on `refactor`):** 3 commits `60c1b1a` (retire
+`HfieldManager` — removed import/instantiation/guard from `myoassist_leg_base`, dropped legacy
+`terrain_type`/`terrain_params` from `EnvParams`, **deleted `myoassist_utils/hfield_manager.py`**
+(only importer was the leg base; CO's `setupTerrain` touches `hfield_*` directly, unaffected)),
+`5929b3c` (migrate all 6 RL `train_configs/*.json`: `model_path`→`msk_key: myolegs22`+`device_key`
+mapped from the old suffix; `terrain_type`→`terrain` (null=flat); fixed a stale `--terrain_type`
+CLI override in a `.bat`), `bd358d8` (CO slope: improved the `NotImplementedError` to point at a
+myoassist_terrains `slope` tile via compose — kept deferred, D5). Terrain wiring itself was already
+in place from A10 (`environment_handler` passes `env_params.terrain`→`compose_env_model`). Verified
+(independently): RL builds+steps **from migrated `test.json`** on composed myolegs22+Tutorial_L1
+(obs (44,), act (24,)); `run_ctrl_minimal` still runs; `test_setup` 14/14; no `HfieldManager`/
+`terrain_type`/`terrain_params` left in code.
+
+**→ CORE REFACTOR MILESTONE: RL + CO both run end-to-end on the composed pipeline, from configs**
+(no `models/` tree, no vendored myosuite, no `HfieldManager`, no `myoLegStandRandom-v0`). §A is
+essentially done: A1/A2/A3/A4/A5/A7/A8/A10 ✅. Remaining: A2 asset-relocation (wheelchair/UT-exo →
+assist_sim, device work / later), A9 optional `tutorials/` dir, and the E7 hygiene sweep before the
+`main` PR.
+
+**Follow-up flag (config, not pipeline):** `imitation.json` is stale — its `env_id`
+(`myoAssistLegImitation-v0`, muscle-only) + `net_indexing_info` (26-muscle net) don't match a
+composed `Tutorial_L1` model (which adds 2 exo actuators). It referenced a deleted baseline model +
+26-muscle net pre-migration. Not exercised by validation; needs action-space/net reconciliation (or
+retirement) before it runs. Same class: the imitation configs assume specific muscle/net layouts
+that the composed models must be checked against when the RL tutorials are re-anchored.
 
 ### A1. Remove the bundled `models/` tree
 
@@ -263,7 +388,19 @@ terrain path, separate from RL's `HfieldManager`; unifying terrain is A4/D5.
 `myoLegStandRandom-v0`, dropping the vendored myosuite can't break CO (RL uses only stock
 `env_base`/`env_variants`).
 
-**Blocks:** A2 (de-risks it). **Blocked by:** A10 (shared util).
+**Recon (2026-07-30) — A5 confirmed REQUIRED (not just cleanliness).** Tested feeding a
+`compose_env_model("myolegs22", …)` XML string into `gym.make("myoLegStandRandom-v0", …)`: it
+**fails** — `ReachEnvV0._setup` → `base_v0._setup` calls `site_name2id("pelvis")` for its
+`target_reach_range`, and composed leg models have no such reach-target *site* → `ValueError: No
+site with name "pelvis"`. So the reach env can't wrap a composed locomotion model; CO needs its own
+env. **Approach:** a minimal MyoAssist reflex env (subclass myosuite `env_base.MujocoEnv`, template
+off `ReachEnvV0` but strip `target_reach_range`/tip-sites/reach-obs/reward), keyframe reset
+(`init_qpos = key_qpos[0]`), fed by `compose_env_model`. CO uses the env only as a steppable sim
+(`env.sim`, `reset`, `step`, `forward`, `dt`, `nu`) so no reach machinery is needed. `setupTerrain`
+(slope) only runs when `slope_deg != 0`, so **flat CO works without it** — defer slope-via-terrain
+to A4. Being built now with A3.
+
+**Blocks:** A2 (de-risks it). **Blocked by:** A10 (shared util, done). **In progress 2026-07-30.**
 
 ---
 
@@ -423,6 +560,54 @@ shared util first (unblocks A1/A3/A8), tackle env-class unification with A5.
 
 **Blocks:** A1, A3, A8. **Blocked by:** B12 (current configs need a working `myolegs22`);
 assist_sim asset-path/export reuse.
+
+#### A10 — build-spec (prepped + terrain-merge validated 2026-07-30)
+
+*Ready to implement once assist_sim settles (B12 now locked). The hard part — the terrain merge —
+is validated; finishing is mechanical.*
+
+**Proven reference:** `C:\Users\calde\Work\compile_check\fig\build_fig.py` already does the full
+myo_sim→assist_sim→terrains merge. Reuse its helpers (drop the figure-only bits: `slide_root`,
+`inject_white_scene`, velocity arrows). Reusable core:
+- `assist_sim.load_combined(msk, device, export_xml=path)` → reload-safe **model-only** XML
+  (scene stripped). For MSK-only: `registry._resolve_msk(msk)` + `utils.export_combined_xml`.
+- `myoassist_terrains.build_terrain(cfg, output_dir)` → terrain spec → `.compile()` → `.to_xml()`.
+- **`inject_terrain(model_root, terrain_root)`** — append terrain `<asset>`; append terrain
+  worldbody geoms and **stamp each `contype/conaffinity=1`** (CRITICAL: `to_xml` drops these when
+  they match the terrain spec default, and the consuming model's default may be 0/0 → fall-through).
+- `absolutize_files(root, base_dir)` — make every `file=` absolute (so an XML *string* loads
+  regardless of CWD).
+- `seat_model(root, dz)` with `dz = surface_height_at(cfg,…) − lowest_geom_z(model@qpos0)` — feet on
+  the terrain surface.
+
+**Validated 2026-07-30** (prototype `scratchpad/a10_merge_proto.py` + `a10_contact_diag.py`, against
+the static B12 export — no live assist_sim): merged **myolegs22 + flat terrain compiles from an XML
+string** (`from_xml_string`), nq39/nu22/ngeom58; at the `stand` keyframe **ncon=4, both feet
+(calcn/toes, contype 1/1) rest on the walkable tile** (`flat_r0c0_box`, penetration ~0.005 m).
+Passive sim collapses (uncontrolled muscle model — expected; NOT a merge bug). The model-only export
+keeps its 25 explicit contact pairs but its scene `terrain` geom was stripped, so **standing contact
+is automatic** (foot 1/1 ↔ terrain 1/1) — hence the stamp is load-bearing.
+
+**Interface:** `compose_env_model(msk_key, device_key, terrain=None, export_path=None) -> str`
+returning the merged **XML string** (env input via `from_xml_string`); writes a file if
+`export_path` given (the user-facing inspect/export path). Home: `myoassist_utils/` (e.g.
+`compose.py`). Both RL and CO call it.
+
+**RL integration:** `rl_train/envs/environment_handler.py:create_environment` — replace the static
+`config.env_params.model_path` with `compose_env_model(msk_key, device_key, terrain)`; pass the
+returned string as `model_path` to `gym.make` (SimScene routes `"<mujoco"` → `from_xml_string`). New
+`env_params`: `msk_key`, `device_key`, `terrain` (replace raw `model_path` + old
+`terrain_type`/`terrain_params`). SubprocVecEnv: the XML string pickles fine (or export once + pass
+the path).
+
+**CO integration (with A5):** `myoLeg_reflex` builds its env via the same util onto a MyoAssist
+`MujocoEnv` (retiring `gym.make('myoLegStandRandom-v0')`); preserve keyframe reset + `timestep=0.001`
++ neural delays + CO's hfield handling (→ A4).
+
+**Must-haves:** (1) always merge at least a **flat default ground** (assist_sim output is
+model-only) so the model has a surface; (2) **absolutize** model-mesh + terrain-hfield/texture paths;
+(3) add a default headlight/light so viewer/eval renders (physics doesn't need it). Terrain
+selection/curriculum = A4/D5; A10 v1 takes one terrain config or the flat default.
 
 ---
 
@@ -932,11 +1117,17 @@ out of scope for this pass and tracked separately.
 
 ### E2. Two different things are named `myo_sim`
 
-The packaged `myo_sim` 0.2.0 (mjspec-composed, `MyoHub/myo_sim`) and the vendored
-`myoassist/myosuite/simhive/myo_sim` 0.1.0 (flat XML) are distinct codebases sharing a name, and
-`myoassist` currently loads the latter. This is undocumented everywhere.
+**Status:** RESOLVED — 2026-07-30 (by the A2 clean-slate). The packaged `myo_sim` 0.2.0
+(mjspec-composed, `MyoHub/myo_sim`) and the vendored `myoassist/myosuite/simhive/myo_sim` 0.1.0
+(flat XML) were distinct codebases sharing a name; `myoassist` loaded the latter.
 
-A2 removes the collision. Until then, every cross-repo document must disambiguate explicitly.
+The `refactor` clean-slate **removed the vendored copy** (commit `e677989`), so the name clash is
+gone: `import myo_sim` now unambiguously resolves to the 0.2.0 package, while an installed
+`myosuite` loads its **own** bundled `simhive/myo_sim` internally *by path* — never as `import
+myo_sim`. Verified in the `assistsim` env, which runs all four together with no conflict:
+`myo-sim 0.2.0` (editable) + `MyoSuite 2.8.4` (installed) + `assist_sim` + `myoassist-terrains`
+(editable), on `mujoco 3.3.4`. This also de-risks A7 (installed myosuite provides `env_base`/
+`env_variants`) and confirms A10's environment is ready.
 
 ### E3. Repo name vs. import name for terrains
 
@@ -990,9 +1181,28 @@ uses `pyproject.toml` + ruff and plans a `uv` migration; `myoassist` still uses 
 no linter and no test CI. Converging is optional, but the docs site will document four different
 contributor workflows unless something changes.
 
----
+### E7. Final cross-repo management/hygiene alignment sweep (do at the END)
 
-## §F — Outstanding feature work (not refactor)
+**Status:** NOTED — 2026-07-30 (user). A deliberate end-of-refactor pass to align the "management"
+things across all four repos, so they present as one coherent framework. Prompted by the
+**ruff-version-drift incident**: `assist_sim`'s `requirements-dev.txt` had **`ruff` unpinned**, so
+CI installed the latest (0.16.1) whose formatter differs from the 0.15.x the code was written to →
+`ruff format --check` went red on `main` with no code change. Fixed by pinning `ruff==0.15.20`
+(assist_sim PR #2). The **lesson: pin dev tooling** (formatters especially) so CI == local.
+
+Checklist for the final sweep (verify/align each across myoassist, assist_sim, myo_sim, terrains):
+- **Pin linters/formatters** (ruff etc.) to an exact version in each repo — assist_sim done;
+  terrains/myo_sim/myoassist still to check (they use ruff via uv/pre-commit — confirm pinned).
+- **CI parity:** each repo has a test+lint CI; consistent Python-version matrix (E5); assist_sim's
+  own TODO — add a **myo_sim-installed CI lane** so the 24 gated tests actually run somewhere
+  (right now they only ever skip in CI).
+- **Version consistency** (E.g. assist_sim `__version__` ↔ pyproject ↔ changelog — B1) across repos.
+- **MuJoCo floor** aligned (E4, `>=3.3.4`); **Python floor** aligned (E5).
+- **Packaging/tooling convergence** (E6) — pyproject/uv/ruff/pre-commit vs setup.py.
+- **`.gitignore`, LICENSE headers, README/CONTRIBUTING** consistency; correct org URLs (D2 pattern).
+- Run a **code-review pass** (e.g. `/code-review`) on each repo's final diff before the 1.0 tag.
+
+Best run as its own pass near the end, once the functional refactor (A-items, A5, A4) has settled.
 
 Feature work that is *not* part of the slim-down/alignment but should ride along on the same
 `refactor` branch and land for 1.0. Distinct from §A (which is structural).
@@ -1025,16 +1235,16 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 
 | ID | Item | Repo | Status | Blocks docs? | Blocked by |
 |---|---|---|---|---|---|
-| A1 | Remove bundled `models/` | myoassist | **removed** (rewiring pending) | yes | A10, B12 |
-| A2 | Vendored myosuite → dependency | myoassist | **removed** (dep-wiring pending) | yes | A5 |
-| A3 | CO model resolver → assist_sim | myoassist | open | yes | A10, B12 |
-| A4 | HfieldManager → myoassist_terrains | myoassist | open | yes | — (enables D5 ph.3) |
-| A5 | CO env unify (retire myoLegStandRandom) | myoassist | **decided** | no | A10 |
+| A1 | Remove bundled `models/` | myoassist | **done** (removed + config refs migrated) | yes | — |
+| A2 | Vendored myosuite → dependency | myoassist | **done** (dep declared; asset-relocation deferred) | yes | — |
+| A3 | CO model resolver → assist_sim | myoassist | **done** | yes | — |
+| A4 | HfieldManager retired; terrain via compose | myoassist | **done** (curriculum=D5; CO slope deferred) | yes | — |
+| A5 | CO env unify (retire myoLegStandRandom) | myoassist | **done** | no | — |
 | A6 | **22-muscle 2D decision** | myoassist | **decided** | yes | — (see B12) |
-| A7 | Packaging + `test_setup.py` | myoassist | open | yes | A1, A2 |
-| A8 | Hardcoded tutorial model path | myoassist | open | yes | A10, B12 |
-| A9 | Relocate tutorials off the website | myoassist | **planned** | yes | A6/B12 |
-| A10 | **Unified RL/CO compose+load pipeline** | myoassist | **decided** | yes | B12 |
+| A7 | Packaging + `test_setup.py` | myoassist | **done** | yes | — |
+| A8 | Hardcoded tutorial model path | myoassist | **done** (run_sim_minimal via compose; configs migrated) | yes | — |
+| A9 | Relocate tutorials off the website | myoassist-web | **done** (removed from site; re-anchor→tutorials/ later) | yes | — |
+| A10 | **Unified RL/CO compose+load pipeline** | myoassist | **done** (util + RL wiring; CO=A5 next) | yes | — |
 | B1 | Version disagreement | assist_sim | **done** (changelog paused) | no | — |
 | B2 | CLI docs wrong subcommand | assist_sim | **done** | yes | — |
 | B3 | `quickstart.py` broken | assist_sim | **done** (viewer manual) | yes (media) | — |
@@ -1046,7 +1256,7 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 | B9 | Dangling internal references | assist_sim | **done** | no | — |
 | B10 | `myo_sim` undeclared dependency | assist_sim | open | yes | decision |
 | B11 | Private `_COMPOSED_MODELS` use | assist_sim | open | no | C4 |
-| B12 | Implement `myolegs22` reduction util | assist_sim | **planned** | yes | — |
+| B12 | Implement `myolegs22` reduction util | assist_sim | **done** (torso fixed, 44/44 matrix) | yes | — |
 | C1 | Wiki: nonexistent `LEGS26_BASE` | myo_sim | deferred | yes | — |
 | C2 | Orphaned `add_keyframes()` | myo_sim | deferred | no | — |
 | C3 | PyPI name collision | myo_sim | deferred | **yes** | upstream release |
@@ -1061,13 +1271,14 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 | D5 | Terrain curriculum (build it) | terrains + myoassist | **planned** | yes | A4 (phase 3) |
 | D6 | Stale `pyramid_stairs` docstring | terrains | **done** | no | — |
 | D7 | Media + website → standalone docs repo | myoassist | **decided** | yes | site removed from repo |
-| D8 | Branch consolidation | terrains | open | yes | — |
+| D8 | Branch consolidation | terrains | **done** (velocity+fixes merged to main) | yes | — |
 | E1 | **Reconcile the 15 devices** | all | **decided** | yes | — |
-| E2 | Two things named `myo_sim` | all | open | yes | A2 |
+| E2 | Two things named `myo_sim` | all | **resolved** (by A2 clean-slate) | yes | — |
 | E3 | Repo vs import name | all | **decided** | yes | — |
-| E4 | MuJoCo version floor | all | open | yes | — |
+| E4 | MuJoCo version floor | all | partial (myoassist+assist_sim `>=3.3.4`; terrains/myo_sim to align) | yes | E7 |
 | E5 | Python version floor | all | open | yes | decision |
 | E6 | Packaging/tooling divergence | all | open | no | — |
+| E7 | Final management/hygiene alignment sweep | all | noted (do at END) | no | after A-items settle |
 | F1 | Outstanding CO device-specific control features | myoassist | noted | no | feature list TBD |
 
 **All five gating decisions are resolved.** Documentation work is unblocked.
@@ -1075,9 +1286,38 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 - **E1** — canonical 15 devices fixed (table in §E1).
 - **E3** — two-form terrains naming convention (`myoassist.terrains` / `myoassist_terrains`).
 - **D5** — build the terrain curriculum; full handoff spec in §D5, delegated.
-- **D7** — media as committed static assets on a dedicated website branch (hub + build + media),
-  `main` keeps only myoassist docs; tutorials relocate off-site (§A9). Sibling-docs aggregation:
-  recommended **manual-first copy** (the transform + curation layer is unavoidable in any option),
-  escalate to a local sync script only if drift bites.
+- **D7** — website is a **standalone repo** (`myoassist-web`, ported); media = committed static
+  assets there; tutorials off-site (§A9). Sibling-docs aggregation: **manual-first copy**.
 
 Remaining items are implementation/fixes, not decisions — see the status column above.
+
+---
+
+## Resume here (state as of 2026-07-30)
+
+**myoassist `refactor`** (branch off `dev`, **NOT pushed**): §A core refactor DONE — clean-slate
+(models/ + vendored myosuite/ + docs/ removed) + `myoassist_utils/compose.py` (A10) + CO on
+`ReflexEnvV0` (A3/A5) + HfieldManager retired & configs migrated (A4) + deps/test_setup (A7).
+**RL and CO both run end-to-end on composed models from configs.** `test_setup.py` 14/14.
+Working tree carries untracked `REPO_ALIGNMENT.md` (this file) + `eval_output/` (leave). Remaining
+before a `main` PR: (a) RL **imitation-config net/action reconciliation** (imitation configs assume
+26-muscle/muscle-only layouts that don't match composed Tutorial_L1 — see wave-7 flag); (b) A2
+asset-relocation (wheelchair/UT-exo → assist_sim); (c) **E7** hygiene sweep; (d) **D7 website live
+first** so myoassist.neumove.org doesn't go dark on merge.
+
+**assist_sim `main`**: docs-drift (PR#1) + pin-ruff (PR#2) + myolegs22 (PR#3) all merged; CI green;
+`load_combined("myolegs22", …)` works. Remaining §B: **B5** (myofullbody smoke+doc), **B10** (declare
+myo_sim dep? decision), **B11** (private `_COMPOSED_MODELS` — after C4), **B7** (doc the L1/L2 def).
+
+**terrains `main`**: velocity + fixes merged; current. Remaining §D: **D3** (velocity-map docs),
+**D4** (private-API coupling), **D5** (terrain curriculum — handoff spec ready), **D8** (superseded —
+branches consolidated; effectively done).
+
+**myo_sim**: untouched this pass (§C all deferred as known-issues; no repo edits).
+
+**myoassist-web** (local, **not pushed/deployed**): full site ported (root), search-icon→teal +
+color scheme added, tutorials removed. Restructure TODOs (pages.yml root rework, aggregate-hub
+content, media strategy, RL page dead tutorial links) in the [[myoassist-website-1-0-overhaul]] memory.
+
+**Next-decision candidates:** E7 (final hygiene sweep), the imitation-config reconciliation, F1 (CO
+device-control features — awaiting the feature list), and the website restructure (needs localhost).
