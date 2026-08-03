@@ -43,7 +43,7 @@ class SetupTester:
         print(f"{Colors.END}")
         
     def print_result(self, result: TestResult):
-        status = f"{Colors.GREEN}✓ PASS{Colors.END}" if result.success else f"{Colors.RED}✗ FAIL{Colors.END}"
+        status = f"{Colors.GREEN}[PASS]{Colors.END}" if result.success else f"{Colors.RED}[FAIL]{Colors.END}"
         duration_str = f" ({result.duration:.2f}s)" if result.duration > 0 else ""
         print(f"  {status} {result.name}{duration_str}")
         if result.message and not result.success:
@@ -410,10 +410,10 @@ class SetupTester:
         print(f"Total time: {total_time:.2f}s")
         
         if failed_tests == 0:
-            print(f"\n{Colors.GREEN}{Colors.BOLD}✓ All tests passed! Your MyoAssist setup is working correctly.{Colors.END}")
+            print(f"\n{Colors.GREEN}{Colors.BOLD}All tests passed! Your MyoAssist setup is working correctly.{Colors.END}")
             print(f"\n{Colors.BLUE}Next steps:{Colors.END}")
         else:
-            print(f"\n{Colors.RED}{Colors.BOLD}✗ Some tests failed. Please check the error messages above.{Colors.END}")
+            print(f"\n{Colors.RED}{Colors.BOLD}Some tests failed. Please check the error messages above.{Colors.END}")
             print(f"\n{Colors.YELLOW}Troubleshooting tips:{Colors.END}")
 
 def main():
