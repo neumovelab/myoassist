@@ -29,7 +29,6 @@ def package_files(directory):
 
 rl_train_files = package_files('rl_train')
 ctrl_optim_files = package_files('ctrl_optim')
-myosuite_files = package_files('myosuite')
 
 
 if __name__ == "__main__":
@@ -49,8 +48,8 @@ if __name__ == "__main__":
             "Topic :: Scientific/Engineering :: Artificial Intelligence :: Simulation",
             "Operating System :: OS Independent",
         ],
-        package_data={'': rl_train_files + ctrl_optim_files + myosuite_files},
-        packages=find_packages(include=("myosuite*", "myoassist*", "rl_train*", "ctrl_optim*")),
+        package_data={'': rl_train_files + ctrl_optim_files},
+        packages=find_packages(include=("myoassist*", "rl_train*", "ctrl_optim*")),
         python_requires=">=3.11",
         install_requires=fetch_requirements(),
     )
