@@ -97,13 +97,35 @@ class SetupTester:
             raise ImportError(f"Failed to import MyoSuite: {e}")
     
     def test_myoassist_imports(self):
-        """Test MyoAssist package imports"""
+        """Test MyoAssist package + composed-architecture dependency imports"""
         try:
+            # MyoAssist code trees (this repo)
             import rl_train
             import ctrl_optim
+            import myoassist_utils
+            # Composed-architecture sibling packages (now external, was vendored)
+            import myo_sim
+            import assist_sim
+            import myoassist_terrains
         except ImportError as e:
             raise ImportError(f"Failed to import MyoAssist packages: {e}")
     
+    def test_compose_pipeline(self):
+        """Test the composed-model pipeline end-to-end (the core 'new architecture
+        installed & working' check): compose human MSK + device (+ default terrain)
+        and confirm the merged MJCF builds a usable MuJoCo model."""
+        try:
+            import mujoco
+            from myoassist_utils.compose import compose_env_model
+
+            xml = compose_env_model("myolegs22", "DephyExoBoot_L1")
+            assert isinstance(xml, str) and xml.lstrip().startswith("<mujoco"), \
+                "compose_env_model did not return an MJCF XML string"
+            model = mujoco.MjModel.from_xml_string(xml)
+            assert model.nq > 0, "Composed model has no generalized coordinates (nq == 0)"
+        except Exception as e:
+            raise RuntimeError(f"Composed model pipeline failed: {e}")
+
     def test_mujoco_license(self):
         """Test MuJoCo license availability"""
         try:
@@ -136,6 +158,11 @@ class SetupTester:
             config_path = "rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json"
             default_config: ExoImitationTrainSessionConfig = EnvironmentHandler.get_session_config_from_path(config_path, ExoImitationTrainSessionConfig)
             default_config.env_params.num_envs = 1
+            # Exercise the composed model pipeline: setting msk_key + device_key routes
+            # the handler through compose_env_model (human MSK + device + terrain) instead
+            # of a bundled model_path, which no longer ships with the slimmed-down repo.
+            default_config.env_params.msk_key = "myolegs22"
+            default_config.env_params.device_key = "DephyExoBoot_L1"
             env = EnvironmentHandler.create_environment(default_config, is_rendering_on=False, is_evaluate_mode=False)
             
             obs, info = env.reset()
@@ -343,6 +370,7 @@ class SetupTester:
             (self.test_core_imports, "Core Package Imports"),
             (self.test_myosuite_import, "MyoSuite Package Import"),
             (self.test_myoassist_imports, "MyoAssist Package Imports"),
+            (self.test_compose_pipeline, "Composed Model Pipeline"),
             (self.test_mujoco_license, "MuJoCo License"),
             (self.test_rl_environment_initialization, "RL Environment Initialization"),
             (self.test_reflex_environment_initialization, "Reflex Environment Initialization"),
