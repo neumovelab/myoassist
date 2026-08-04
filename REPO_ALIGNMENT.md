@@ -245,6 +245,27 @@ the stale local `velocity-map` checkout to `main` (fast-forward, 12 commits) and
   stable-surface table; fixed the README clone URL (`neumove`->`neumovelab`) and the test-coverage note.
 Remaining terrains §D: **D5** only (curriculum feature, delegated).
 
+**2026-08-04 — wave 10 (A2 upper-body ports: Wheelchair rebuilt; branch `relocate-collab-assets`
+off assist_sim `main`):** the wheelchair env is **rebuilt as a runtime composition** in
+`assist_sim/upper_body.py::build_wheelchair(arms, torso)` (not a static-XML port). Recipe, now the
+template for the other upper-body envs:
+- Human from **current myo_sim** (`myoarms`: passive-or-active torso + selectable arm(s)); anatomical
+  meshes come from the myo_sim package — **none housed in assist_sim**. Arms `both`/`right`/`left`
+  (mirrored); torso `passive` (default) / `muscled`.
+- **Legs**: muscle-less; seated pose **baked into the leg geometry + leg joints deleted** (rigid, no
+  leg DOF — matches the original, which shipped zero leg joints). `ref` can't pose a hinge (relabels
+  zero), so posing must be baked.
+- **Chair** (`models/Wheelchair/`, 35 hardware meshes; env XML + assets) fixed rigidly to the torso;
+  freejoint on the rig + jointed wheels roll on a ground plane. `MjSpec.attach` **drops cross-body
+  muscles if the human is the attached child**, so the human is the base and the chair attaches into it.
+- **Keyframes** `start_return`/`pushing` transcribed verbatim from the compiled original (hand pos
+  matches to <1 mm); 1 ms timestep. Leg pose hand-tuned by the user (posable model → qpos → mirror →
+  bake). Docs: `models/Wheelchair/CONVERSION.md`.
+- **Still open on this branch (before assist_sim PR):** port **MPL** (`simhive/MPL_sim` on myoassist
+  `dev` — prosthetic arm/hand; likely composes onto `myoarm`) and **AuxivoLiftsuit** (the torso
+  back-exosuit `myotorso_exosuit.xml`; MyoAssist-custom, absent upstream — compose onto a torso) using
+  the same recipe. E7 hygiene sweep + the assist_sim PR follow.
+
 ### A1. Remove the bundled `models/` tree
 
 **Where:** `models/22muscle_2D/`, `models/26muscle_3D/`, `models/80muscle/`, `models/mesh/`,
@@ -1329,16 +1350,20 @@ deps/test_setup (A7). **RL and CO both run end-to-end on composed models from co
 `test_setup.py` 14/14. Untracked in tree: this file + `eval_output/` (leave). **Remaining before the
 `refactor→main` PR:** (a) RL **imitation-config net/action reconciliation** (imitation configs assume
 26-muscle/muscle-only layouts that don't match composed `Tutorial_L1`, which adds 2 exo actuators —
-wave-7 flag); (b) A2 asset-relocation (wheelchair/UT-exo → assist_sim); (c) **E7** hygiene sweep.
+wave-7 flag); (b) A2 upper-body ports (see wave 10) land in assist_sim, not myoassist; (c) **E7** sweep.
 **D7 gate is now CLEARED** — the site lives on myoassist-web (below).
 
-**assist_sim `main`**: docs-drift+pin-ruff+myolegs22 all merged; CI green; `load_combined("myolegs22",
-…)` works. Remaining §B: **B7** (doc the L1/L2 def), **B10** (declare myo_sim dep? decision), **B11**
-(private `_COMPOSED_MODELS` — after C4). **NOTE: user is adding the NEUankle + CR EXO device envs here
-in parallel (devices #4/#5 of the 15) — avoid concurrent assist_sim writes.**
+**assist_sim `main`**: docs-drift+pin-ruff+myolegs22 all merged; CI green. **Branch
+`relocate-collab-assets`** (off `main`, PUSHED, awaiting user PR): A2 upper-body ports —
+**Wheelchair DONE** (`upper_body.build_wheelchair`, `models/Wheelchair/` + `CONVERSION.md`; recipe in
+wave 10); **MPL + AuxivoLiftsuit still to port** using that recipe (raw sources on myoassist `dev`:
+`simhive/MPL_sim`, `simhive/myo_sim/torso/myotorso_exosuit.xml`). Remaining §B: **B7** (doc L1/L2),
+**B10** (myo_sim dep decision), **B11** (private `_COMPOSED_MODELS` — after C4). **NOTE: user is adding
+NEUankle + CR EXO device envs on `main` in parallel — keep upper-body ports on `relocate-collab-assets`.**
 
-**terrains `main`**: velocity+fixes merged; current. **D3 + D4 done** on branch `docs-velocity-api`
-(off current `main`; commits `b2fcfa5` D4, `7ccc2da` D3; pushed — awaiting user PR). Remaining §D:
+**terrains `main`**: velocity+fixes merged; current. **D3 + D4 done** on `docs-velocity-api`
+(`b2fcfa5` D4, `7ccc2da` D3), and a **`docs-restructure`** branch (off `docs-velocity-api`) splits the
+README into `docs/` (open its PR against `docs-velocity-api`, then that → `main`). Remaining §D:
 **D5** only (terrain curriculum — full handoff spec in §D5, delegated feature).
 
 **myo_sim**: untouched (§C all deferred as known-issues; no repo edits this pass).
@@ -1351,7 +1376,8 @@ search-icon→teal + `_sass/color_schemes/myoassist_custom.scss` added, tutorial
 media strategy (terrain renders + paper Figs 1-6), and `_config.yml` edit-links/`repo_branch`.
 See [[myoassist-website-1-0-overhaul]].
 
-**Next-wave candidates:** imitation-config reconciliation (myoassist); terrains D3/D4 (+ D5 curriculum);
-assist_sim B7/B10/B11 (after the user's device envs land); E7 final hygiene sweep; the website
-restructure (localhost); F1 (CO device-control features — awaiting the user's feature list); then the
-`refactor→main` PR.
+**Next-wave candidates:** **A2 — port MPL + AuxivoLiftsuit** (assist_sim `relocate-collab-assets`, wave-10
+recipe) — the immediate next item; then the `/code-review` over that branch. Also: imitation-config
+reconciliation (myoassist); terrains PRs (docs-velocity-api → docs-restructure → main) + D5 curriculum;
+assist_sim B7/B10/B11 (after the user's device envs land); E7 final hygiene sweep; website restructure
+(localhost); F1 (CO device-control features); then the `refactor→main` PR.
