@@ -226,6 +226,25 @@ myoassist-web**. **This clears the D7 gate** — `refactor→main` no longer ris
 dark. (Only warning: Node-20 action deprecation, benign.) Website restructure (aggregate hub, RL-page
 dead links, media) deferred to the localhost phase.
 
+**2026-08-04 — wave 9 (terrains D3 + D4, branch `docs-velocity-api` off current `main`):** switched
+the stale local `velocity-map` checkout to `main` (fast-forward, 12 commits) and branched. 2 commits:
+- **D4** done (`b2fcfa5`) — promoted composer's `_compute_cell_layouts`/`_resolve_tiles`/`_CellLayout`
+  to public `compute_cell_layouts`/`resolve_tiles`/`CellLayout` (docstrings added) so `velocity_map`
+  no longer reaches through a private boundary; updated both composer internal call sites + the 3
+  velocity_map references. `_sample_*` helpers left private (genuinely internal). Validated: **pytest
+  64/64** in the `assistsim` conda env (terrains installed editable there; mujoco 3.3.4). Confirmed no
+  cross-repo consumers of the private names (the 3 grep hits in `compile_check`/`NDSEG` are standalone
+  composer *copies*, not package imports).
+- **D3** done (`7ccc2da`) — added a **Velocity maps** README section (subsystem overview,
+  `generate_velocity_map` signature + knob table, `estimate_surface_height`/`surface_height_at`,
+  `add_velocity_overlay`, and the `render_velocity_map.py`/`render_terrain_check.py` CLIs); refreshed
+  the stale **Utilities and example configs** table to the real tree (grouped configs/helpers/style/
+  render; added `_make_tiled_rings.py`, `_build_velocity_config.py`, `camera_convert.py`,
+  `render_terrain_check.py`, `render_velocity_map.py`, `base*.json`, `utils/style/terrain/default.xml`,
+  `mesh/`, ensemble configs); added the promoted layout helpers + velocity entries to the Python-API
+  stable-surface table; fixed the README clone URL (`neumove`->`neumovelab`) and the test-coverage note.
+Remaining terrains §D: **D5** only (curriculum feature, delegated).
+
 ### A1. Remove the bundled `models/` tree
 
 **Where:** `models/22muscle_2D/`, `models/26muscle_3D/`, `models/80muscle/`, `models/mesh/`,
@@ -1274,8 +1293,8 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 | C7 | Fragile external image hosting | myo_sim | deferred | yes (media) | — |
 | D1 | Pillow undeclared | terrains | **done** | **yes** | — |
 | D2 | Wrong GitHub org in URLs | terrains | **done** | no | — |
-| D3 | Velocity map undocumented | terrains | open | **yes** | — |
-| D4 | Private-API coupling | terrains | open | no | — |
+| D3 | Velocity map undocumented | terrains | **done** (README velocity section + utils table refresh) | **yes** | — |
+| D4 | Private-API coupling | terrains | **done** (layout helpers promoted public) | no | — |
 | D5 | Terrain curriculum (build it) | terrains + myoassist | **planned** | yes | A4 (phase 3) |
 | D6 | Stale `pyramid_stairs` docstring | terrains | **done** | no | — |
 | D7 | Media + website → standalone docs repo | myoassist-web | **done** (LIVE at myoassist.neumove.org via Actions) | yes | — |
@@ -1318,9 +1337,9 @@ wave-7 flag); (b) A2 asset-relocation (wheelchair/UT-exo → assist_sim); (c) **
 (private `_COMPOSED_MODELS` — after C4). **NOTE: user is adding the NEUankle + CR EXO device envs here
 in parallel (devices #4/#5 of the 15) — avoid concurrent assist_sim writes.**
 
-**terrains `main`**: velocity+fixes merged; current. Local checkout still on the stale `velocity-map`
-branch (switch to `main` + branch off it before terrains work). Remaining §D: **D3** (velocity-map
-docs), **D4** (private-API coupling), **D5** (terrain curriculum — full handoff spec in §D5).
+**terrains `main`**: velocity+fixes merged; current. **D3 + D4 done** on branch `docs-velocity-api`
+(off current `main`; commits `b2fcfa5` D4, `7ccc2da` D3; pushed — awaiting user PR). Remaining §D:
+**D5** only (terrain curriculum — full handoff spec in §D5, delegated feature).
 
 **myo_sim**: untouched (§C all deferred as known-issues; no repo edits this pass).
 
