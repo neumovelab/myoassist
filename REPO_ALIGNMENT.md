@@ -218,6 +218,14 @@ composed `Tutorial_L1` model (which adds 2 exo actuators). It referenced a delet
 retirement) before it runs. Same class: the imitation configs assume specific muscle/net layouts
 that the composed models must be checked against when the RL tutorials are re-anchored.
 
+**2026-07-30 — wave 8 (D7 website transition COMPLETE):** `myoassist-web` reworked `pages.yml` to
+build from repo root (was docs/-subdir) + added `enablement: true` to `configure-pages` (self-enable
+Pages). User set Pages Source=GitHub Actions + moved the custom domain off the old myoassist repo.
+Workflow run **green (build+deploy)** → **site LIVE at https://myoassist.neumove.org via
+myoassist-web**. **This clears the D7 gate** — `refactor→main` no longer risks the live site going
+dark. (Only warning: Node-20 action deprecation, benign.) Website restructure (aggregate hub, RL-page
+dead links, media) deferred to the localhost phase.
+
 ### A1. Remove the bundled `models/` tree
 
 **Where:** `models/22muscle_2D/`, `models/26muscle_3D/`, `models/80muscle/`, `models/mesh/`,
@@ -1249,7 +1257,7 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 | B2 | CLI docs wrong subcommand | assist_sim | **done** | yes | — |
 | B3 | `quickstart.py` broken | assist_sim | **done** (viewer manual) | yes (media) | — |
 | B4 | `MSK_MODELS` doesn't exist | assist_sim | **done** | yes | — |
-| B5 | `myofullbody` untested/undocumented | assist_sim | open | yes | — |
+| B5 | `myofullbody` untested/undocumented | assist_sim | **done** (via B12: in 44-combo smoke + available-models) | yes | — |
 | B6 | README vs docs device count | assist_sim | **done** | yes | — |
 | B7 | `L1`/`L2` convention (define+doc) | assist_sim | **decided** | yes | — (doc-only) |
 | B8 | Stale `@mm_refactor` install | assist_sim | **done** | yes | — |
@@ -1270,7 +1278,7 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 | D4 | Private-API coupling | terrains | open | no | — |
 | D5 | Terrain curriculum (build it) | terrains + myoassist | **planned** | yes | A4 (phase 3) |
 | D6 | Stale `pyramid_stairs` docstring | terrains | **done** | no | — |
-| D7 | Media + website → standalone docs repo | myoassist | **decided** | yes | site removed from repo |
+| D7 | Media + website → standalone docs repo | myoassist-web | **done** (LIVE at myoassist.neumove.org via Actions) | yes | — |
 | D8 | Branch consolidation | terrains | **done** (velocity+fixes merged to main) | yes | — |
 | E1 | **Reconcile the 15 devices** | all | **decided** | yes | — |
 | E2 | Two things named `myo_sim` | all | **resolved** (by A2 clean-slate) | yes | — |
@@ -1293,31 +1301,38 @@ Remaining items are implementation/fixes, not decisions — see the status colum
 
 ---
 
-## Resume here (state as of 2026-07-30)
+## Resume here (state as of 2026-07-30, refreshed post-website-transition)
 
-**myoassist `refactor`** (branch off `dev`, **NOT pushed**): §A core refactor DONE — clean-slate
-(models/ + vendored myosuite/ + docs/ removed) + `myoassist_utils/compose.py` (A10) + CO on
-`ReflexEnvV0` (A3/A5) + HfieldManager retired & configs migrated (A4) + deps/test_setup (A7).
-**RL and CO both run end-to-end on composed models from configs.** `test_setup.py` 14/14.
-Working tree carries untracked `REPO_ALIGNMENT.md` (this file) + `eval_output/` (leave). Remaining
-before a `main` PR: (a) RL **imitation-config net/action reconciliation** (imitation configs assume
-26-muscle/muscle-only layouts that don't match composed Tutorial_L1 — see wave-7 flag); (b) A2
-asset-relocation (wheelchair/UT-exo → assist_sim); (c) **E7** hygiene sweep; (d) **D7 website live
-first** so myoassist.neumove.org doesn't go dark on merge.
+**myoassist `refactor`** (off `dev`, **PUSHED to `origin/refactor`** — backed up): §A core refactor
+DONE — clean-slate (models/ + vendored myosuite/ + docs/ removed) + `myoassist_utils/compose.py`
+(A10) + CO on `ReflexEnvV0` (A3/A5) + HfieldManager retired & 6 configs migrated (A4) +
+deps/test_setup (A7). **RL and CO both run end-to-end on composed models from configs.**
+`test_setup.py` 14/14. Untracked in tree: this file + `eval_output/` (leave). **Remaining before the
+`refactor→main` PR:** (a) RL **imitation-config net/action reconciliation** (imitation configs assume
+26-muscle/muscle-only layouts that don't match composed `Tutorial_L1`, which adds 2 exo actuators —
+wave-7 flag); (b) A2 asset-relocation (wheelchair/UT-exo → assist_sim); (c) **E7** hygiene sweep.
+**D7 gate is now CLEARED** — the site lives on myoassist-web (below).
 
-**assist_sim `main`**: docs-drift (PR#1) + pin-ruff (PR#2) + myolegs22 (PR#3) all merged; CI green;
-`load_combined("myolegs22", …)` works. Remaining §B: **B5** (myofullbody smoke+doc), **B10** (declare
-myo_sim dep? decision), **B11** (private `_COMPOSED_MODELS` — after C4), **B7** (doc the L1/L2 def).
+**assist_sim `main`**: docs-drift+pin-ruff+myolegs22 all merged; CI green; `load_combined("myolegs22",
+…)` works. Remaining §B: **B7** (doc the L1/L2 def), **B10** (declare myo_sim dep? decision), **B11**
+(private `_COMPOSED_MODELS` — after C4). **NOTE: user is adding the NEUankle + CR EXO device envs here
+in parallel (devices #4/#5 of the 15) — avoid concurrent assist_sim writes.**
 
-**terrains `main`**: velocity + fixes merged; current. Remaining §D: **D3** (velocity-map docs),
-**D4** (private-API coupling), **D5** (terrain curriculum — handoff spec ready), **D8** (superseded —
-branches consolidated; effectively done).
+**terrains `main`**: velocity+fixes merged; current. Local checkout still on the stale `velocity-map`
+branch (switch to `main` + branch off it before terrains work). Remaining §D: **D3** (velocity-map
+docs), **D4** (private-API coupling), **D5** (terrain curriculum — full handoff spec in §D5).
 
-**myo_sim**: untouched this pass (§C all deferred as known-issues; no repo edits).
+**myo_sim**: untouched (§C all deferred as known-issues; no repo edits this pass).
 
-**myoassist-web** (local, **not pushed/deployed**): full site ported (root), search-icon→teal +
-color scheme added, tutorials removed. Restructure TODOs (pages.yml root rework, aggregate-hub
-content, media strategy, RL page dead tutorial links) in the [[myoassist-website-1-0-overhaul]] memory.
+**myoassist-web `main`** (**PUSHED + LIVE** at https://myoassist.neumove.org via GitHub Actions/Pages —
+root-layout workflow with `enablement: true`, custom domain moved off the old repo): full site ported,
+search-icon→teal + `_sass/color_schemes/myoassist_custom.scss` added, tutorials removed.
+**Restructure TODOs (need a localhost the user is setting up):** build the aggregated 1.0 hub
+(myo_sim / assist_sim / terrains sections per the IA), fix the RL page's dead tutorial links,
+media strategy (terrain renders + paper Figs 1-6), and `_config.yml` edit-links/`repo_branch`.
+See [[myoassist-website-1-0-overhaul]].
 
-**Next-decision candidates:** E7 (final hygiene sweep), the imitation-config reconciliation, F1 (CO
-device-control features — awaiting the feature list), and the website restructure (needs localhost).
+**Next-wave candidates:** imitation-config reconciliation (myoassist); terrains D3/D4 (+ D5 curriculum);
+assist_sim B7/B10/B11 (after the user's device envs land); E7 final hygiene sweep; the website
+restructure (localhost); F1 (CO device-control features — awaiting the user's feature list); then the
+`refactor→main` PR.
