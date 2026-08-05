@@ -261,10 +261,20 @@ template for the other upper-body envs:
 - **Keyframes** `start_return`/`pushing` transcribed verbatim from the compiled original (hand pos
   matches to <1 mm); 1 ms timestep. Leg pose hand-tuned by the user (posable model → qpos → mirror →
   bake). Docs: `models/Wheelchair/CONVERSION.md`.
-- **Still open on this branch (before assist_sim PR):** port **MPL** (`simhive/MPL_sim` on myoassist
-  `dev` — prosthetic arm/hand; likely composes onto `myoarm`) and **AuxivoLiftsuit** (the torso
-  back-exosuit `myotorso_exosuit.xml`; MyoAssist-custom, absent upstream — compose onto a torso) using
-  the same recipe. E7 hygiene sweep + the assist_sim PR follow.
+**2026-08-05 — wave 11 (A2 upper-body ports COMPLETE):** **MPL** and **AuxivoLiftsuit** ported +
+loading in assist_sim (branch `relocate-collab-assets`, pushed). All three collab envs done:
+- `build_wheelchair(arms, torso)`, `build_mpl()`, `build_auxivo_liftsuit()` in `upper_body.py`.
+- **MPL** (`models/MPL/`) — the JHU/APL robotic prosthetic (bimanual "SALLY"); self-contained robot
+  (own meshes/actuators, no myo human), relocated ~verbatim; dropped MuJoCo-2.x `convexhull` attr +
+  pruned unused legacy configs. nbody 26, nu 19.
+- **AuxivoLiftsuit** (`models/AuxivoLiftsuit/`) — the passive torso back-exosuit; relocated with its
+  includes/meshdir repointed to the **myo_sim package at load** (only the 3 exo meshes housed locally)
+  + restored the `myoBack_wrap`/`sidesite` default classes the current myo_sim torso dropped. Passive
+  (nu 0), 4 spring tendons, 2 welds. Alignment preserved from the original (no re-tuning).
+- Per-env `CONVERSION.md` in each dir; **docs merged** (subagent: README + `docs/available-models.md`
+  + new `docs/collaboration-environments.md`). compile_check exports for all.
+- **Next: run `/code-review` over `relocate-collab-assets`, then the assist_sim PR** (covers the three
+  collab envs + docs). Then E7 hygiene sweep.
 
 ### A1. Remove the bundled `models/` tree
 
@@ -1356,8 +1366,9 @@ wave-7 flag); (b) A2 upper-body ports (see wave 10) land in assist_sim, not myoa
 **assist_sim `main`**: docs-drift+pin-ruff+myolegs22 all merged; CI green. **Branch
 `relocate-collab-assets`** (off `main`, PUSHED, awaiting user PR): A2 upper-body ports —
 **Wheelchair DONE** (`upper_body.build_wheelchair`, `models/Wheelchair/` + `CONVERSION.md`; recipe in
-wave 10); **MPL + AuxivoLiftsuit still to port** using that recipe (raw sources on myoassist `dev`:
-`simhive/MPL_sim`, `simhive/myo_sim/torso/myotorso_exosuit.xml`). Remaining §B: **B7** (doc L1/L2),
+wave 10-11) — **all three DONE** (`build_wheelchair`/`build_mpl`/`build_auxivo_liftsuit`, each with a
+`models/<Name>/CONVERSION.md`); docs merged (`docs/collaboration-environments.md`). **Next: `/code-review`
+over the branch, then the assist_sim PR** (collab envs + docs). Remaining §B: **B7** (doc L1/L2),
 **B10** (myo_sim dep decision), **B11** (private `_COMPOSED_MODELS` — after C4). **NOTE: user is adding
 NEUankle + CR EXO device envs on `main` in parallel — keep upper-body ports on `relocate-collab-assets`.**
 
@@ -1376,7 +1387,9 @@ search-icon→teal + `_sass/color_schemes/myoassist_custom.scss` added, tutorial
 media strategy (terrain renders + paper Figs 1-6), and `_config.yml` edit-links/`repo_branch`.
 See [[myoassist-website-1-0-overhaul]].
 
-**Next-wave candidates:** **A2 — port MPL + AuxivoLiftsuit** (assist_sim `relocate-collab-assets`, wave-10
+**Next-wave candidates:** **`/code-review` over `relocate-collab-assets` + open the assist_sim PR**
+(collab envs + docs) — the immediate next item now that A2 upper-body ports are done. Superseded:
+~~A2 — port MPL + AuxivoLiftsuit~~ (assist_sim `relocate-collab-assets`, wave-10
 recipe) — the immediate next item; then the `/code-review` over that branch. Also: imitation-config
 reconciliation (myoassist); terrains PRs (docs-velocity-api → docs-restructure → main) + D5 curriculum;
 assist_sim B7/B10/B11 (after the user's device envs land); E7 final hygiene sweep; website restructure
