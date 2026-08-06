@@ -21,7 +21,6 @@ import argparse
 import glob
 import json
 import os
-import sys
 from typing import Optional
 
 import numpy as np
@@ -56,8 +55,9 @@ def _find_in_dir(results_dir: str, suffix: str) -> Optional[str]:
     return matches[0] if matches else None
 
 
-def _resolve_paths(results_dir: str, param_file: Optional[str], pkl_file: Optional[str],
-                   param_type: str) -> tuple[str, Optional[str]]:
+def _resolve_paths(
+    results_dir: str, param_file: Optional[str], pkl_file: Optional[str], param_type: str
+) -> tuple[str, Optional[str]]:
     """Auto-locate param/pkl files in results_dir if not explicitly given."""
     if not param_file:
         suffix = "_Best.txt" if param_type == "Best" else "_BestLast.txt"
@@ -135,8 +135,9 @@ def main():
     parser.add_argument("--exo-bool", type=lambda v: v.lower() == "true", default=None)
     parser.add_argument("--model", default=None)
     parser.add_argument("--no-show", action="store_true", help="Skip pop-out window.")
-    parser.add_argument("--export-video", action="store_true",
-                        help="Record the full rollout and write rollout.mp4 to the output dir.")
+    parser.add_argument(
+        "--export-video", action="store_true", help="Record the full rollout and write rollout.mp4 to the output dir."
+    )
     args = parser.parse_args()
 
     cfg_dict: dict = {}

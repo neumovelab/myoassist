@@ -16,7 +16,6 @@ import contextlib
 import io
 import json
 import os
-import sys
 import warnings
 
 import numpy as np
@@ -33,18 +32,22 @@ def _silence_stdout():
 def _parse_args():
     p = argparse.ArgumentParser(description="RL policy evaluation.")
     p.add_argument("log_dir", nargs="?", default=None)
-    p.add_argument("--legacy-plots", action="store_true",
-                   help="Also write the legacy per-panel PNGs.")
-    p.add_argument("--no-show", action="store_true",
-                   help="Skip the pop-out composite window.")
-    p.add_argument("--regen", action="store_true",
-                   help="Regenerate evaluated gait data even if it already exists.")
-    p.add_argument("--varying", action="store_true",
-                   help="Override evaluate_param_list with a single SINUSOIDAL "
-                        "varying-speed rollout (0.8-1.4 m/s) and emit the "
-                        "speed-tracking composite.")
-    p.add_argument("--cmap", choices=("rainbow", "teal", "bluered"), default="rainbow",
-                   help="Speed colour map for varying-speed composites.")
+    p.add_argument("--legacy-plots", action="store_true", help="Also write the legacy per-panel PNGs.")
+    p.add_argument("--no-show", action="store_true", help="Skip the pop-out composite window.")
+    p.add_argument("--regen", action="store_true", help="Regenerate evaluated gait data even if it already exists.")
+    p.add_argument(
+        "--varying",
+        action="store_true",
+        help="Override evaluate_param_list with a single SINUSOIDAL "
+        "varying-speed rollout (0.8-1.4 m/s) and emit the "
+        "speed-tracking composite.",
+    )
+    p.add_argument(
+        "--cmap",
+        choices=("rainbow", "teal", "bluered"),
+        default="rainbow",
+        help="Speed colour map for varying-speed composites.",
+    )
     return p.parse_args()
 
 
@@ -72,13 +75,15 @@ def main():
 
     if args.varying:
         base = dict(config.evaluate_param_list[0]) if config.evaluate_param_list else {}
-        base.update({
-            "velocity_mode": "SINUSOIDAL",
-            "min_target_velocity": 0.8,
-            "max_target_velocity": 1.4,
-            "target_velocity_period": 20.0,
-            "num_timesteps": 1200,
-        })
+        base.update(
+            {
+                "velocity_mode": "SINUSOIDAL",
+                "min_target_velocity": 0.8,
+                "max_target_velocity": 1.4,
+                "target_velocity_period": 20.0,
+                "num_timesteps": 1200,
+            }
+        )
         base.setdefault("cam_distance", 3.0)
         base.setdefault("cam_type", "follow")
         base.setdefault("visualize_activation", True)
@@ -95,7 +100,7 @@ def main():
     print(f"Legacy plots:  {'enabled' if args.legacy_plots else 'disabled'}")
     print("=" * 60)
 
-    for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
+    for idx, evaluate_param in enumerate(config.evaluate_param_list):
         analyze_result_dir = os.path.join(log_dir, f"analyze_results_{idx:02d}")
         os.makedirs(analyze_result_dir, exist_ok=True)
         print(f"\n[Rollout {idx + 1}/{len(config.evaluate_param_list)}] -> {analyze_result_dir}")
@@ -104,9 +109,7 @@ def main():
         log_handler.load_log_data(ImitationTrainCheckpointData)
 
         if args.legacy_plots:
-            TrainLogAnalyzer(log_handler).plot_reward(
-                result_dir=analyze_result_dir, show_plot=False
-            )
+            TrainLogAnalyzer(log_handler).plot_reward(result_dir=analyze_result_dir, show_plot=False)
 
         gait_data_name = "gait_evaluated_data.json"
         gait_data_path = os.path.join(analyze_result_dir, gait_data_name)
@@ -136,7 +139,8 @@ def main():
         replay_path = os.path.join(analyze_result_dir, "replay.mp4")
         with _silence_stdout():
             gait_evaluator.replay(
-                gait_data_path, replay_path,
+                gait_data_path,
+                replay_path,
                 cam_distance=evaluate_param["cam_distance"],
                 use_activation_visualization=evaluate_param["visualize_activation"],
                 cam_type=evaluate_param["cam_type"],
@@ -175,9 +179,7 @@ def main():
         returns_curve = [d.average_reward_per_episode for d in log_handler.log_datas]
 
         metadata = {
-            "Model checkpoint": os.path.basename(
-                log_handler.get_path2save_model(log_handler.log_datas[-1].num_timesteps)
-            ),
+            "Model checkpoint": os.path.basename(log_handler.get_path2save_model(log_handler.log_datas[-1].num_timesteps)),
             "Env ID": config.env_params.env_id,
             "Total timesteps": f"{log_handler.log_datas[-1].num_timesteps:,}",
             "Eval timesteps": str(evaluate_param["num_timesteps"]),
@@ -187,8 +189,10 @@ def main():
 
         # Varying-speed rollout -> speed-aware composite (per-stride teal kinematics
         # + speed-tracking / cadence / step-length row).
-        is_varying = (evaluate_param["velocity_mode"] != "UNIFORM"
-                      or evaluate_param["min_target_velocity"] != evaluate_param["max_target_velocity"])
+        is_varying = (
+            evaluate_param["velocity_mode"] != "UNIFORM"
+            or evaluate_param["min_target_velocity"] != evaluate_param["max_target_velocity"]
+        )
 
         composite_path = os.path.join(analyze_result_dir, "composite.png")
         build_composite(

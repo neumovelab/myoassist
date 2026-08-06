@@ -42,9 +42,9 @@ REF_STYLE = dict(color=LINE_BLACK, linestyle="--", linewidth=1.0)
 TOE_OFF_STYLE = dict(color=LINE_BLACK, linestyle="--", linewidth=0.8, alpha=0.5)
 
 
-LINE_W_DATA = 1.6   # primary data traces (kinematics, muscles, CMA best)
-LINE_W_REF = 1.2    # reference / median / worst overlays
-TRAJ_LW = 1.0       # global scale for speed-coloured trajectory line widths
+LINE_W_DATA = 1.6  # primary data traces (kinematics, muscles, CMA best)
+LINE_W_REF = 1.2  # reference / median / worst overlays
+TRAJ_LW = 1.0  # global scale for speed-coloured trajectory line widths
 
 
 def _ensure_gui_backend() -> None:
@@ -65,27 +65,30 @@ def apply_style() -> None:
     # Disable the navigation toolbar — its callbacks misfire on Tk backends after
     # MuJoCo/MyoSuite init opens and tears down hidden figures during env setup.
     matplotlib.rcParams["toolbar"] = "None"
-    matplotlib.rcParams.update({
-        "font.size": 8,
-        "axes.titlesize": 9,
-        "axes.labelsize": 8,
-        "xtick.labelsize": 7,
-        "ytick.labelsize": 7,
-        "legend.fontsize": 7,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.linewidth": 0.6,
-        "xtick.major.width": 0.6,
-        "ytick.major.width": 0.6,
-        "lines.linewidth": LINE_W_DATA,
-        "figure.dpi": 110,
-        "savefig.dpi": 200,
-    })
+    matplotlib.rcParams.update(
+        {
+            "font.size": 8,
+            "axes.titlesize": 9,
+            "axes.labelsize": 8,
+            "xtick.labelsize": 7,
+            "ytick.labelsize": 7,
+            "legend.fontsize": 7,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.linewidth": 0.6,
+            "xtick.major.width": 0.6,
+            "ytick.major.width": 0.6,
+            "lines.linewidth": LINE_W_DATA,
+            "figure.dpi": 110,
+            "savefig.dpi": 200,
+        }
+    )
 
 
 # -----------------------------------------------------------------------------
 # Helpers (segmentation, interpolation)
 # -----------------------------------------------------------------------------
+
 
 def _analyzer(gait_data: GaitData, ref_data: Optional[dict] = None) -> GaitAnalyzer:
     return GaitAnalyzer(gait_data, ref_data, show_plot=False)
@@ -118,7 +121,7 @@ def _segment_and_average(values: list, segments, length: int = 101):
 # Panel: skeleton snapshot
 # -----------------------------------------------------------------------------
 
-SKEL_MAX_HEIGHT_IN = 3.5     # cap snapshot row height
+SKEL_MAX_HEIGHT_IN = 3.5  # cap snapshot row height
 SKEL_TARGET_ASPECT = 1920 / 960  # 2:1 — sized to fill a half-width snapshot column
 
 
@@ -136,17 +139,16 @@ def _normalize_skeleton(frame: np.ndarray, target_aspect: float = SKEL_TARGET_AS
     if src_aspect > target_aspect:
         new_w = int(round(h * target_aspect))
         x0 = (w - new_w) // 2
-        return frame[:, x0:x0 + new_w]
+        return frame[:, x0 : x0 + new_w]
     new_h = int(round(w / target_aspect))
     y0 = (h - new_h) // 2
-    return frame[y0:y0 + new_h]
+    return frame[y0 : y0 + new_h]
 
 
 def draw_skeleton(ax, frame: Optional[np.ndarray], title: Optional[str] = None) -> None:
     ax.axis("off")
     if frame is None:
-        ax.text(0.5, 0.5, "No skeleton frame", ha="center", va="center",
-                transform=ax.transAxes, color=LINE_GREY)
+        ax.text(0.5, 0.5, "No skeleton frame", ha="center", va="center", transform=ax.transAxes, color=LINE_GREY)
         return
     ax.imshow(frame, aspect="equal")
     if title:
@@ -156,6 +158,7 @@ def draw_skeleton(ax, frame: Optional[np.ndarray], title: Optional[str] = None) 
 # -----------------------------------------------------------------------------
 # Panel: return curve (RL) / CMA fitness curve (CO)
 # -----------------------------------------------------------------------------
+
 
 def draw_return_curve(ax, timesteps, returns) -> None:
     ax.plot(timesteps, returns, color=LINE_BLACK)
@@ -186,16 +189,11 @@ def draw_cma_fitness(ax, fbest, fmedian=None, fworst=None) -> None:
 # Panel: segmented joint angles (R leg) vs reference
 # -----------------------------------------------------------------------------
 
-JOINT_KEYS = [("hip_flexion_r", "HIP", "hip"),
-              ("knee_angle_r", "KNEE", "knee"),
-              ("ankle_angle_r", "ANKLE", "ankle")]
-REF_KEYS = {"hip_flexion_r": "q_hip_flexion_r",
-            "knee_angle_r": "q_knee_angle_r",
-            "ankle_angle_r": "q_ankle_angle_r"}
+JOINT_KEYS = [("hip_flexion_r", "HIP", "hip"), ("knee_angle_r", "KNEE", "knee"), ("ankle_angle_r", "ANKLE", "ankle")]
+REF_KEYS = {"hip_flexion_r": "q_hip_flexion_r", "knee_angle_r": "q_knee_angle_r", "ankle_angle_r": "q_ankle_angle_r"}
 
 
-def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict],
-                              norm=None, cmap=None) -> None:
+def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict], norm=None, cmap=None) -> None:
     """axes: iterable of 3 Axes (hip/knee/ankle, top to bottom).
 
     Constant speed (norm is None): mean +- SD black trace.
@@ -215,15 +213,13 @@ def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict
                 mean_deg = np.rad2deg(mean)
                 std_deg = np.rad2deg(std)
                 ax.plot(_x, mean_deg, color=LINE_BLACK, linestyle="-", label="Simulation")
-                ax.fill_between(_x, mean_deg - std_deg, mean_deg + std_deg,
-                                color=FILL_GREY, alpha=0.5, linewidth=0)
+                ax.fill_between(_x, mean_deg - std_deg, mean_deg + std_deg, color=FILL_GREY, alpha=0.5, linewidth=0)
         else:
-            for (start, _toe, end) in segments:
+            for start, _toe, end in segments:
                 c = _resample_stride(joint_data[jkey]["qpos"], start, end)
                 if c is None:
                     continue
-                ax.plot(x, np.rad2deg(c), color=cmap(norm(vx[start:end].mean())),
-                        lw=TRAJ_LW, alpha=0.85)
+                ax.plot(x, np.rad2deg(c), color=cmap(norm(vx[start:end].mean())), lw=TRAJ_LW, alpha=0.85)
         if ref_data is not None and REF_KEYS[jkey] in ref_data:
             ref = np.rad2deg(np.asarray(ref_data[REF_KEYS[jkey]]))
             xref = np.linspace(0, 100, len(ref))
@@ -244,6 +240,7 @@ def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict
 # Panel: joint kinetics (active actuator-driven joint moment, R leg)
 # -----------------------------------------------------------------------------
 
+
 def draw_kinetics(axes, gait_data: GaitData, norm=None, cmap=None) -> None:
     """Draw active joint moments (Nm) per gait cycle for hip/knee/ankle (R leg).
     Reads `qfrc_actuator` populated by `GaitData.add_data`. Gracefully shows a
@@ -262,9 +259,16 @@ def draw_kinetics(axes, gait_data: GaitData, norm=None, cmap=None) -> None:
         jdict = joint_data.get(jkey, {})
         qfrc = jdict.get("qfrc_actuator")
         if not qfrc:
-            ax.text(0.5, 0.5, "no moment data\n(regenerate gait JSON)",
-                    ha="center", va="center", transform=ax.transAxes,
-                    color=LINE_GREY, fontsize=7)
+            ax.text(
+                0.5,
+                0.5,
+                "no moment data\n(regenerate gait JSON)",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                color=LINE_GREY,
+                fontsize=7,
+            )
             ax.set_xlim(0, 100)
             ax.set_ylabel(label)
             ax.set_yticks([])
@@ -273,10 +277,9 @@ def draw_kinetics(axes, gait_data: GaitData, norm=None, cmap=None) -> None:
             _x, mean, std, _ = _segment_and_average(qfrc, segments)
             if mean is not None:
                 ax.plot(_x, mean, color=LINE_BLACK, linestyle="-", label="Simulation")
-                ax.fill_between(_x, mean - std, mean + std,
-                                color=FILL_GREY, alpha=0.5, linewidth=0)
+                ax.fill_between(_x, mean - std, mean + std, color=FILL_GREY, alpha=0.5, linewidth=0)
         else:
-            for (start, _toe, end) in segments:
+            for start, _toe, end in segments:
                 c = _resample_stride(qfrc, start, end)
                 if c is None:
                     continue
@@ -294,13 +297,24 @@ def draw_kinetics(axes, gait_data: GaitData, norm=None, cmap=None) -> None:
 # -----------------------------------------------------------------------------
 
 # Preferred muscle ordering (matches typical RL output); any unmatched ones are appended.
-MUSCLE_ORDER = ["bifemsh", "edl", "fdl", "gastroc", "glutmax", "hamstrings",
-                "iliopsoas", "rectfem", "soleus", "tibant", "vasti"]
+MUSCLE_ORDER = [
+    "bifemsh",
+    "edl",
+    "fdl",
+    "gastroc",
+    "glutmax",
+    "hamstrings",
+    "iliopsoas",
+    "rectfem",
+    "soleus",
+    "tibant",
+    "vasti",
+]
 
 
 def _collect_right_actuators(gait_data: GaitData) -> list[str]:
-    names = [n for n in gait_data.series_data["actuator_data"].keys()
-             if n.endswith("_r") or n.endswith("_R")]
+    names = [n for n in gait_data.series_data["actuator_data"].keys() if n.endswith("_r") or n.endswith("_R")]
+
     # Sort: known muscles first in order, then unknown muscles alphabetical, exo last
     def rank(n):
         base = n[:-2].lower()
@@ -309,6 +323,7 @@ def _collect_right_actuators(gait_data: GaitData) -> list[str]:
         if base in MUSCLE_ORDER:
             return (1, MUSCLE_ORDER.index(base))
         return (2, base)
+
     return sorted(names, key=rank)
 
 
@@ -329,7 +344,7 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None,
     names = _collect_right_actuators(gait_data)
 
     def _per_stride(values, transform):
-        for (start, _toe, end) in segments:
+        for start, _toe, end in segments:
             c = _resample_stride(values, start, end)
             if c is None:
                 continue
@@ -348,8 +363,7 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None,
                 x, mean, std, _ = _segment_and_average(ad["force"], segments)
                 if mean is not None:
                     ax.plot(x, -mean, color=LINE_BLACK)
-                    ax.fill_between(x, -mean - std, -mean + std,
-                                    color=FILL_GREY, alpha=0.5, linewidth=0)
+                    ax.fill_between(x, -mean - std, -mean + std, color=FILL_GREY, alpha=0.5, linewidth=0)
             else:
                 for y, col in _per_stride(ad["force"], lambda c: -c):
                     ax.plot(xg, y, color=col, lw=0.8 * TRAJ_LW, alpha=0.85)
@@ -360,8 +374,7 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None,
                 if mean is not None:
                     mean_a = np.abs(mean)
                     ax.plot(x, mean_a, color=LINE_BLACK)
-                    ax.fill_between(x, mean_a - std, mean_a + std,
-                                    color=FILL_GREY, alpha=0.5, linewidth=0)
+                    ax.fill_between(x, mean_a - std, mean_a + std, color=FILL_GREY, alpha=0.5, linewidth=0)
             else:
                 for y, col in _per_stride(ad["ctrl"], np.abs):
                     ax.plot(xg, y, color=col, lw=0.8 * TRAJ_LW, alpha=0.85)
@@ -381,6 +394,7 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None,
 # Panel: timeseries kinematics + foot sensors
 # -----------------------------------------------------------------------------
 
+
 def draw_timeseries(axes, gait_data: GaitData, norm=None, fs: float = 30.0, cmap=None) -> None:
     """axes: 5 Axes top->bot: right hip, right knee, right ankle, pelvis y, foot sensors.
 
@@ -397,8 +411,7 @@ def draw_timeseries(axes, gait_data: GaitData, norm=None, fs: float = 30.0, cmap
     def _ts(key):
         return np.rad2deg([v[0] for v in joint_data[key]["qpos"]])
 
-    kin = [("hip_flexion_r", "hip (deg)"), ("knee_angle_r", "knee (deg)"),
-           ("ankle_angle_r", "ankle (deg)")]
+    kin = [("hip_flexion_r", "hip (deg)"), ("knee_angle_r", "knee (deg)"), ("ankle_angle_r", "ankle (deg)")]
     for ax, (key, ylabel) in zip(axes[:3], kin):
         if norm is None:
             ax.plot(_ts(key), color=LINE_BLACK)
@@ -415,10 +428,12 @@ def draw_timeseries(axes, gait_data: GaitData, norm=None, fs: float = 30.0, cmap
     axes[3].set_ylabel("pelvis y (m)")
 
     # Foot sensors: right (solid black), left (dashed grey)
-    for key, style in (("r_foot", dict(color=LINE_BLACK, linestyle="-")),
-                       ("r_toes", dict(color=LINE_BLACK, linestyle=":")),
-                       ("l_foot", dict(color=LINE_GREY, linestyle="--")),
-                       ("l_toes", dict(color=LINE_GREY, linestyle=":"))):
+    for key, style in (
+        ("r_foot", dict(color=LINE_BLACK, linestyle="-")),
+        ("r_toes", dict(color=LINE_BLACK, linestyle=":")),
+        ("l_foot", dict(color=LINE_GREY, linestyle="--")),
+        ("l_toes", dict(color=LINE_GREY, linestyle=":")),
+    ):
         if key in sensor_data:
             axes[4].plot([v[0] for v in sensor_data[key]["data"]], label=key, **style)
     axes[4].set_ylabel("sensors (N)")
@@ -435,27 +450,30 @@ def draw_timeseries(axes, gait_data: GaitData, norm=None, fs: float = 30.0, cmap
 # Composite builder
 # -----------------------------------------------------------------------------
 
+
 @dataclass
 class CompositeInputs:
     gait_data: GaitData
     skeleton_frame: Optional[np.ndarray] = None
     ref_data: Optional[dict] = None
     # Provide either return_curve (RL) OR cma_fitness (CO). The other panel slot is skipped.
-    return_curve: Optional[tuple] = None       # (timesteps, returns)
-    cma_fitness: Optional[tuple] = None        # (fbest, fmedian, fworst)
+    return_curve: Optional[tuple] = None  # (timesteps, returns)
+    cma_fitness: Optional[tuple] = None  # (fbest, fmedian, fworst)
     title: Optional[str] = None
-    metadata: Optional[dict] = None            # rendered as two-column text block under title
+    metadata: Optional[dict] = None  # rendered as two-column text block under title
 
 
-def build_composite(inputs: CompositeInputs,
-                    *,
-                    save_path: Optional[str] = None,
-                    show: bool = True,
-                    muscle_grid_shape: tuple = (3, 4),
-                    speed_varying: bool = False,
-                    fs: float = 30.0,
-                    cmap=None,
-                    mono_timeseries: bool = False) -> plt.Figure:
+def build_composite(
+    inputs: CompositeInputs,
+    *,
+    save_path: Optional[str] = None,
+    show: bool = True,
+    muscle_grid_shape: tuple = (3, 4),
+    speed_varying: bool = False,
+    fs: float = 30.0,
+    cmap=None,
+    mono_timeseries: bool = False,
+) -> plt.Figure:
     """Unified B&W composite (fixed 4-row layout).
 
     Constant speed (speed_varying=False): the classic panels —
@@ -506,8 +524,7 @@ def build_composite(inputs: CompositeInputs,
 
     def _section_header(spec, label: str, offset: float = 0.012) -> None:
         bbox = spec.get_position(fig)
-        fig.text(0.5, bbox.y1 + offset, label,
-                 ha="center", va="bottom", fontsize=11, fontweight="bold")
+        fig.text(0.5, bbox.y1 + offset, label, ha="center", va="bottom", fontsize=11, fontweight="bold")
 
     if inputs.title:
         fig.suptitle(inputs.title, fontsize=13, fontweight="bold", y=0.995)
@@ -520,9 +537,7 @@ def build_composite(inputs: CompositeInputs,
         meta_y = 0.965
         for col_items, x in zip(cols, col_x):
             lines = [f"{k}:  {v}" for k, v in col_items]
-            fig.text(x, meta_y, "\n".join(lines),
-                     ha="left", va="top", fontsize=8, family="monospace",
-                     color="#333333")
+            fig.text(x, meta_y, "\n".join(lines), ha="left", va="top", fontsize=8, family="monospace", color="#333333")
 
     # Row 1: skeleton snapshot (50%) + return/CMA panel (50%)
     row1 = outer[0].subgridspec(nrows=1, ncols=2, width_ratios=[1.0, 1.0], wspace=0.18)
@@ -554,8 +569,10 @@ def build_composite(inputs: CompositeInputs,
         draw_segmented_kinematics(right_axes, inputs.gait_data, inputs.ref_data, norm=norm, cmap=cmap)
         left_axes[0].set_title("Speed & Gait Metrics", fontsize=9, pad=4)
         right_axes[0].set_title("Kinematics (deg)", fontsize=9, pad=4)
-        sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap); sm.set_array([])
-        p_top = right_axes[0].get_position(); p_bot = right_axes[-1].get_position()
+        sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])
+        p_top = right_axes[0].get_position()
+        p_bot = right_axes[-1].get_position()
         cax = fig.add_axes([p_top.x1 + 0.012, p_bot.y0, 0.009, p_top.y1 - p_bot.y0])
         fig.colorbar(sm, cax=cax).set_label("stride mean speed (m/s)", fontsize=7)
         _section_header(outer[1], "Speed / Gait Metrics & Kinematics")
@@ -575,8 +592,7 @@ def build_composite(inputs: CompositeInputs,
     # Row 4: timeseries (velocity-colour-mapped when varying)
     row4 = outer[3].subgridspec(nrows=n_timeseries, ncols=1, hspace=0.12)
     ts_axes = [fig.add_subplot(row4[i, 0]) for i in range(n_timeseries)]
-    draw_timeseries(ts_axes, inputs.gait_data,
-                    norm=(None if mono_timeseries else norm), fs=fs, cmap=cmap)
+    draw_timeseries(ts_axes, inputs.gait_data, norm=(None if mono_timeseries else norm), fs=fs, cmap=cmap)
     _section_header(outer[3], "Timeseries Kinematics & Sensor Data")
 
     if save_path:
@@ -605,34 +621,34 @@ def build_composite(inputs: CompositeInputs,
 # Neutrals (black/grey) are used for references/axes only.
 MYOSUITE_LIGHT = (0.314, 0.663, 0.667)
 MYOSUITE_DARK = (0.129, 0.325, 0.341)
-MYOSUITE_ACCENT = MYOSUITE_DARK           # single non-colormap accent colour
+MYOSUITE_ACCENT = MYOSUITE_DARK  # single non-colormap accent colour
 _TEAL_LIGHT_EXT = (0.690, 0.848, 0.850)
 _TEAL_DARK_EXT = (0.058, 0.146, 0.153)
 # teal option (slow=dark -> fast=light)
 TEAL_CMAP = LinearSegmentedColormap.from_list(
-    "myosuite_teal_wide",
-    [_TEAL_DARK_EXT, MYOSUITE_DARK, MYOSUITE_LIGHT, _TEAL_LIGHT_EXT])
+    "myosuite_teal_wide", [_TEAL_DARK_EXT, MYOSUITE_DARK, MYOSUITE_LIGHT, _TEAL_LIGHT_EXT]
+)
 # blue -> light grey -> red (slow -> fast). A diverging map with a light neutral
 # midpoint: mid speeds read as grey (clearly distinct from blue/red) and the map
 # stays light overall instead of the dark look a purple midpoint gave.
-BR_CMAP = LinearSegmentedColormap.from_list(
-    "blue_grey_red",
-    [(0.0, 0.0, 1.0), (0.78, 0.78, 0.78), (1.0, 0.0, 0.0)])
+BR_CMAP = LinearSegmentedColormap.from_list("blue_grey_red", [(0.0, 0.0, 1.0), (0.78, 0.78, 0.78), (1.0, 0.0, 0.0)])
 # fraction of the colormap used for the speed range (1.0 slice -> use full map)
 SPEED_CMAP_CLIP = (0.0, 1.0)
 
 
 def _truncate_cmap(cmap, lo=0.0, hi=1.0, n=256):
     """Return a colormap using only the [lo, hi] slice of `cmap`."""
-    return LinearSegmentedColormap.from_list(
-        f"{cmap.name}_clip", cmap(np.linspace(lo, hi, n)))
+    return LinearSegmentedColormap.from_list(f"{cmap.name}_clip", cmap(np.linspace(lo, hi, n)))
+
+
 CMAPS = {"teal": TEAL_CMAP, "bluered": BR_CMAP, "rainbow": plt.get_cmap("rainbow")}
-SPEED_CMAP = CMAPS["rainbow"]   # default speed colormap
-VEL_CUTOFF_HZ = 2.0   # low-pass cutoff for the displayed pelvis velocity
+SPEED_CMAP = CMAPS["rainbow"]  # default speed colormap
+VEL_CUTOFF_HZ = 2.0  # low-pass cutoff for the displayed pelvis velocity
 
 
 def _lowpass(x, cutoff=VEL_CUTOFF_HZ, fs=30.0, order=4):
     from scipy.signal import butter, filtfilt
+
     b, a = butter(order, cutoff / (0.5 * fs), btype="low")
     return filtfilt(b, a, np.asarray(x, float))
 
@@ -656,7 +672,7 @@ def stride_metrics(gait_data: GaitData, segments, fs: float):
         speed.append(vx[start:end].mean())
         tmid.append(((start + end) / 2) / fs)
         T = (end - start) / fs
-        cadence.append(120.0 / T)                # 2 steps per stride
+        cadence.append(120.0 / T)  # 2 steps per stride
         steplen.append((tx[end] - tx[start]) / 2.0)
     return (np.array(speed), np.array(tmid), np.array(cadence), np.array(steplen))
 
@@ -677,10 +693,13 @@ def draw_speed_tracking(ax, gait_data: GaitData, fs: float, norm=None, cmap=None
     else:
         ax.plot(t, vf, color=MYOSUITE_ACCENT, lw=1.7, label="simulated (filtered)")
     ax.plot(t, tv, "--", color=LINE_BLACK, lw=1.8, label="commanded")
-    ymin = float(min(vx.min(), tv.min())); ymax = float(max(vx.max(), tv.max()))
+    ymin = float(min(vx.min(), tv.min()))
+    ymax = float(max(vx.max(), tv.max()))
     pad = 0.05 * (ymax - ymin + 1e-9)
-    ax.set_xlim(0, t[-1]); ax.set_ylim(ymin - pad, ymax + pad)
-    ax.set_ylabel("speed\n(m/s)"); ax.set_xlabel("time (s)")
+    ax.set_xlim(0, t[-1])
+    ax.set_ylim(ymin - pad, ymax + pad)
+    ax.set_ylabel("speed\n(m/s)")
+    ax.set_xlabel("time (s)")
     ax.legend(loc="upper right", ncol=2, frameon=False, fontsize=6)
 
 
@@ -700,7 +719,8 @@ def draw_gait_metrics(axes, gait_data: GaitData, fs: float, norm=None, cmap=None
     for ax in axes:
         ax.set_xlim(0, xmax)
     for ax in axes[:-1]:
-        ax.set_xlabel(""); ax.tick_params(labelbottom=False)
+        ax.set_xlabel("")
+        ax.tick_params(labelbottom=False)
     axes[-1].set_xlabel("time (s)")
 
 
@@ -723,6 +743,7 @@ def _colored_line(ax, y, cvals, norm, cmap=None, lw=None, x=None):
 # -----------------------------------------------------------------------------
 # CMA loaders
 # -----------------------------------------------------------------------------
+
 
 def load_cma_fitness(results_dir: str, pkl_path: Optional[str] = None):
     """Return (fbest, fmedian, fworst) for the CMA-ES fitness panel.

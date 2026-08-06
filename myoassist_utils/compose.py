@@ -16,6 +16,7 @@ Reference: the proven figure merge in ``compile_check/fig/build_fig.py`` (helper
 ``inject_terrain`` / ``absolutize_files`` / ``seat_model`` / ``lowest_geom_z``);
 the figure-only bits (slide root, white scene, velocity arrows) are dropped here.
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -122,8 +123,7 @@ def _seat_dz_by_collision(
         d.qpos[:] = m.qpos0
     mj.mj_forward(m, d)
     terrset = set(terr)
-    gaps = [d.contact[c].dist for c in range(d.ncon)
-            if (d.contact[c].geom1 in terrset) ^ (d.contact[c].geom2 in terrset)]
+    gaps = [d.contact[c].dist for c in range(d.ncon) if (d.contact[c].geom1 in terrset) ^ (d.contact[c].geom2 in terrset)]
     if not gaps:
         return 0.0
     # new_gap = min(gaps) + dz ; want new_gap == -penetration.
@@ -135,33 +135,43 @@ def _inject_lighting(root: ET.Element) -> None:
     viewer / eval.  Physics does not need this; only add what is missing."""
     visual = _find_or_make(root, "visual", 1)
     if visual.find("headlight") is None:
-        ET.SubElement(visual, "headlight", {
-            "ambient": "0.4 0.4 0.4",
-            "diffuse": "0.6 0.6 0.6",
-            "specular": "0.1 0.1 0.1",
-        })
+        ET.SubElement(
+            visual,
+            "headlight",
+            {
+                "ambient": "0.4 0.4 0.4",
+                "diffuse": "0.6 0.6 0.6",
+                "specular": "0.1 0.1 0.1",
+            },
+        )
     wb = root.find("worldbody")
     if not wb.findall("light"):
-        ET.SubElement(wb, "light", {
-            "name": "compose_key",
-            "directional": "true",
-            "castshadow": "true",
-            "pos": "3 -3 4",
-            "dir": "-0.55 0.45 -0.7",
-            "diffuse": "0.6 0.6 0.6",
-            "specular": "0.2 0.2 0.2",
-        })
+        ET.SubElement(
+            wb,
+            "light",
+            {
+                "name": "compose_key",
+                "directional": "true",
+                "castshadow": "true",
+                "pos": "3 -3 4",
+                "dir": "-0.55 0.45 -0.7",
+                "diffuse": "0.6 0.6 0.6",
+                "specular": "0.2 0.2 0.2",
+            },
+        )
 
 
 def _flat_default_config():
     """A 1x1 flat tile at z=0 -- the default ground when no terrain is given
     (the assist_sim model-only export carries no surface)."""
-    return _config_from_dict({
-        "terrain_name": "flat_default",
-        "grid": {"rows": 1, "cols": 1, "tile_size": [12.0, 12.0]},
-        "border": {"width": 0.0},
-        "tiles": [{"row": 0, "col": 0, "type": "flat", "params": {"height": 0.0}}],
-    })
+    return _config_from_dict(
+        {
+            "terrain_name": "flat_default",
+            "grid": {"rows": 1, "cols": 1, "tile_size": [12.0, 12.0]},
+            "border": {"width": 0.0},
+            "tiles": [{"row": 0, "col": 0, "type": "flat", "params": {"height": 0.0}}],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -219,9 +229,7 @@ def compose_env_model(
     tspec.compile()
     terrain_root = ET.fromstring(tspec.to_xml())
     _absolutize_files(terrain_root, assets_dir)
-    terrain_geom_names = {g.get("name")
-                          for g in terrain_root.find("worldbody").iter("geom")
-                          if g.get("name")}
+    terrain_geom_names = {g.get("name") for g in terrain_root.find("worldbody").iter("geom") if g.get("name")}
 
     # 3) merge terrain (colliding) + add default lighting.
     _inject_terrain(model_root, terrain_root)
@@ -229,8 +237,7 @@ def compose_env_model(
 
     # 4) seat the model so its feet rest on the terrain surface (light contact),
     #    measured from the real collision geometry at the opening pose.
-    dz = _seat_dz_by_collision(ET.tostring(model_root, encoding="unicode"),
-                               terrain_geom_names)
+    dz = _seat_dz_by_collision(ET.tostring(model_root, encoding="unicode"), terrain_geom_names)
     _seat_model(model_root, dz)
 
     # 5) serialize.  Model meshes are now absolute install paths, so the temp

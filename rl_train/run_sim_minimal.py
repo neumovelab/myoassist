@@ -7,8 +7,7 @@ from myoassist_utils.compose import compose_env_model
 # terrains JSON config path for `terrain=` to run on structured terrain.
 model_xml = compose_env_model("myolegs22", "DephyExoBoot_L1", terrain=None)
 
-env = MyoAssistLegBase(model_path=model_xml,
-                       env_params=TrainSessionConfigBase.EnvParams())
+env = MyoAssistLegBase(model_path=model_xml, env_params=TrainSessionConfigBase.EnvParams())
 env.mujoco_render_frames = True
 
 obs, info = env.reset(seed=1)

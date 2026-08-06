@@ -1,0 +1,45 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Lint runs standalone (ruff only, no heavy deps) so the style/lint gate is enforced
+  # regardless of the RL/CO stack install.
+  lint:
+    name: lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff==0.15.20
+      - name: Lint and format check (ruff)
+        run: ruff check . && ruff format --check .
+
+  # The suite needs the composed pipeline (myosuite + SB3 + the git-URL sibling repos), so
+  # it installs the full deps and runs test_setup.py.
+  test:
+    name: test_setup (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install myoassist + dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . -r requirements-dev.txt
+      - name: Run setup checks
+        run: python test_setup.py
