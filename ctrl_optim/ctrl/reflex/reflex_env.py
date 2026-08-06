@@ -17,6 +17,7 @@ exactly.  CO consumes only ``.sim`` (model + data reads), ``.step(act)``,
 ``.reset()``, ``.forward()`` and ``.dt``; the obs/reward here are trivial
 placeholders (CO computes its own reflex sensors and cost).
 """
+
 from __future__ import annotations
 
 import collections
@@ -88,7 +89,5 @@ class ReflexEnvV0(BaseV0):
                 ("done", np.array([False])),
             )
         )
-        rwd_dict["dense"] = np.sum(
-            [wt * rwd_dict[key] for key, wt in self.rwd_keys_wt.items()], axis=0
-        )
+        rwd_dict["dense"] = np.sum([wt * rwd_dict[key] for key, wt in self.rwd_keys_wt.items()], axis=0)
         return rwd_dict

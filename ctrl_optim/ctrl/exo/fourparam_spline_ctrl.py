@@ -2,45 +2,47 @@
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
+
 class FourParamSplineController:
     """Exoskeleton controller using a 4-parameter spline for torque generation."""
-    
+
     THRESHOLD = 0.1
 
-    spline_key = ['peak_torque', 'rise_time', 'peak_time', 'fall_time']
+    spline_key = ["peak_torque", "rise_time", "peak_time", "fall_time"]
     spline_map = dict(zip(spline_key, range(len(spline_key))))
-
 
     def __init__(self, dt=0.01, max_torque=10.0, fixed_exo=False):
         self.dt = dt
         self.max_torque = max_torque
         self.fixed_exo = fixed_exo
-        
+
         self.initial_params = {
-            'peak_torque': 0.5,    # Initial normalized peak torque (0.5 = 50% of max_torque)
-            'rise_time': 0.467,    # Initial rise time (normalized 0-1)
-            'peak_time': 0.90,     # Initial peak time (normalized 0-1)
-            'fall_time': 0.075      # Initial fall time (normalized 0-1)
+            "peak_torque": 0.5,  # Initial normalized peak torque (0.5 = 50% of max_torque)
+            "rise_time": 0.467,  # Initial rise time (normalized 0-1)
+            "peak_time": 0.90,  # Initial peak time (normalized 0-1)
+            "fall_time": 0.075,  # Initial fall time (normalized 0-1)
         }
-        
+
         self.peak_torque = None
         self.rise_time = None
         self.peak_time = None
         self.fall_time = None
 
-        self.spline_params = np.array([
-            self.initial_params['peak_torque'],
-            self.initial_params['rise_time'],
-            self.initial_params['peak_time'],
-            self.initial_params['fall_time']
-        ])
-        
+        self.spline_params = np.array(
+            [
+                self.initial_params["peak_torque"],
+                self.initial_params["rise_time"],
+                self.initial_params["peak_time"],
+                self.initial_params["fall_time"],
+            ]
+        )
+
         self.torque_spline = self.precompute_torque_spline()
-        
+
         # Tracking variables
         self.state = "SWING"
         self.stance_durations = []
-        self.average_stance_duration = 0.6 # Seconds, estimated from preruns
+        self.average_stance_duration = 0.6  # Seconds, estimated from preruns
         self.stride_counter = 0
         self.stance_duration_time = 0.0
         self.initial_override_done = False  # Track if initial override has been triggered
@@ -48,7 +50,7 @@ class FourParamSplineController:
     def check_spline_validity(self):
         """Check that timing parameters are valid for the spline profile."""
         _, rise_time, peak_time, fall_time = self.spline_params
-        
+
         # Scale timing parameters to percentages (0-100) for checks
         peak_time_pct = peak_time * 100
         rise_time_pct = rise_time * 100
@@ -72,12 +74,12 @@ class FourParamSplineController:
         """Create spline for original 4-point implementation"""
         # Scale peak torque by max_torque
         self.peak_torque = self.spline_params[0] * self.max_torque
-        
+
         # Scale timing parameters from normalized (0-1) to percentages (0-100)
         self.rise_time = self.spline_params[1] * 100
         self.peak_time = self.spline_params[2] * 100
         self.fall_time = self.spline_params[3] * 100
-        
+
         # Define phases and torque values as percentages of the stance phase
         phases = [0]  # Start at 0%
         torques = [0]
@@ -102,26 +104,26 @@ class FourParamSplineController:
         if phases[-1] < 100:  # Only add if we haven't reached 100 yet
             phases.append(100)
             torques.append(0)
-        
+
         # Verify phases are strictly increasing
         for i in range(1, len(phases)):
-            if phases[i] <= phases[i-1]:
+            if phases[i] <= phases[i - 1]:
                 raise ValueError(f"Phase points must be strictly increasing. Got {phases}")
-        
+
         # Store control points for visualization
         self.control_time_points = np.array(phases)
         self.control_torque_points = np.array(torques)
-        
+
         # Create and return the PCHIP interpolator
         return PchipInterpolator(phases, torques)
 
     def get_control_points(self, include_endpoints=False):
         """Return the control points used to create the spline.
-        
+
         Returns:
             tuple: (time_points, torque_points) - Arrays of control point times (0-100%) and torque values
         """
-        if hasattr(self, 'control_time_points') and hasattr(self, 'control_torque_points'):
+        if hasattr(self, "control_time_points") and hasattr(self, "control_torque_points"):
             return self.control_time_points, self.control_torque_points
         else:
             return np.array([]), np.array([])
@@ -169,18 +171,20 @@ class FourParamSplineController:
     def reset(self, param_vector):
         """Reset the controller parameters using the input vector."""
         if self.fixed_exo:
-            self.spline_params = np.array([
-                self.initial_params['peak_torque'],
-                self.initial_params['rise_time'],
-                self.initial_params['peak_time'],
-                self.initial_params['fall_time']
-            ])
+            self.spline_params = np.array(
+                [
+                    self.initial_params["peak_torque"],
+                    self.initial_params["rise_time"],
+                    self.initial_params["peak_time"],
+                    self.initial_params["fall_time"],
+                ]
+            )
         else:
             # Normal parameter handling
             expected_params = 4
             if len(param_vector) != expected_params:
                 raise ValueError(f"Expected {expected_params} parameters, got {len(param_vector)}")
             self.spline_params = param_vector.copy()
-        
+
         # Recompute the torque spline with the updated parameters
-        self.torque_spline = self.precompute_torque_spline() 
+        self.torque_spline = self.precompute_torque_spline()

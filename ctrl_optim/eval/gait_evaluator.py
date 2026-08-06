@@ -9,7 +9,6 @@ behavior consistent with the rest of the project.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -23,6 +22,7 @@ from rl_train.analyzer.gait_data import GaitData
 @dataclass
 class CtrlOptimEvalConfig:
     """Inputs for a single CO evaluation run."""
+
     param_file: str
     sim_time: float = 10.0
     target_velocity: float = 1.25
@@ -152,6 +152,7 @@ class CtrlOptimGaitEvaluator:
     def _write_video(frames, path: str, fps: int) -> None:
         try:
             import imageio
+
             with imageio.get_writer(path, fps=fps, codec="libx264", quality=9) as w:
                 for f in frames:
                     arr = np.asarray(f)

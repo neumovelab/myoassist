@@ -1,0 +1,8 @@
+# Lint/format config -- mirrors assist_sim / myo_sim / myoassist.terrains so tooling is
+# consistent across the four repos. Notebooks are excluded (author-owned analysis scratch).
+line-length = 128
+extend-exclude = [".claude", "external", "*.ipynb"]
+
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]

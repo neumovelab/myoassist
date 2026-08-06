@@ -7,4 +7,4 @@ This module provides tools for evaluating controller optimization simulation res
 
 from .eval import main
 
-__all__ = ['main'] 
+__all__ = ["main"]
