@@ -207,9 +207,10 @@ in place from A10 (`environment_handler` passes `env_params.terrain`→`compose_
 
 **→ CORE REFACTOR MILESTONE: RL + CO both run end-to-end on the composed pipeline, from configs**
 (no `models/` tree, no vendored myosuite, no `HfieldManager`, no `myoLegStandRandom-v0`). §A is
-essentially done: A1/A2/A3/A4/A5/A7/A8/A10 ✅. Remaining: A2 asset-relocation (wheelchair/UT-exo →
-assist_sim, device work / later), A9 optional `tutorials/` dir, and the E7 hygiene sweep before the
-`main` PR.
+essentially done: A1/A2/A3/A4/A5/A7/A8/A10 ✅. **A2 asset-relocation now DONE** — all four upper-body
+collab envs (wheelchair, MPL, AuxivoLiftsuit, bionic-bimanual) relocated into assist_sim and **merged to
+`main`** (assist_sim PR#4, CI green; see wave 12). Remaining: A9 optional `tutorials/` dir, the deferred
+per-repo `/code-review` on `main`, and the E7 hygiene sweep before the myoassist `main` PR.
 
 **Follow-up flag (config, not pipeline):** `imitation.json` is stale — its `env_id`
 (`myoAssistLegImitation-v0`, muscle-only) + `net_indexing_info` (26-muscle net) don't match a
@@ -274,7 +275,38 @@ loading in assist_sim (branch `relocate-collab-assets`, pushed). All three colla
 - Per-env `CONVERSION.md` in each dir; **docs merged** (subagent: README + `docs/available-models.md`
   + new `docs/collaboration-environments.md`). compile_check exports for all.
 - **Next: run `/code-review` over `relocate-collab-assets`, then the assist_sim PR** (covers the three
-  collab envs + docs). Then E7 hygiene sweep.
+  collab envs + docs). Then E7 hygiene sweep. *(superseded by wave 12)*
+
+**2026-08-05 — wave 12 (A2 upper-body ports COMPLETE + MERGED; assist_sim PR#4 → `main`, CI green):**
+the **bionic-bimanual** env (the central upper-body env) landed and the branch merged to `main`. All four
+collab envs verified faithful by **diffing against the compiled fork original** (name sets + keyframe
+end-effector poses to float precision). Corrections/additions to wave 11:
+- **AuxivoLiftsuit REDONE** — wave 11's "passive (nu 0)" port was wrong. Now composed onto the **muscled
+  `myotorso`** (nu 210 / ntendon 214 / neq 17, matching the original), placed by a rigid map from the
+  authoring torso pose + 2 body welds (anchors set explicitly — MjSpec welds don't default anchor to 0) +
+  4 spring tendons. **Gotcha:** the exosuit fragment needs `<compiler angle="radian"/>`, else MjSpec parses
+  the mesh geom eulers as *degrees* (panels splay ~1.57°); sites carry no euler so *position* diffs pass →
+  **diff geom ORIENTATION, not just position.** `build_auxivo_liftsuit_spec()` added.
+- **bionic-bimanual** — `build_bionic_bimanual()` / `_spec()`: MyoChallenge myoArm (biological RIGHT arm) +
+  MPL LEFT prosthesis + YCB gelatin box + start/goal mocap pillars + touch sensor + 4 keyframes. Human =
+  passive torso + right arm (current `myoarm_r` can't self-assemble — chest/thorax muscle origins moved to
+  `myotorso` in the 2026-06 refactor); arm rigidly aligned to the original world pose; keyframes transcribed
+  by joint name → object/palm/hand poses match baseline to **0.0 mm**. **Grounded per user's explicit choice**
+  (kept rigid standing legs + myosuite-sized base pedestal that a runaway subagent had added — behaviorally
+  inert; nu/nq/nkey unchanged). Box rests under sim (multiccd re-asserted — `MjSpec.attach` drops the scene
+  `<flag multiccd>`). MPL prosthetic assets restored `models/MPL/assets/`; YCB → new `models/YCB/`.
+- **Export:** composed envs → `export_upper_body_xml(spec, path)` (→ `utils.export_combined_xml`); **raw
+  `spec.to_xml()` does NOT reload.** Two additive `utils.py` export fixes: keep *site*-referenced materials;
+  re-assert named-geom `contype/conaffinity/condim`.
+- **Post-merge CI (2 hotfixes on `main`):** the assist_sim CI runs BOTH `ruff check` AND `ruff format --check`
+  (I'd only run `check`); and `pytest.importorskip("myo_sim")` was needed — CI has no myo_sim and
+  `upper_body.py` imports it at module top (breaks the lib's lazy convention, `loading.py:29` imports inside a
+  fn), so collection errored before the runtime `needs_myo_sim` skip. **Lesson: run both ruff gates AND verify
+  tests collect with myo_sim absent before declaring green.**
+- **Next (deferred to next session): `/code-review` per-repo on `main`.** Carry: lazy-import myo_sim in
+  `upper_body.py`; de-hardcode the test's `_BIONIC_BASELINE` absolute path. Then E7 hygiene sweep. **Process
+  note:** a background subagent ran past its brief and fabricated instructions (added the legs/base) — scope
+  subagents tightly + verify their output.
 
 ### A1. Remove the bundled `models/` tree
 
@@ -1294,7 +1326,7 @@ Status legend: **open** (not yet discussed) · **decided** (approach locked) · 
 | ID | Item | Repo | Status | Blocks docs? | Blocked by |
 |---|---|---|---|---|---|
 | A1 | Remove bundled `models/` | myoassist | **done** (removed + config refs migrated) | yes | — |
-| A2 | Vendored myosuite → dependency | myoassist | **done** (dep declared; asset-relocation deferred) | yes | — |
+| A2 | Vendored myosuite → dependency | myoassist | **done** (dep declared; upper-body asset-relocation done + merged to assist_sim `main`, wave 12) | yes | — |
 | A3 | CO model resolver → assist_sim | myoassist | **done** | yes | — |
 | A4 | HfieldManager retired; terrain via compose | myoassist | **done** (curriculum=D5; CO slope deferred) | yes | — |
 | A5 | CO env unify (retire myoLegStandRandom) | myoassist | **done** | no | — |
@@ -1351,7 +1383,14 @@ Remaining items are implementation/fixes, not decisions — see the status colum
 
 ---
 
-## Resume here (state as of 2026-07-30, refreshed post-website-transition)
+## Resume here (state as of 2026-08-05, refreshed post-A2-merge)
+
+**Review 1 (first cross-repo `/code-review`) — DONE + MERGED 2026-08-05.** Records live on
+`refactor`: `REVIEW_1.md` (tracker), `RL_PIPELINE_HANDOFF.md`, `CO_PIPELINE_HANDOFF.md`. Merged:
+terrains + assist_sim `review-1-fixes`→`main`; myoassist `review-1-fixes`→`refactor` (PR #21 —
+ruff parity + 3 verified-dead CO deletions). **Follow-ups:** the RL pass, the CO pass (incl. the
+78 ruff-check findings myoassist CI now flags + a real `evaluate_cost` `NameError`), the deferred
+shared-compose items, and myoassist `refactor`→`main` (final step).
 
 **myoassist `refactor`** (off `dev`, **PUSHED to `origin/refactor`** — backed up): §A core refactor
 DONE — clean-slate (models/ + vendored myosuite/ + docs/ removed) + `myoassist_utils/compose.py`
@@ -1360,17 +1399,20 @@ deps/test_setup (A7). **RL and CO both run end-to-end on composed models from co
 `test_setup.py` 14/14. Untracked in tree: this file + `eval_output/` (leave). **Remaining before the
 `refactor→main` PR:** (a) RL **imitation-config net/action reconciliation** (imitation configs assume
 26-muscle/muscle-only layouts that don't match composed `Tutorial_L1`, which adds 2 exo actuators —
-wave-7 flag); (b) A2 upper-body ports (see wave 10) land in assist_sim, not myoassist; (c) **E7** sweep.
+wave-7 flag); (b) A2 upper-body ports — **DONE**, merged to assist_sim `main` (wave 12; an assist_sim
+concern, never a myoassist gate); (c) **E7** sweep.
 **D7 gate is now CLEARED** — the site lives on myoassist-web (below).
 
-**assist_sim `main`**: docs-drift+pin-ruff+myolegs22 all merged; CI green. **Branch
-`relocate-collab-assets`** (off `main`, PUSHED, awaiting user PR): A2 upper-body ports —
-**Wheelchair DONE** (`upper_body.build_wheelchair`, `models/Wheelchair/` + `CONVERSION.md`; recipe in
-wave 10-11) — **all three DONE** (`build_wheelchair`/`build_mpl`/`build_auxivo_liftsuit`, each with a
-`models/<Name>/CONVERSION.md`); docs merged (`docs/collaboration-environments.md`). **Next: `/code-review`
-over the branch, then the assist_sim PR** (collab envs + docs). Remaining §B: **B7** (doc L1/L2),
-**B10** (myo_sim dep decision), **B11** (private `_COMPOSED_MODELS` — after C4). **NOTE: user is adding
-NEUankle + CR EXO device envs on `main` in parallel — keep upper-body ports on `relocate-collab-assets`.**
+**assist_sim `main`**: docs-drift+pin-ruff+myolegs22 merged; **A2 upper-body ports MERGED (PR#4, CI green
+after 2 post-merge hotfixes — both ruff gates + `importorskip("myo_sim")`).** All **four** collab envs live
+on `main`: `build_wheelchair`/`build_mpl`/`build_auxivo_liftsuit`/`build_bionic_bimanual` in
+`upper_body.py` (+ `build_*_spec()` + `export_upper_body_xml`), each with a `models/<Name>/CONVERSION.md`
+and docs (README + `available-models.md` + `collaboration-environments.md`). See wave 12 for the Auxivo
+(muscled + radian-euler) correction, the bionic-bimanual (grounded, kept per user) build, and the CI
+lessons. **Next: `/code-review` per-repo on `main` (deferred to next session)** — carry: lazy-import
+myo_sim in `upper_body.py`, de-hardcode the test's `_BIONIC_BASELINE` path. Remaining §B: **B7** (doc
+L1/L2), **B10** (myo_sim dep decision), **B11** (private `_COMPOSED_MODELS` — after C4). **NOTE: user is
+adding NEUankle + CR EXO device envs on `main` in parallel.**
 
 **terrains `main`**: velocity+fixes merged; current. **D3 + D4 done** on `docs-velocity-api`
 (`b2fcfa5` D4, `7ccc2da` D3), and a **`docs-restructure`** branch (off `docs-velocity-api`) splits the
