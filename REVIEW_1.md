@@ -80,6 +80,11 @@ terrains 64 pass; myoassist ruff format-check green + compileall clean):
 - **myoassist** `review-1-fixes` → `refactor` (PR #21; ruff parity + 3 CO dead-code deletions).
   `refactor` → `main` remains a later step.
 
-**Follow-ups (owned elsewhere):** the **RL pass** (`RL_PIPELINE_HANDOFF.md`), the **CO pass**
-(`CO_PIPELINE_HANDOFF.md` — the `evaluate_cost` `NameError` + the 78 ruff-check findings myoassist
-CI now flags), and the **deferred compose items** (above). These docs live on `refactor` for that work.
+**Follow-ups (owned elsewhere):** the **RL pass** (`RL_PIPELINE_HANDOFF.md` — `rl_train/`'s ~35
+ruff-check findings remain), and the **deferred compose items** (above). These docs live on
+`refactor` for that work.
+
+**CO pass — DONE** (`co-pass` → `refactor`): CO-1 (`evaluate_cost` `NameError`) resolved as dead
+code; both runtime open-Qs (keyframe-DOF width, `adjust_model_height` site fallback) confirmed +
+hardened; `get_plot_data` `F811` shadowing fixed. `ctrl_optim/` is now fully `ruff check`-clean.
+Runtime-validated (`run_ctrl_minimal`: Walking 0.280 s). See `CO_PIPELINE_HANDOFF.md`.
