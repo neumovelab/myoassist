@@ -272,7 +272,7 @@ class MyoLocoCtrl(object):
         LongDelay = 0.010  # ankle joint muscles [s]
         MidDelay = 0.005  # knee joint muscles [s]
         ShortDelay = 0.003  # hip joint muscles [s]
-        MinDelay = 0.001  # between neurons in the spinal cord, also simulation timestep in delayed mode
+        MinDelay = 0.001  # noqa: F841  # between neurons in the spinal cord, also simulation timestep in delayed mode
 
         # Sensory delays
         self.sens_delay = {}
@@ -755,7 +755,6 @@ class MyoLocoCtrl(object):
         alpha_delta = self.supraspinal_command[s_leg]["alpha_delta"]
         hip_tgt = self.supraspinal_command[s_leg]["hip_tgt"]
 
-        knee_sw_tgt = self.supraspinal_command[s_leg]["knee_sw_tgt"]
         knee_tgt = self.supraspinal_command[s_leg]["knee_tgt"]
         knee_off_st = self.supraspinal_command[s_leg]["knee_off_st"]
         ankle_tgt = self.supraspinal_command[s_leg]["ankle_tgt"]
@@ -764,7 +763,6 @@ class MyoLocoCtrl(object):
         # Copying spinal phases to shorten variable
         ph_st = self.spinal_control_phase[s_leg]["ph_st"]
         ph_sw = self.spinal_control_phase[s_leg]["ph_sw"]
-        ph_st_csw = self.spinal_control_phase[s_leg]["ph_st_csw"]
         ph_st_st = self.spinal_control_phase[s_leg]["ph_st_st"]
         ph_st_sw0 = self.spinal_control_phase[s_leg]["ph_st_sw0"]
         ph_sw_sw_1 = self.spinal_control_phase[s_leg]["ph_sw_sw_1"]
