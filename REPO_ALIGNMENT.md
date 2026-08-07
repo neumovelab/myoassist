@@ -212,12 +212,28 @@ collab envs (wheelchair, MPL, AuxivoLiftsuit, bionic-bimanual) relocated into as
 `main`** (assist_sim PR#4, CI green; see wave 12). Remaining: A9 optional `tutorials/` dir, the deferred
 per-repo `/code-review` on `main`, and the E7 hygiene sweep before the myoassist `main` PR.
 
-**Follow-up flag (config, not pipeline):** `imitation.json` is stale — its `env_id`
-(`myoAssistLegImitation-v0`, muscle-only) + `net_indexing_info` (26-muscle net) don't match a
-composed `Tutorial_L1` model (which adds 2 exo actuators). It referenced a deleted baseline model +
-26-muscle net pre-migration. Not exercised by validation; needs action-space/net reconciliation (or
-retirement) before it runs. Same class: the imitation configs assume specific muscle/net layouts
-that the composed models must be checked against when the RL tutorials are re-anchored.
+**Follow-up flag (config, not pipeline) — RESOLVED 2026-08-07 (RL pass, RL-1):** `imitation.json`
+was stale — its `env_id` (`myoAssistLegImitation-v0`, muscle-only) + `net_indexing_info` (26-wide
+action net) didn't match a composed `Tutorial_L1` model (which adds 2 exo actuators).
+**Retired (deleted)** rather than reconciled: its pre-migration `model_path` pointed at
+`models/22muscle_2D/gait14dof22musc_cvt3_Right_Toeless_2D.xml`, a file **never tracked in this
+repo** — so the config could not have run at any point in its history (correcting the earlier
+"26-muscle net" framing here: the referenced file was a *22*-muscle 2D name that never existed).
+Combined with the author's confirmation that **no 26-muscle model has ever trained successfully**,
+there was no working result to preserve, and repairing it would have near-duplicated
+`imitation_tutorial_22_separated_net_exo_off.json`. All 5 remaining RL configs are now consistently
+`myolegs22` + `myoAssistLegImitationExo-v0`. Details + what was deliberately kept in
+`RL_PIPELINE_HANDOFF.md` RL-1.
+
+**Still open (same class):** nothing yet checks a config's declared action/obs layout against the
+composed model's actuator count — see `RL_PIPELINE_HANDOFF.md` RL-2. The imitation configs assume
+specific muscle/net layouts that the composed models must be checked against when the RL tutorials
+are re-anchored.
+
+**Scope note (RL vs. model support):** post-refactor the RL pipeline only ever composes `myolegs22`
+(all 5 configs). `myolegs26` is supported by the compose pipeline and assist_sim's 44-combo matrix
+in the sense that it **builds and steps** — it is **not** RL-training-validated. Docs and the 1.0
+paper should keep those two claims distinct (relevant to §E1 and the website rebuild).
 
 **2026-07-30 — wave 8 (D7 website transition COMPLETE):** `myoassist-web` reworked `pages.yml` to
 build from repo root (was docs/-subdir) + added `enablement: true` to `configure-pages` (self-enable

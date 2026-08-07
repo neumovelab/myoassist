@@ -44,7 +44,7 @@ Neither RL nor CO; need the full RL/CO stack to test. Address in a compose/frame
 | # | repo | finding (file:line) | sev | status |
 |---|---|---|---|---|
 | W1.1 | assist_sim | `_add_ground:315` seats floor at geom center not surface → wheelchair interpenetrates ground; use `_lowest_geom_z(collision_only=True)` | major | **DONE** (45c3758; floor at wheel surface, pen +0.0000, 6mm settle) |
-| W1.2 | myoassist | `imitation.json` composes 24-actuator model but declares 26-muscle/no-exo action layout; no guard | major | **HANDOFF** → RL_PIPELINE_HANDOFF.md RL-1, RL-2 |
+| W1.2 | myoassist | `imitation.json` composes 24-actuator model but declares 26-muscle/no-exo action layout; no guard | major | **PARTIAL** — config half **DONE** (RL pass: `imitation.json` retired; it referenced a never-tracked model path, so it could never have run). Guard half still open → RL_PIPELINE_HANDOFF.md **RL-2** |
 | W1.3 | assist_sim | wheelchair keeps 4 stale foot/toe sensors (`_freeze_legs_seated`) vs bionic (`_freeze_legs_standing:443`) — add the sensor-delete loop | minor | **DONE** (45c3758; nsensor 4→0) |
 | W1.C | terrains + myoassist | **CI/lint parity** — ruff config + pin + CI workflow + format + safe fixes | — | **DONE** — terrains (7dbd3e8, 321e580; ruff green, 64 tests pass); myoassist (f6ed61f: 62-file format + 136 safe fixes + CI; format-check green, **78 author lint findings** incl. the F821 bug left flagged for the RL/CO passes) |
 
@@ -70,7 +70,7 @@ Neither RL nor CO; need the full RL/CO stack to test. Address in a compose/frame
 | W3.6 | terrains | two "public API" declarations differ (`__init__.py` vs `docs/python-api.md`) — one-line note | nit | **DONE** (e46e3c2: `__init__` note) |
 
 ### Deferred — need a myoassist/myosuite-enabled run to confirm
-- myoassist: keyframe-DOF-extension assumption (assist_sim extends device keyframes to `nq`); `adjust_model_height` touch-site fallback; `imitation.json` obs-key defaults (pre-existing).
+- myoassist: keyframe-DOF-extension assumption (assist_sim extends device keyframes to `nq`); `adjust_model_height` touch-site fallback. (`imitation.json` obs-key defaults — **resolved by inspection**, no defaults are injected; moot now that the config is retired. See RL_PIPELINE_HANDOFF.md.)
 
 ## Status — Review 1 COMPLETE + MERGED (2026-08-05)
 Landed via one `review-1-fixes` branch per repo, after a green sweep (assist_sim 149 pass +1 skip;

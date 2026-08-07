@@ -365,7 +365,11 @@ class SetupTester:
         """Test that configuration files are accessible"""
 
         rl_configs = [
-            "rl_train/train/train_configs/imitation.json",
+            "rl_train/train/train_configs/imitation_tutorial_22_separated_net_exo_off.json",
+            "rl_train/train/train_configs/imitation_tutorial_22_separated_net_full_obs.json",
+            "rl_train/train/train_configs/imitation_tutorial_22_separated_net_partial_obs.json",
+            "rl_train/train/train_configs/imitation_tutorial_22_separated_net_speed_control.json",
+            "rl_train/train/train_configs/test.json",
         ]
 
         for config_path in rl_configs:

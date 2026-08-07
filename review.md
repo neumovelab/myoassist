@@ -70,6 +70,20 @@ a 22+2 layout like the `separated_net` configs, or (b) add a human-only compose 
 `create_environment` that checks the built model's `nu`/`na` against the config's action
 layout and raises a clear error.
 
+**STATUS 2026-08-07 (RL pass) — config half DONE via (a) drop; two parts still open.**
+`imitation.json` is deleted and `test_setup.py`'s existence check repointed onto the 5
+maintained configs. The "already stale on `main`" note above understated it: the old
+`model_path` (`models/22muscle_2D/gait14dof22musc_cvt3_Right_Toeless_2D.xml`) was **never
+tracked in this repo at all**, so the config could not have run at any point in its history;
+and no 26-muscle model has ever been trained successfully (author). Nothing to preserve.
+Still open, tracked in `RL_PIPELINE_HANDOFF.md`:
+- **RL-2** — the guard. The root cause ("nothing asserts policy action-dim == `nu`") is
+  untouched by deleting one config.
+- **The design gap** flagged above — `compose_env_model` has no human-only path (`device_key`
+  is required, so a muscle-only config is forced to carry uncontrolled exo actuators). Not
+  needed by any current config (all 5 are exo configs), but it is the reason a muscle-only
+  config cannot be written cleanly today. Belongs with the deferred compose-pipeline items.
+
 ### Minor
 
 **2. `resolve_model_path` was not actually removed despite commit `5aa5553` ("…drop
