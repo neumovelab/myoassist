@@ -24,13 +24,17 @@ sys.path.insert(0, parent_dir)
 from optim_utils.tracker import OptimizationTracker
 from optim_utils.bounds import get_bounds
 from optim_utils.plotting import create_combined_plot
-from config import initParser, get_optimization_type, create_environment_dict
+from config import initParser, get_optimization_type, create_environment_dict, resolve_env_spec
 from cost_functions.walk_cost import func_Walk_FitCost
 from optim_utils.npoint_torque import calculate_npoint_torques
 
 
 def main():
     input_args = initParser()
+
+    # Resolve the composed-env spec (--env-spec / --msk / --device / --terrain) and
+    # backfill input_args.musc_model so the bounds + control-mode logic below works.
+    resolve_env_spec(input_args)
 
     import optim_utils.bounds as bounds_mod
 

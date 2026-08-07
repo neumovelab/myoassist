@@ -77,7 +77,8 @@ def main():
     # --- Manual Configuration Settings ---
     SIMULATION_TIME = 5  # seconds
     SLOPE_DEG = 0  # env slope degrees
-    MODEL = "tutorial"  # Options: dephy, hmedi, humotech, osl, baseline
+    MSK_KEY = "myolegs22"  # human MSK registry key (see `python -m assist_sim list`)
+    DEVICE_KEY = "Tutorial_L1"  # assist_sim device key
     EXO_BOOL = True  # Enable or disable exoskeleton
     USE_4PARAM_SPLINE = True  # Use 4-parameter spline for exoskeleton
     N_POINTS = 4  # Number of points for n-point spline
@@ -115,7 +116,8 @@ def main():
             "init_pose": "walk_left",
             "delayed": False,
             "slope_deg": SLOPE_DEG,
-            "model": MODEL,
+            "msk_key": MSK_KEY,
+            "device_key": DEVICE_KEY,
             "exo_bool": EXO_BOOL,
             "use_4param_spline": USE_4PARAM_SPLINE,
             "n_points": N_POINTS,

@@ -6,7 +6,6 @@ for the myoassist tool.
 """
 
 import argparse
-from typing import Dict, Any
 
 
 def initParser() -> argparse.Namespace:
@@ -19,33 +18,44 @@ def initParser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="NeuMove MyoReflex Optimization Tool")
     group = parser.add_mutually_exclusive_group()
 
-    # Model configuration
+    # Model configuration -- the composed env is defined by raw assist_sim
+    # registry keys (see `python -m assist_sim list`).  Provide them via a shared
+    # env-spec JSON (--env-spec) and/or the raw --msk / --device / --terrain flags
+    # (flags override the file).
     model_group = parser.add_argument_group("Model Configuration")
-    model_group.add_argument("--musc_model", type=str, help="(String) The muscle model to use. Options: [22, 26, 80]")
     model_group.add_argument(
-        "--model",
-        type=str,
-        default="default",
-        choices=["baseline", "dephy", "hmedi", "humotech", "osl", "tutorial"],
-        help="Type of model to use for simulation",
-    )
-    model_group.add_argument(
-        "--model_path",
+        "--env-spec",
+        dest="env_spec",
         type=str,
         default=None,
-        help="Optional: Custom path to model XML file. Only used if model_type is 'custom'",
+        help="Optional: path to a shared env-spec JSON ({msk, device, terrain}).",
     )
     model_group.add_argument(
-        "--msk_key",
+        "--msk",
         type=str,
         default=None,
-        help="Optional: explicit compose MSK key (e.g. myolegs22, myolegs26). Overrides the mode->MSK mapping.",
+        help="MSK registry key (e.g. myolegs22, myolegs26). Required unless given via --env-spec.",
     )
     model_group.add_argument(
-        "--device_key",
+        "--device",
         type=str,
         default=None,
-        help="Optional: explicit assist_sim device key (e.g. DephyExoBoot_L1). Overrides the model->device mapping.",
+        help="assist_sim device key (e.g. DephyExoBoot_L1, Tutorial_L1). Required unless given via --env-spec.",
+    )
+    model_group.add_argument(
+        "--terrain",
+        type=str,
+        default=None,
+        help=(
+            "Optional: terrain -- a myoassist_terrains JSON path or an inline config string "
+            '(e.g. \'{"terrain": "slope", "deg": 5}\'). Omitted -> a flat default ground.'
+        ),
+    )
+    model_group.add_argument(
+        "--musc_model",
+        type=str,
+        default=None,
+        help="Optional: muscle-model override [22, 26]. Derived from --msk when omitted.",
     )
 
     # Simulation parameters
@@ -129,89 +139,3 @@ def initParser() -> argparse.Namespace:
     )
 
     return parser.parse_args()
-
-
-def get_optimization_type(args: argparse.Namespace) -> str:
-    """
-    Determine the optimization type based on command line arguments.
-
-    Args:
-        args (argparse.Namespace): The parsed command line arguments
-
-    Returns:
-        str: The optimization type
-    """
-    if args.effort:
-        return "Effort"
-    elif args.effort_knee:
-        return "Eff_Knee"
-    elif args.classic:
-        return "Classic"
-    elif args.kinematics:
-        return "Kine"
-    elif args.combined:
-        return "Combined"
-    elif args.velocity:
-        return "Velocity"
-    elif args.velocity_grf:
-        return "Vel_grf"
-    elif args.kinematics_grf:
-        return "Kine_grf"
-    elif args.kinematics_grf_musc:
-        return "Kine_grf_musc"
-    elif args.vel_musc:
-        return "vel_musc"
-    elif args.vel_musc_grf:
-        return "vel_musc_grf"
-    else:
-        return "Effort"  # Default
-
-
-def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
-    """
-    Create environment dictionary from parsed arguments.
-
-    Args:
-        args (argparse.Namespace): The parsed command line arguments
-
-    Returns:
-        Dict[str, Any]: Dictionary with environment configuration
-    """
-    # Set control mode based on musc_model
-    if args.musc_model in ["22"]:
-        flag_ctrl_mode = "2D"
-    elif args.musc_model in ["26", "80"]:
-        flag_ctrl_mode = "3D"
-    else:
-        flag_ctrl_mode = "2D"
-
-    # Set delayed mode
-    delayed = True if args.delayed == 1 else False
-
-    # Set exo_bool
-    exo_bool = True if args.ExoOn == 1 else False
-
-    # Set reflex_mode (default to unified)
-    reflex_mode = args.reflex_mode if args.reflex_mode else "uni"
-    isUnified = True if reflex_mode == "uni" else False
-
-    # Create environment dictionary
-    env_dict = {
-        "leg_model": args.musc_model,
-        "init_pose": args.pose_key,
-        "mode": flag_ctrl_mode,
-        "sim_time": args.sim_time,
-        "seed": 0,  # Default seed
-        "unified": isUnified,
-        "slope_deg": args.tgt_slope,
-        "delayed": delayed,
-        "exo_bool": exo_bool,
-        "n_points": args.n_points,
-        "use_4param_spline": args.use_4param_spline,
-        "fixed_exo": args.fixed_exo,
-        "max_torque": args.max_torque,
-        "model": args.model,
-        "model_path": args.model_path,
-    }
-
-    return env_dict

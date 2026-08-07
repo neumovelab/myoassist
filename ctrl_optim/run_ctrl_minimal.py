@@ -29,7 +29,8 @@ def main():
         init_pose="walk_left",
         delayed=False,
         slope_deg=0,
-        model="tutorial",
+        msk_key="myolegs22",
+        device_key="Tutorial_L1",
         exo_bool=False,
     )
 

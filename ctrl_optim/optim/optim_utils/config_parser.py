@@ -42,8 +42,10 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "n_points": 0,
         "use_4param_spline": False,
         "max_torque": 0.0,
-        "model": "baseline",
-        "model_path": None,
+        "msk_key": None,
+        "device_key": None,
+        "terrain": None,
+        "leg_model": None,
     }
 
     try:
@@ -55,13 +57,14 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
 
         patterns = {
             "--sim_time": (r"--sim_time\s+(\d+)", int),
-            "--move_dim": (r"--move_dim\s+(\d+)", int),
             "--tgt_slope": (r"--tgt_slope\s+([\d.-]+)", float),
             "--delayed": (r"--delayed\s+(\d+)", int),
             "--ExoOn": (r"--ExoOn\s+(\d+)", int),
             "--n_points": (r"--n_points\s+(\d+)", int),
             "--max_torque": (r"--max_torque\s+([\d.]+)", float),
-            "--model": (r"--model\s+(\w+)", str),
+            "--msk": (r"--msk\s+(\S+)", str),
+            "--device": (r"--device\s+(\S+)", str),
+            "--terrain": (r"--terrain\s+(\S+)", str),
             "--pose_key": (r"--pose_key\s+(\w+)", str),
         }
 
@@ -77,8 +80,6 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                 # Map to TestEnv parameter names
                 if param == "--sim_time":
                     config["sim_time"] = value
-                elif param == "--move_dim":
-                    config["mode"] = "2D" if value == 2 else "3D"
                 elif param == "--tgt_slope":
                     config["slope_deg"] = value
                 elif param == "--delayed":
@@ -89,8 +90,12 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                     config["n_points"] = value
                 elif param == "--max_torque":
                     config["max_torque"] = value
-                elif param == "--model":
-                    config["model"] = value
+                elif param == "--msk":
+                    config["msk_key"] = value
+                elif param == "--device":
+                    config["device_key"] = value
+                elif param == "--terrain":
+                    config["terrain"] = value
                 elif param == "--pose_key":
                     # Map pose_key to init_pose
                     if value == "walk":
@@ -105,6 +110,12 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                     config["use_4param_spline"] = True
                 elif flag == "--fixed_exo":
                     config["fixed_exo"] = True
+
+        # Derive the muscle model + 2D/3D control mode from the MSK key.
+        msk_to_musc = {"myolegs22": "22", "myolegs26": "26"}
+        if config["msk_key"] in msk_to_musc:
+            config["leg_model"] = msk_to_musc[config["msk_key"]]
+            config["mode"] = "2D" if config["leg_model"] == "22" else "3D"
 
         return config
 
@@ -138,10 +149,9 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
         config = parse_bat_config(bat_file_path)
         config.update(override_kwargs)
 
-        # Model source is now the compose pipeline: myoLeg_reflex maps
-        # model/mode -> (msk_key, device_key) internally (optionally overridden
-        # by explicit msk_key/device_key in the config), so no path resolution
-        # is needed here.
+        # Model source is the compose pipeline: the env is defined by raw
+        # registry keys (msk_key + device_key) + an optional terrain, parsed
+        # from the .bat above.
         TestEnv = myoLeg_reflex(
             sim_time=config["sim_time"],
             mode=config["mode"],
@@ -154,9 +164,10 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             n_points=config["n_points"],
             use_4param_spline=config["use_4param_spline"],
             max_torque=config["max_torque"],
-            model=config["model"],
+            leg_model=config.get("leg_model"),
             msk_key=config.get("msk_key"),
             device_key=config.get("device_key"),
+            terrain=config.get("terrain"),
         )
 
         return TestEnv, config

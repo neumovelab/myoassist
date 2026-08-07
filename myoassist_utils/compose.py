@@ -28,7 +28,7 @@ import mujoco as mj
 
 from assist_sim import load_combined
 from myoassist_terrains import build_terrain
-from myoassist_terrains.config import _config_from_dict, load_config
+from myoassist_terrains.config import config_from_dict, load_config
 
 # Seat the lowest collidable geom this far *below* the terrain surface so the
 # model opens in light contact (MuJoCo needs penetration, not just touching, to
@@ -161,17 +161,27 @@ def _inject_lighting(root: ET.Element) -> None:
         )
 
 
+def _inject_terrain_haze(root: ET.Element, terrain_root: ET.Element) -> None:
+    """Propagate the terrain's horizon haze (fog) color onto the model's
+    ``<visual>`` so an infinite ground plane fades into its own color rather
+    than MuJoCo's default white.  No-op if the terrain declares no haze."""
+    t_vis = terrain_root.find("visual")
+    t_rgba = t_vis.find("rgba") if t_vis is not None else None
+    if t_rgba is None or t_rgba.get("haze") is None:
+        return
+    visual = _find_or_make(root, "visual", 1)
+    rgba = visual.find("rgba")
+    if rgba is None:
+        rgba = ET.SubElement(visual, "rgba")
+    rgba.set("haze", t_rgba.get("haze"))
+
+
 def _flat_default_config():
-    """A 1x1 flat tile at z=0 -- the default ground when no terrain is given
-    (the assist_sim model-only export carries no surface)."""
-    return _config_from_dict(
-        {
-            "terrain_name": "flat_default",
-            "grid": {"rows": 1, "cols": 1, "tile_size": [12.0, 12.0]},
-            "border": {"width": 0.0},
-            "tiles": [{"row": 0, "col": 0, "type": "flat", "params": {"height": 0.0}}],
-        }
-    )
+    """The default ground when no terrain is given: a single infinite flat plane
+    at z=0 (the assist_sim model-only export carries no surface).  This mirrors
+    the old myoassist ground -- an effectively-infinite plane, one cheap geom --
+    rather than a finite box tile, so a walking model never runs off the edge."""
+    return config_from_dict({"terrain": "flat"})
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +190,7 @@ def _flat_default_config():
 def compose_env_model(
     msk_key: str,
     device_key: str,
-    terrain: Optional[Union[str, Path]] = None,
+    terrain: Optional[Union[str, Path, dict]] = None,
     export_path: Optional[Union[str, Path]] = None,
 ) -> str:
     """Compose ``msk_key`` + ``device_key`` + a terrain into one loadable MJCF.
@@ -191,9 +201,10 @@ def compose_env_model(
         A human MSK registry key (e.g. ``"myolegs22"``, ``"myolegs26"``).
     device_key : str
         An assist_sim device key (e.g. ``"DephyExoBoot_L1"``).
-    terrain : str | Path | None
-        Path to a ``myoassist_terrains`` JSON config, or ``None`` for a flat
-        default ground (a single 1x1 flat tile at z=0).
+    terrain : str | Path | dict | None
+        A ``myoassist_terrains`` config: a path to a JSON file, or an inline
+        config dict (grid form, or uniform e.g. ``{"terrain": "slope", "deg": 8}``).
+        ``None`` gives a flat default ground plane.
     export_path : str | Path | None
         If given, the merged model is also written to this path as a
         standalone, ``from_xml_path``-loadable file.  Any terrain assets
@@ -214,8 +225,13 @@ def compose_env_model(
     # persistent) install location so the temp export dir can be removed.
     _absolutize_files(model_root, model_xml_path.parent)
 
-    # 2) build the terrain (flat default, or from a terrains JSON config).
-    cfg = _flat_default_config() if terrain is None else load_config(Path(terrain))
+    # 2) build the terrain (flat default, a terrains JSON path, or an inline config dict).
+    if terrain is None:
+        cfg = _flat_default_config()
+    elif isinstance(terrain, dict):
+        cfg = config_from_dict(terrain)
+    else:
+        cfg = load_config(Path(terrain))
     # Terrain assets (hfield PNGs / textures) must outlive this call.  When
     # exporting, keep them beside the export; otherwise use a persistent temp
     # dir (the flat default writes no assets, so this is a no-op for RL runs).
@@ -231,9 +247,10 @@ def compose_env_model(
     _absolutize_files(terrain_root, assets_dir)
     terrain_geom_names = {g.get("name") for g in terrain_root.find("worldbody").iter("geom") if g.get("name")}
 
-    # 3) merge terrain (colliding) + add default lighting.
+    # 3) merge terrain (colliding) + add default lighting + horizon haze.
     _inject_terrain(model_root, terrain_root)
     _inject_lighting(model_root)
+    _inject_terrain_haze(model_root, terrain_root)
 
     # 4) seat the model so its feet rest on the terrain surface (light contact),
     #    measured from the real collision geometry at the opening pose.

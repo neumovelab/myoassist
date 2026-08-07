@@ -1,7 +1,7 @@
 @echo off
 python train.py ^
-    --musc_model 22 ^
-    --model tutorial ^
+    --msk myolegs22 ^
+    --device Tutorial_L1 ^
     --sim_time 20 ^
     --pose_key walk_left ^
     --num_strides 5 ^
