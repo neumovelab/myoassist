@@ -84,6 +84,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self.observation_joint_pos_keys = env_params.observation_joint_pos_keys
         self.observation_joint_vel_keys = env_params.observation_joint_vel_keys
         self.observation_joint_sensor_keys = env_params.observation_joint_sensor_keys
+        # Joint-limit sensors: use the config list if provided, else the class default.
+        self.joint_limit_sensor_keys = env_params.joint_limit_sensor_keys or self.JOINT_LIMIT_SENSOR_NAMES
 
         # Safely check whether the joint named "lumbar_extension" exists in the model.
         try:
@@ -417,7 +419,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
 
     def _get_max_joint_constraint_force(self):
         max_constraint_force = 0
-        for sensor_name in self.JOINT_LIMIT_SENSOR_NAMES:
+        for sensor_name in self.joint_limit_sensor_keys:
             sensor_data = self.sim.data.sensor(sensor_name).data[0].copy()
             max_constraint_force = max(max_constraint_force, np.max(np.abs(sensor_data)))
         return max_constraint_force

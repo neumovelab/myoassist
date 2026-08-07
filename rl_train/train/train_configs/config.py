@@ -55,6 +55,9 @@ class TrainSessionConfigBase:
         observation_joint_pos_keys: list[str] = field(default_factory=list)
         observation_joint_vel_keys: list[str] = field(default_factory=list)
         observation_joint_sensor_keys: list[str] = field(default_factory=list)
+        # Joint-limit (constraint-force) sensor names used by the constraint-force
+        # penalty. Empty -> MyoAssistLegBase.JOINT_LIMIT_SENSOR_NAMES default.
+        joint_limit_sensor_keys: list[str] = field(default_factory=list)
 
         # A10 compose pipeline. When both msk_key and device_key are set, the
         # model is composed via myoassist_utils.compose.compose_env_model(...)
