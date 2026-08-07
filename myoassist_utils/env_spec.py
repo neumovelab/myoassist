@@ -37,6 +37,32 @@ from typing import Optional, Union
 TerrainSpec = Optional[Union[str, dict]]
 
 
+def slope_deg_from_terrain(terrain: TerrainSpec) -> float:
+    """The incline angle in degrees if ``terrain`` is a uniform ``slope``, else 0.
+
+    Terrain is the single source of the course grade; downstream consumers (the
+    eval follow-camera, cost function, display) derive the angle from it rather
+    than a separate flag.  Accepts a dict, an inline JSON string, or a path.
+    """
+    if terrain is None:
+        return 0.0
+    cfg: Optional[dict] = None
+    if isinstance(terrain, dict):
+        cfg = terrain
+    else:
+        s = str(terrain).strip()
+        if s.startswith("{"):
+            cfg = json.loads(s)
+        else:
+            from myoassist_terrains.config import load_config
+
+            loaded = load_config(Path(terrain))
+            return float(getattr(loaded, "deg", 0.0)) if getattr(loaded, "terrain", None) == "slope" else 0.0
+    if isinstance(cfg, dict) and cfg.get("terrain") == "slope":
+        return float(cfg.get("deg", 0.0))
+    return 0.0
+
+
 @dataclass
 class EnvSpec:
     """A composed-environment definition shared by the CO and RL pipelines."""

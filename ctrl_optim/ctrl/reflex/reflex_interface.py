@@ -198,24 +198,10 @@ class myoLeg_reflex(object):
 
         self.init_pose = init_pose
 
-        # Slope terrain via composed models is deferred to D5; for now only flat
-        # ground is wired.  Fail fast with an actionable message instead of
-        # silently ignoring the requested slope.
-        if self.slope_deg != 0:
-            # TODO(D5): wire slope terrain by composing a myoassist_terrains
-            # `slope` tile (params: angle_deg=slope_deg, axis, plateau_ratio) into
-            # a terrain config and routing it through
-            #   compose_env_model(msk_key, device_key, terrain=<slope_config>)
-            # (see myoassist.terrains/utils/configs/m2_demo.json for the slope
-            # tile schema).  Left deferred because matching the old setupTerrain
-            # semantics (height_offset seating + camera/pose geometry that CO's
-            # reflex init and camera_setup depend on) needs nontrivial design.
-            raise NotImplementedError(
-                f"slope terrain (slope_deg={self.slope_deg}) is not yet wired "
-                "through the compose pipeline; compose a myoassist_terrains "
-                "'slope' tile and pass it via compose_env_model(terrain=...) "
-                "(deferred to D5)."
-            )
+        # Slope (and other terrain) now comes through the compose pipeline as a
+        # ``terrain`` config -- the model is composed and pre-seated on the tilted
+        # plane by compose.  ``slope_deg`` is derived metadata (the course grade)
+        # for the eval camera / cost / display; it no longer drives geometry here.
 
         # Model source: compose human MSK + assistive device (+ terrain) into a
         # loadable MJCF string via the shared pipeline.  The env is defined by raw

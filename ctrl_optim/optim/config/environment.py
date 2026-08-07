@@ -9,7 +9,7 @@ import argparse
 import json
 from typing import Any, Dict
 
-from myoassist_utils.env_spec import EnvSpec
+from myoassist_utils.env_spec import EnvSpec, slope_deg_from_terrain
 
 
 def resolve_env_spec(args: argparse.Namespace) -> EnvSpec:
@@ -85,7 +85,7 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "sim_time": args.sim_time,
         "seed": 0,  # Fixed seed for reproducibility
         "unified": False,  # only the (unsupported) 80-muscle model uses unified
-        "slope_deg": args.tgt_slope,
+        "slope_deg": slope_deg_from_terrain(spec.terrain),  # derived from the terrain (single source)
         "delayed": delayed,
         "exo_bool": exo_bool,
         "n_points": args.n_points,

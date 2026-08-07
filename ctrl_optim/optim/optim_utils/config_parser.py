@@ -11,6 +11,8 @@ import os
 from typing import Dict, Any, Tuple
 import numpy as np
 
+from myoassist_utils.env_spec import slope_deg_from_terrain
+
 
 def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
     """
@@ -57,7 +59,6 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
 
         patterns = {
             "--sim_time": (r"--sim_time\s+(\d+)", int),
-            "--tgt_slope": (r"--tgt_slope\s+([\d.-]+)", float),
             "--delayed": (r"--delayed\s+(\d+)", int),
             "--ExoOn": (r"--ExoOn\s+(\d+)", int),
             "--n_points": (r"--n_points\s+(\d+)", int),
@@ -80,8 +81,6 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                 # Map to TestEnv parameter names
                 if param == "--sim_time":
                     config["sim_time"] = value
-                elif param == "--tgt_slope":
-                    config["slope_deg"] = value
                 elif param == "--delayed":
                     config["delayed"] = bool(value)
                 elif param == "--ExoOn":
@@ -116,6 +115,8 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         if config["msk_key"] in msk_to_musc:
             config["leg_model"] = msk_to_musc[config["msk_key"]]
             config["mode"] = "2D" if config["leg_model"] == "22" else "3D"
+        # Terrain is the single source of the course grade; derive slope_deg from it.
+        config["slope_deg"] = slope_deg_from_terrain(config["terrain"])
 
         return config
 
