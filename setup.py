@@ -14,8 +14,21 @@ def read(fname):
 
 
 def fetch_requirements():
+    """Return the PEP 508 requirement strings from requirements.txt.
+
+    Comments, blank lines, pip option lines (``-r``/``-e``/``--``) and bare
+    VCS URLs (``git+https://...``) are skipped: setuptools' ``install_requires``
+    only accepts PEP 508 specifiers, so the git-hosted sibling packages
+    (myo_sim / assist_sim / myoassist.terrains) install via
+    ``pip install -r requirements.txt`` rather than through the wheel metadata.
+    """
+    reqs = []
     with open("requirements.txt", "r", encoding="utf-8", errors="ignore") as f:
-        reqs = f.read().strip().split("\n")
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith(("#", "git+", "-r", "-e", "--")):
+                continue
+            reqs.append(line)
     return reqs
 
 
