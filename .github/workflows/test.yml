@@ -25,20 +25,19 @@ jobs:
         run: ruff check . && ruff format --check .
 
   # The suite needs the composed pipeline (myosuite + SB3 + the git-URL sibling repos), so
-  # it installs the full deps and runs test_setup.py.
+  # it installs the full deps and runs test_setup.py. All three sibling repos
+  # (myo_sim / assist_sim / myoassist.terrains) are public, so the git-URL installs in
+  # requirements.txt resolve on a runner and this runs on both branches.
   #
-  # Restricted to main: requirements.txt installs myoassist.terrains from a git URL that is
-  # not publicly reachable, so this job cannot get past `pip install` on a runner. Enabling
-  # it for `refactor` would only add a permanently red check. Drop the `if:` once terrains
-  # is public (or a deploy key is configured) -- see REPO_ALIGNMENT.md E7.
+  # Matrix mirrors setup.py's python_requires (>=3.11); do not add 3.10 back without
+  # relaxing that floor.
   test:
     name: test_setup (Python ${{ matrix.python-version }})
-    if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
