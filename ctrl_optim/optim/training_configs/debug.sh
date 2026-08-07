@@ -1,7 +1,7 @@
 #!/bin/bash
 exec "$PYTHON_CMD" -m ctrl_optim.optim.train \
-    --musc_model 22 \
-    --model humotech \
+    --msk myolegs22 \
+    --device Humotech_L1 \
     --sim_time 20 \
     --pose_key walk_left \
     --num_strides 5 \

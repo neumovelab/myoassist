@@ -21,36 +21,10 @@ from ctrl_optim.ctrl.exo.npoint_spline_ctrl import NPointSplineController
 
 # Model source: the shared MyoAssist compose pipeline (human MSK + assistive
 # device + terrain -> a loadable MJCF string), and CO's own reach-free env.
+# The env is defined by raw registry keys (``msk_key`` + ``device_key``);
+# ``python -m assist_sim list`` enumerates the valid set.
 from myoassist_utils.compose import compose_env_model
 from ctrl_optim.ctrl.reflex.reflex_env import ReflexEnvV0
-
-
-# CO's ``model`` string -> assist_sim device registry key.  compose always
-# attaches a device, so "baseline"/"tutorial" (no real exo) use the passive
-# Tutorial device; CO zeroes its Exo actuators when ``exo_bool`` is False.
-_CO_DEVICE_MAP = {
-    "baseline": "Tutorial_L1",
-    "tutorial": "Tutorial_L1",
-    "default": "Tutorial_L1",
-    "dephy": "DephyExoBoot_L1",
-    "humotech": "Humotech_L1",
-    "hmedi": "HMEDI_L1",
-    "openexo": "OpenExo_L1",
-    "osl": "OpenSourceLeg_A_L1",
-}
-
-
-def _resolve_compose_keys(model, mode, msk_key=None, device_key=None):
-    """Map CO's ``model``/``mode`` args to compose ``(msk_key, device_key)``.
-
-    Explicit ``msk_key``/``device_key`` win; otherwise ``mode`` picks the MSK
-    (2D -> myolegs22, 3D -> myolegs26) and ``model`` picks the device.
-    """
-    if msk_key is None:
-        msk_key = "myolegs22" if mode == "2D" else "myolegs26"
-    if device_key is None:
-        device_key = _CO_DEVICE_MAP.get((model or "default").lower(), "Tutorial_L1")
-    return msk_key, device_key
 
 
 class myoLeg_reflex(object):
@@ -159,11 +133,10 @@ class myoLeg_reflex(object):
         use_4param_spline=False,
         fixed_exo=False,
         max_torque=10.0,
-        model="default",
-        model_path=None,
         leg_model=None,
         msk_key=None,
         device_key=None,
+        terrain=None,
     ):
 
         self.dt = dt
@@ -172,7 +145,6 @@ class myoLeg_reflex(object):
         self.use_4param_spline = use_4param_spline
         self.fixed_exo = fixed_exo
         self.max_torque = max_torque
-        self.model = model
         self.leg_model = leg_model
 
         # Initialize spline_params to 0 by default when exo is disabled
@@ -245,12 +217,18 @@ class myoLeg_reflex(object):
                 "(deferred to D5)."
             )
 
-        # Model source: compose human MSK + assistive device (flat ground) into a
-        # loadable MJCF string via the shared pipeline (replaces the deleted
-        # models/ tree + resolve_model_path).  ``model``/``mode`` map to keys;
-        # explicit msk_key/device_key override.
-        self.msk_key, self.device_key = _resolve_compose_keys(model, mode, msk_key, device_key)
-        model_xml = compose_env_model(self.msk_key, self.device_key, terrain=None)
+        # Model source: compose human MSK + assistive device (+ terrain) into a
+        # loadable MJCF string via the shared pipeline.  The env is defined by raw
+        # registry keys -- ``python -m assist_sim list`` enumerates the valid set.
+        if not msk_key or not device_key:
+            raise ValueError(
+                "myoLeg_reflex requires explicit msk_key and device_key (raw assist_sim "
+                f"registry keys); got msk_key={msk_key!r}, device_key={device_key!r}. "
+                "See `python -m assist_sim list` for the valid keys."
+            )
+        self.msk_key = msk_key
+        self.device_key = device_key
+        model_xml = compose_env_model(self.msk_key, self.device_key, terrain=terrain)
 
         # Determine movement dimension from mode
         mvt_dim = 2 if mode == "2D" else 3

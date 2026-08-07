@@ -237,7 +237,8 @@ class SetupTester:
                 slope_deg=0,
                 delayed=True,
                 exo_bool=False,
-                model="tutorial",
+                msk_key="myolegs22",
+                device_key="Tutorial_L1",
             )
 
             env.reset()

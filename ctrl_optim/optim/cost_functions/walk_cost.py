@@ -78,11 +78,10 @@ def func_Walk_FitCost(
             use_4param_spline=env_dict["use_4param_spline"],
             fixed_exo=env_dict["fixed_exo"],
             max_torque=env_dict["max_torque"],
-            model=env_dict["model"],
-            model_path=env_dict["model_path"],
             leg_model=env_dict["leg_model"],
             msk_key=env_dict.get("msk_key"),
             device_key=env_dict.get("device_key"),
+            terrain=env_dict.get("terrain"),
         )
     else:
         raise ValueError(f"Unsupported leg model: {env_dict['leg_model']}")

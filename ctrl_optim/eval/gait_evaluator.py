@@ -35,12 +35,12 @@ class CtrlOptimEvalConfig:
     fixed_exo: bool = False
     use_4param_spline: bool = True
     max_torque: float = 1.0
-    model: str = "tutorial"
     n_points: int = 4
-    # Compose keys (optional): override the model/mode -> (msk_key, device_key)
-    # mapping myoLeg_reflex derives by default. Leave null to use the mapping.
-    msk_key: Optional[str] = None
-    device_key: Optional[str] = None
+    # Composed env: raw assist_sim registry keys (see `python -m assist_sim list`).
+    msk_key: str = "myolegs22"
+    device_key: str = "Tutorial_L1"
+    # Terrain: a myoassist_terrains JSON path, an inline config dict, or None (flat).
+    terrain: str | dict | None = None
     # Camera + render
     camera_speed: Optional[float] = None  # defaults to target_velocity
     camera_distance: float = 3.5
@@ -76,10 +76,10 @@ class CtrlOptimGaitEvaluator:
             fixed_exo=cfg.fixed_exo,
             use_4param_spline=cfg.use_4param_spline,
             max_torque=cfg.max_torque,
-            model=cfg.model,
             n_points=cfg.n_points,
             msk_key=cfg.msk_key,
             device_key=cfg.device_key,
+            terrain=cfg.terrain,
         )
         env.reset()
 

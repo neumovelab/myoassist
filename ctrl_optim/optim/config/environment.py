@@ -5,8 +5,59 @@ This module contains functions for creating and managing environment
 configurations used in the optimization process.
 """
 
-from typing import Dict, Any
 import argparse
+import json
+from typing import Any, Dict
+
+from myoassist_utils.env_spec import EnvSpec
+
+
+def resolve_env_spec(args: argparse.Namespace) -> EnvSpec:
+    """Resolve the composed-env spec from --env-spec + the raw --msk / --device /
+    --terrain flags (flags override the file), validate it, and backfill
+    ``args.msk`` / ``args.device`` / ``args.terrain`` / ``args.musc_model`` so the
+    rest of the CLI (bounds, control-mode, exo guards) can rely on them.  Idempotent.
+    """
+    # The composed env is defined by the shared {msk, device, terrain} spec: an
+    # --env-spec JSON, overridden by the raw --msk / --device / --terrain flags.
+    if getattr(args, "env_spec", None):
+        spec = EnvSpec.load(args.env_spec)
+    else:
+        spec = EnvSpec(msk=None, device=None, terrain=None)
+    if getattr(args, "msk", None):
+        spec.msk = args.msk
+    if getattr(args, "device", None):
+        spec.device = args.device
+    if getattr(args, "terrain", None) is not None:
+        terrain = args.terrain
+        # An inline JSON string becomes a config dict; otherwise it is a path.
+        if isinstance(terrain, str) and terrain.strip().startswith("{"):
+            terrain = json.loads(terrain)
+        spec.terrain = terrain
+    if not spec.msk or not spec.device:
+        raise ValueError(
+            "An MSK and device are required: pass --env-spec <file>, or "
+            "--msk <key> --device <key> (see `python -m assist_sim list`)."
+        )
+    spec.validate()
+
+    # Derive the muscle model from the MSK key.  An explicit --musc_model must agree.
+    msk_to_musc = {"myolegs22": "22", "myolegs26": "26"}
+    musc_model = msk_to_musc.get(spec.msk)
+    if musc_model is None:
+        raise ValueError(f"MSK {spec.msk!r} has no muscle-model mapping; expected one of {sorted(msk_to_musc)}.")
+    if getattr(args, "musc_model", None) and args.musc_model != musc_model:
+        raise ValueError(
+            f"--musc_model {args.musc_model!r} conflicts with MSK {spec.msk!r} (implies {musc_model!r}). "
+            "Omit --musc_model to derive it from --msk."
+        )
+
+    # Backfill so downstream args-based code (bounds, control-mode) sees resolved values.
+    args.msk = spec.msk
+    args.device = spec.device
+    args.terrain = spec.terrain
+    args.musc_model = musc_model
+    return spec
 
 
 def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
@@ -19,41 +70,21 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Environment configuration dictionary
     """
-    # Set up unified flag based on reflex mode
-    if args.musc_model == "leg_80":
-        # Default to unified if not specified
-        if args.reflex_mode is None:
-            reflex_mode = "uni"
-        else:
-            reflex_mode = args.reflex_mode
+    spec = resolve_env_spec(args)
+    musc_model = args.musc_model
+    flag_ctrl_mode = "2D" if musc_model == "22" else "3D"
 
-        isUnified = reflex_mode == "uni"
-    else:
-        # For 11-muscle model, unified is not applicable
-        isUnified = False
-
-    # Set control mode based on muscle model
-    if args.musc_model in ["22"]:
-        flag_ctrl_mode = "2D"
-    elif args.musc_model in ["26", "80"]:
-        flag_ctrl_mode = "3D"
-    else:
-        raise ValueError(f"Invalid muscle model: {args.musc_model}")
-
-    # Set up exoskeleton flag
     exo_bool = args.ExoOn == 1
-
-    # Set up delayed flag
     delayed = args.delayed == 1
 
     # Create environment dictionary
     env_dict = {
-        "leg_model": args.musc_model,
+        "leg_model": musc_model,
         "init_pose": args.pose_key,
         "mode": flag_ctrl_mode,
         "sim_time": args.sim_time,
         "seed": 0,  # Fixed seed for reproducibility
-        "unified": isUnified,
+        "unified": False,  # only the (unsupported) 80-muscle model uses unified
         "slope_deg": args.tgt_slope,
         "delayed": delayed,
         "exo_bool": exo_bool,
@@ -61,12 +92,9 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "use_4param_spline": args.use_4param_spline,
         "fixed_exo": args.fixed_exo,
         "max_torque": args.max_torque,
-        "model": args.model,
-        "model_path": args.model_path,
-        # Optional explicit compose keys; None -> myoLeg_reflex derives from
-        # model/mode. getattr keeps this robust to parsers lacking the args.
-        "msk_key": getattr(args, "msk_key", None),
-        "device_key": getattr(args, "device_key", None),
+        "msk_key": spec.msk,
+        "device_key": spec.device,
+        "terrain": spec.terrain,
     }
 
     return env_dict
