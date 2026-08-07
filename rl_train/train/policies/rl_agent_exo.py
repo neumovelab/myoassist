@@ -9,10 +9,10 @@ import torch as th
 import rl_train.train.train_configs.config as myoassist_config
 from rl_train.train.policies.network_index_handler import NetworkIndexHandler
 from rl_train.train.train_configs.config_imiatation_exo import ExoImitationTrainSessionConfig
-
-torch.autograd.set_detect_anomaly(True)
-
 from rl_train.train.policies.rl_agent_base import BasePPOCustomNetwork, BaseCustomActorCriticPolicy
+
+# Runtime autograd flag, read during backward -- unaffected by import order.
+torch.autograd.set_detect_anomaly(True)
 
 
 class CustomNetworkHumanExo(BasePPOCustomNetwork):

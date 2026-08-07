@@ -132,7 +132,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         original_reward_dict = DictionableDataclass.to_dict(env_params.reward_keys_and_weights)
         self.rwd_keys_wt = {}
         for key, value in original_reward_dict.items():
-            if type(value) == dict:
+            if isinstance(value, dict):
                 weight_sum = sum(value.values())
                 self.rwd_keys_wt[key] = weight_sum
             else:
