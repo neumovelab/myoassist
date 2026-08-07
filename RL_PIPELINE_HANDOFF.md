@@ -151,3 +151,47 @@ Also found: `assist_sim`'s `_COMPATIBLE_MSK_KEYS` gives `myolegs22`/`myolegs26`
 `min_mujoco=(3,3,3)` with an empty `note`, but the 26->22 reduction uses `MjSpec.delete`, which
 needs 3.3.4 -- so the declared floor is understated by one patch and the resulting error reads
 `requires ; installed mujoco is 3.3.0`.
+
+## Analyzer verification (2026-08-07) — the F841 deletions are behaviour-neutral
+
+The F841 pass deleted 25 unused locals inside `rl_train/analyzer/`, judged safe statically (pure
+reads) but not exercised at the time. Closed by A/B comparison against `origin/refactor` on
+identical inputs, in the same interpreter and venv:
+
+| input | segments found | plot functions | PNG bytes |
+|---|---|---|---|
+| real eval rollout (32-timestep policy) | 0 both feet | 3 ok / 6 fail, **identical exception types and messages on both sides** | 5/5 identical |
+| same rollout, foot+toe contact replaced with a 20-frame antiphase square wave | **7 both feet** | **9/9 ok on both sides** | **14/14 identical** |
+
+The synthetic contact run is the one that matters: 0 segments means the segment loops never
+execute, so it cannot exercise the deletions inside them (the `secondary_*` reads in
+`get_gait_segment_index`, the `*_l_data` reads in `joint_angle_by_velocity`). With 7 segments every
+loop runs, and every figure is byte-identical. The 6 failures on real data (`x and y must have same
+first dimension, but have shapes (100,) and (1,)`, and `UnboundLocalError: norm`) are **pre-existing
+on `origin/refactor`** — they are what these functions do when handed a rollout with no gait cycle,
+not fallout from the deletions.
+
+### Two pre-existing defects found while doing this (NOT fixed here)
+Both silently disable parts of RL evaluation on `refactor`; neither is an RL-1/2/3 item and the
+first is in the compose pipeline that `REVIEW_1.md` quarantines to its own pass.
+
+1. **`compose_env_model` drops the offscreen framebuffer size.** Composed models emit `<visual>`
+   with no `<global offwidth/offheight>`, so the framebuffer defaults to 640x480 and replay
+   rendering at 1920x1080 dies with `ValueError: Image width 1920 > framebuffer width 640`, taking
+   the whole training run down from `_analyze_process`. The bundled model this replaced set it
+   explicitly (`models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml` on `dev`:
+   `<global offwidth="1920" offheight="1080"/>`). **RL replay video, and therefore the eval
+   composite built from it, cannot be produced on `refactor` as it stands.** One line in
+   `compose.py`.
+2. **`train_analyzer.py:102` reads `reference_data/segmented.npz`**, missing the `rl_train/`
+   prefix. The file is at `rl_train/reference_data/segmented.npz`, so from the repo root the load
+   raises `FileNotFoundError`, which the surrounding `except` turns into
+   `"Warning: Reference data file not found. Skipping gait analysis."` — **every gait plot is
+   skipped in every training run launched from the repo root**, and the run still reports success
+   with `train_analyzer_report.json` = `{"exceptions": []}`.
+
+### macOS note
+`dm_control._render` only accepts `glfw`/`egl`/`osmesa`; on macOS only glfw is viable, and the
+`glfw` wheel's library probe crashes (`SyntaxError` in `_glfw_get_version`) when no system GLFW is
+present. Point `PYGLFW_LIBRARY` at the wheel's own
+`site-packages/glfw/libglfw.3.dylib` and rendering works. Worth a line in the install docs.
