@@ -1,123 +1,216 @@
+"""RL policy evaluation entry point.
 
-# Parse command line arguments for log_dir
-import sys
-if len(sys.argv) > 1:
-    log_dir = sys.argv[1]
-else:
-    log_dir = ""
+Runs evaluation rollouts for every entry in `session_config.json:evaluate_param_list`
+and produces a unified composite figure per rollout. Replay video is always
+generated (used as the source for the skeleton snapshot). Legacy per-panel PNGs
+are off by default; enable with `--legacy-plots`.
 
-if log_dir == "":
-    log_dir = input("Enter the log directory: ")
-    # log_dir = "docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs" # partial obs
-    # log_dir = "docs/assets/tutorial_rl_models/train_session_20250729-005528_tutorial_full_obs" # Full obs
-show_plot = False
+Usage:
+    python -m rl_train.run_policy_eval <log_dir> [--legacy-plots] [--no-show] [--regen]
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import io
+import json
 import os
+import warnings
 
 import numpy as np
-from rl_train.utils.data_types import DictionableDataclass
-from rl_train.utils.data_types import DictionableDataclass
 
-import os
-from rl_train.utils.train_log_handler import TrainLogHandler
-from rl_train.utils.train_checkpoint_data_imitation import ImitationTrainCheckpointData
-import json
-from rl_train.train.train_configs.config_imitation import ImitationTrainSessionConfig
-from rl_train.utils.data_types import DictionableDataclass
-with open(os.path.join(log_dir, "session_config.json"), 'r') as f:
-    config_dict = json.load(f)
-config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
 
-for (idx, evaluate_param) in enumerate(config.evaluate_param_list):
-    analyze_result_dir = os.path.join(log_dir,f"analyze_results_{idx:02d}")
-    if not os.path.exists(analyze_result_dir):
-        os.makedirs(analyze_result_dir)
+@contextlib.contextmanager
+def _silence_stdout():
+    """Redirect stdout to /dev/null for noisy third-party init blocks. Stderr stays."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        yield
 
-    log_handler = TrainLogHandler(log_dir)
-    log_handler.load_log_data(ImitationTrainCheckpointData)
+
+def _parse_args():
+    p = argparse.ArgumentParser(description="RL policy evaluation.")
+    p.add_argument("log_dir", nargs="?", default=None)
+    p.add_argument("--legacy-plots", action="store_true", help="Also write the legacy per-panel PNGs.")
+    p.add_argument("--no-show", action="store_true", help="Skip the pop-out composite window.")
+    p.add_argument("--regen", action="store_true", help="Regenerate evaluated gait data even if it already exists.")
+    p.add_argument(
+        "--varying",
+        action="store_true",
+        help="Override evaluate_param_list with a single SINUSOIDAL "
+        "varying-speed rollout (0.8-1.4 m/s) and emit the "
+        "speed-tracking composite.",
+    )
+    p.add_argument(
+        "--cmap",
+        choices=("rainbow", "teal", "bluered"),
+        default="rainbow",
+        help="Speed colour map for varying-speed composites.",
+    )
+    return p.parse_args()
+
+
+def main():
+    args = _parse_args()
+    log_dir = args.log_dir or input("Enter the log directory: ")
+    show_composite = not args.no_show
+
+    # Silence the noisy tight_layout warning emitted by some legacy panels.
+    warnings.filterwarnings("ignore", message=".*tight_layout.*")
 
     from rl_train.utils.data_types import DictionableDataclass
-    DictionableDataclass.to_dict(log_handler.log_datas[-1])
-
-    import sys
-    sys.modules.pop('package.train_log_analyzer', None)
-    from rl_train.analyzer.train_log_analyzer import TrainLogAnalyzer
-    train_log_analyzer = TrainLogAnalyzer(log_handler)
-    train_log_analyzer.plot_reward(result_dir=analyze_result_dir, show_plot=show_plot)
-
-
-    
-
-
+    from rl_train.utils.train_log_handler import TrainLogHandler
+    from rl_train.utils.train_checkpoint_data_imitation import ImitationTrainCheckpointData
+    from rl_train.train.train_configs.config_imitation import ImitationTrainSessionConfig
     from rl_train.envs.myoassist_leg_base import MyoAssistLegBase
-
-        
-
-    import sys
+    from rl_train.analyzer.train_log_analyzer import TrainLogAnalyzer
     from rl_train.analyzer.gait_analyze import GaitAnalyzer
-    from rl_train.analyzer.gait_evaluate import GaitData
+    from rl_train.analyzer.gait_evaluate import GaitData, ImitationGaitEvaluator
+    from myoassist_utils.eval_utils import build_composite, CompositeInputs, CMAPS
 
+    with open(os.path.join(log_dir, "session_config.json"), "r") as f:
+        config_dict = json.load(f)
+    config = DictionableDataclass.create(ImitationTrainSessionConfig, config_dict)
 
-    gait_data_name = f"gait_evaluated_data.json"
-    if os.path.exists(os.path.join(analyze_result_dir, gait_data_name)):
-        user_input = input(f"Regenerate evaluate data? ({gait_data_name}) (y/n(anything))")
-    else:
-        user_input = "y"
-    is_regen_evaluating_data = True if user_input == "y" else False
+    if args.varying:
+        base = dict(config.evaluate_param_list[0]) if config.evaluate_param_list else {}
+        base.update(
+            {
+                "velocity_mode": "SINUSOIDAL",
+                "min_target_velocity": 0.8,
+                "max_target_velocity": 1.4,
+                "target_velocity_period": 20.0,
+                "num_timesteps": 1200,
+            }
+        )
+        base.setdefault("cam_distance", 3.0)
+        base.setdefault("cam_type", "follow")
+        base.setdefault("visualize_activation", True)
+        base.setdefault("realtime_plotting_info", [])
+        config.evaluate_param_list = [base]
+        print("  --varying: SINUSOIDAL 0.8-1.4 m/s (period 20 s, 1200 steps)")
 
-    from rl_train.analyzer.gait_evaluate import ImitationGaitEvaluator
-    gait_evaluator: ImitationGaitEvaluator = ImitationGaitEvaluator(log_handler, config)
-    gait_evaluator.load_reference_data()
-    gait_evaluator.initialize_env()
-    if is_regen_evaluating_data:
-        gait_data_path = gait_evaluator.evaluate(result_dir=analyze_result_dir,
-                                                file_name=gait_data_name,
-                                                velocity_mode=MyoAssistLegBase.VelocityMode[evaluate_param["velocity_mode"]],
-                                                target_velocity_period=evaluate_param["target_velocity_period"],
-                                                max_timestep=evaluate_param["num_timesteps"],
-                                                min_target_velocity=evaluate_param["min_target_velocity"],
-                                                max_target_velocity=evaluate_param["max_target_velocity"],
-                                                terminate_when_done=True
-                                                )
-    else:
+    print("=" * 60)
+    print("RL Policy Evaluation")
+    print("=" * 60)
+    print(f"Log dir:       {log_dir}")
+    print(f"Rollouts:      {len(config.evaluate_param_list)}")
+    print(f"Composite:     enabled (show={show_composite})")
+    print(f"Legacy plots:  {'enabled' if args.legacy_plots else 'disabled'}")
+    print("=" * 60)
+
+    for idx, evaluate_param in enumerate(config.evaluate_param_list):
+        analyze_result_dir = os.path.join(log_dir, f"analyze_results_{idx:02d}")
+        os.makedirs(analyze_result_dir, exist_ok=True)
+        print(f"\n[Rollout {idx + 1}/{len(config.evaluate_param_list)}] -> {analyze_result_dir}")
+
+        log_handler = TrainLogHandler(log_dir)
+        log_handler.load_log_data(ImitationTrainCheckpointData)
+
+        if args.legacy_plots:
+            TrainLogAnalyzer(log_handler).plot_reward(result_dir=analyze_result_dir, show_plot=False)
+
+        gait_data_name = "gait_evaluated_data.json"
         gait_data_path = os.path.join(analyze_result_dir, gait_data_name)
+        is_regen = args.regen or not os.path.exists(gait_data_path)
 
-    gait_data = GaitData()
-    gait_data.read_json_data(gait_data_path)
-    segmented_ref_data = np.load("rl_train/reference_data/segmented.npz", allow_pickle=True)
-    segmented_ref_data = {key: segmented_ref_data[key] for key in segmented_ref_data.files}
+        with _silence_stdout():
+            gait_evaluator = ImitationGaitEvaluator(log_handler, config)
+            gait_evaluator.load_reference_data()
+            gait_evaluator.initialize_env()
+            if is_regen:
+                gait_data_path = gait_evaluator.evaluate(
+                    result_dir=analyze_result_dir,
+                    file_name=gait_data_name,
+                    velocity_mode=MyoAssistLegBase.VelocityMode[evaluate_param["velocity_mode"]],
+                    target_velocity_period=evaluate_param["target_velocity_period"],
+                    max_timestep=evaluate_param["num_timesteps"],
+                    min_target_velocity=evaluate_param["min_target_velocity"],
+                    max_target_velocity=evaluate_param["max_target_velocity"],
+                    terminate_when_done=True,
+                )
+
+        gait_data = GaitData()
+        gait_data.read_json_data(gait_data_path)
+        segmented_ref = np.load("rl_train/reference_data/segmented.npz", allow_pickle=True)
+        segmented_ref_data = {k: segmented_ref[k] for k in segmented_ref.files}
+
+        replay_path = os.path.join(analyze_result_dir, "replay.mp4")
+        with _silence_stdout():
+            gait_evaluator.replay(
+                gait_data_path,
+                replay_path,
+                cam_distance=evaluate_param["cam_distance"],
+                use_activation_visualization=evaluate_param["visualize_activation"],
+                cam_type=evaluate_param["cam_type"],
+                realtime_plotting_info=evaluate_param.get("realtime_plotting_info", []),
+                video_fps=config.env_params.control_framerate,
+            )
+        print(f"  Replay saved to {replay_path}")
+
+        gait_analyzer = GaitAnalyzer(gait_data, segmented_ref_data, show_plot=False)
+        if len(gait_analyzer.get_gait_segment_index(is_right_foot_based=True)) < 1:
+            print("  Warning: not enough gait data to plot — skipping composite.")
+            continue
+
+        if args.legacy_plots:
+            with _silence_stdout():
+                gait_analyzer.plot_entire_result(result_dir=analyze_result_dir, is_right_foot_based=True)
+                gait_analyzer.plot_exo_segmented_data(result_dir=analyze_result_dir)
+                gait_analyzer.plot_segmented_kinematics_result(result_dir=analyze_result_dir)
+                gait_analyzer.plot_left_right_comparison(result_dir=analyze_result_dir)
+                gait_analyzer.plot_right_ref_comparison(result_dir=analyze_result_dir)
+                gait_analyzer.plot_segmented_muscle_data(result_dir=analyze_result_dir, is_plot_right=True)
+                gait_analyzer.joint_angle_by_velocity(result_dir=analyze_result_dir)
+
+        # Fresh wide-aspect snapshot rendered directly from the env (no cropping)
+        skeleton_frame = None
+        try:
+            with _silence_stdout():
+                skeleton_frame = gait_evaluator.render_snapshot(
+                    gait_data_path,
+                    cam_distance=evaluate_param["cam_distance"],
+                )
+        except Exception as e:
+            print(f"  Warning: snapshot render failed: {e}")
+
+        time_steps_curve = [d.num_timesteps for d in log_handler.log_datas]
+        returns_curve = [d.average_reward_per_episode for d in log_handler.log_datas]
+
+        metadata = {
+            "Model checkpoint": os.path.basename(log_handler.get_path2save_model(log_handler.log_datas[-1].num_timesteps)),
+            "Env ID": config.env_params.env_id,
+            "Total timesteps": f"{log_handler.log_datas[-1].num_timesteps:,}",
+            "Eval timesteps": str(evaluate_param["num_timesteps"]),
+            "Velocity mode": evaluate_param["velocity_mode"],
+            "Target velocity": f"{evaluate_param['min_target_velocity']:.2f}–{evaluate_param['max_target_velocity']:.2f} m/s",
+        }
+
+        # Varying-speed rollout -> speed-aware composite (per-stride teal kinematics
+        # + speed-tracking / cadence / step-length row).
+        is_varying = (
+            evaluate_param["velocity_mode"] != "UNIFORM"
+            or evaluate_param["min_target_velocity"] != evaluate_param["max_target_velocity"]
+        )
+
+        composite_path = os.path.join(analyze_result_dir, "composite.png")
+        build_composite(
+            CompositeInputs(
+                gait_data=gait_data,
+                skeleton_frame=skeleton_frame,
+                ref_data=segmented_ref_data,
+                return_curve=(time_steps_curve, returns_curve),
+                title=os.path.basename(log_dir),
+                metadata=metadata,
+            ),
+            save_path=composite_path,
+            show=show_composite,
+            speed_varying=is_varying,
+            fs=config.env_params.control_framerate,
+            cmap=CMAPS[args.cmap],
+        )
 
 
-    gait_evaluator.replay(gait_data_path, os.path.join(analyze_result_dir, "replay.mp4"),
-                                                cam_distance=evaluate_param["cam_distance"],
-                                                # max_time_step=evaluate_param["num_timesteps"],
-                                                use_activation_visualization=evaluate_param["visualize_activation"],
-                                                cam_type=evaluate_param["cam_type"],
-                                                realtime_plotting_info=evaluate_param.get("realtime_plotting_info", []),
-                                                video_fps=config.env_params.control_framerate
-                                                )
-
-    gait_analyzer = GaitAnalyzer(gait_data, segmented_ref_data, show_plot)
-
-
-    if len(gait_analyzer.get_gait_segment_index(is_right_foot_based=True)) < 1:
-        print("="*10 + "Warning" + "="*10)
-        print("Warning! Not enough gait data to plot. Skipping plotting.")
-        print("="*10 + "Warning" + "="*10)
-
-        continue
-
-
-    gait_analyzer.plot_entire_result(result_dir=analyze_result_dir,is_right_foot_based=True)
-
-    gait_analyzer.plot_exo_segmented_data(result_dir=analyze_result_dir)
-
-    gait_analyzer.plot_segmented_kinematics_result(result_dir=analyze_result_dir)
-
-    gait_analyzer.plot_left_right_comparison(result_dir=analyze_result_dir)
-
-    gait_analyzer.plot_right_ref_comparison(result_dir=analyze_result_dir)
-
-    gait_analyzer.plot_segmented_muscle_data(result_dir=analyze_result_dir, is_plot_right=True)
-
-
-    gait_analyzer.joint_angle_by_velocity(result_dir=analyze_result_dir)
+if __name__ == "__main__":
+    main()

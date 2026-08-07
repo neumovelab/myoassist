@@ -1,18 +1,6 @@
----
-title: Controller Optimization
-nav_order: 5
-has_children: true
-layout: home
----
-
 # Controller Optimization
 
 **Reflex-based controller for assistive devices using parameter optimization**
-
-<div style="text-align: center;">
-  <img src="../assets/exo_vis_r.gif" alt="Controller Optimization Demo" style="max-width: 75%; height: auto;">
-  <!-- <div>Controller Optimization Demo</div> -->
-</div>
 
 Controller optimization in MyoAssist enables optimization of a reflex-based musculoskeletal model controller combined with exoskeleton controllers. Using CMA-ES (Covariance Matrix Adaptation Evolution Strategy), this framework can produce controllers that achieve diverse performance objectives.
 
@@ -22,7 +10,7 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
 2. **Define Objectives**: Specify environment configuration, cost functions, and optimization criteria
 3. **Optimize**: Run CMA-ES optimization to find optimal controller parameters
 4. **Monitor Progress**: Track CMA-ES progress and output cost values
-4. **Analyze Results**: Evaluate results and visualize performance
+5. **Analyze Results**: Evaluate results and visualize performance
 
 ## Key Features
 
@@ -42,18 +30,18 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
     <h4>Getting Started</h4>
     <p>Learn the basics of reflex control and start your first optimization</p>
     <ul>
-      <li><a href="Running_Reflex_Control">Running Reflex Control</a></li>
-      <li><a href="Running_Optimizations">Running Optimizations</a></li>
-      <li><a href="Evaluating_Results">Result Evaluation</a></li>
+      <li><a href="Running_Reflex_Control.md">Running Reflex Control</a></li>
+      <li><a href="Running_Optimizations.md">Running Optimizations</a></li>
+      <li><a href="Evaluating_Results.md">Result Evaluation</a></li>
     </ul>
   </div>
   <div style="flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
     <h4>Additional Topics and Tools</h4>
     <p>Customize cost functions and analyze optimization results</p>
     <ul>
-      <li><a href="Exoskeleton_Controllers">Exoskeleton Controllers</a></li>
-      <li><a href="Understanding_Cost">Cost Functions</a></li>
-      <li><a href="Reflex_Control_Overview">Reflex Control</a></li>
+      <li><a href="Exoskeleton_Controllers.md">Exoskeleton Controllers</a></li>
+      <li><a href="Understanding_Cost.md">Cost Functions</a></li>
+      <li><a href="Reflex_Control_Overview.md">Reflex Control</a></li>
     </ul>
   </div>
 </div>

@@ -1,10 +1,3 @@
----
-title: Running Reflex Control
-parent: Controller Optimization
-nav_order: 1
-layout: home
----
-
 # Running Reflex Control
 
 This document explains how to run the reflex controller using the MyoAssist framework. There are two main scripts available:
@@ -34,11 +27,15 @@ Walking duration will vary each time `run_ctrl_minimal.py` is rerun since the pa
 
 The script uses these default settings:
 - **Simulation time**: 5 seconds
-- **Model**: `tutorial` (2D model)
+- **MSK model**: `myolegs22` (22-muscle 2D lower limb)
+- **Device**: `Tutorial_L1`
 - **Initial pose**: `walk_left`
 - **Slope**: 0 degrees (flat ground)
 - **Exoskeleton**: Disabled
 - **Control parameters**: Random normal distribution
+
+The environment is composed from `msk_key` / `device_key` (and an optional
+`terrain`) — see **[Defining an Environment](../getting-started/defining-an-environment.md)**.
 
 ### Output
 
@@ -80,14 +77,19 @@ To create a new simulation from scratch:
 LOAD_FROM_FILE = False
 
 # Manual settings:
-SIMULATION_TIME = 5      # seconds
-SLOPE_DEG = 0           # terrain slope in degrees
-MODEL = "tutorial"       # Options: tutorial, dephy, hmedi, humotech, osl, baseline
-EXO_BOOL = False        # Enable/disable exoskeleton
-USE_4PARAM_SPLINE = False # Use 4-parameter spline for exoskeleton
-N_POINTS = 4            # Number of points for n-point spline
-MAX_TORQUE = 100        # Maximum exoskeleton torque
+SIMULATION_TIME = 5       # seconds
+SLOPE_DEG = 0             # env slope in degrees
+MSK_KEY = "myolegs22"     # human MSK registry key (see `python -m assist_sim list`)
+DEVICE_KEY = "Tutorial_L1"  # assist_sim device key
+EXO_BOOL = True           # Enable/disable exoskeleton
+USE_4PARAM_SPLINE = True  # Use 4-parameter spline for exoskeleton
+N_POINTS = 4              # Number of points for n-point spline
+MAX_TORQUE = 100          # Maximum exoskeleton torque
 ```
+
+Run `python -m assist_sim list` for the valid MSK / device keys and their
+compatibility. See **[Defining an Environment](../getting-started/defining-an-environment.md)**
+for the full env-spec.
 
 ### Environment Initialization
 
@@ -108,9 +110,9 @@ else:
     # Use manual settings
     config = {
         'mode': '2D', 'init_pose': 'walk_left', 'delayed': False,
-        'slope_deg': SLOPE_DEG, 'model': MODEL, 'exo_bool': EXO_BOOL,
-        'use_4param_spline': USE_4PARAM_SPLINE, 'n_points': N_POINTS,
-        'max_torque': MAX_TORQUE
+        'slope_deg': SLOPE_DEG, 'msk_key': MSK_KEY, 'device_key': DEVICE_KEY,
+        'exo_bool': EXO_BOOL, 'use_4param_spline': USE_4PARAM_SPLINE,
+        'n_points': N_POINTS, 'max_torque': MAX_TORQUE
     }
     
     # Calculate control parameters
@@ -149,12 +151,12 @@ Simulation completed successfully!
 
 ### Common Issues
 
-1. **Video not generating**: Ensure `skvideo.io` is installed:
+1. **Video not generating**: Video export uses `imageio` with an ffmpeg backend. Ensure it is installed:
    ```bash
-   pip install sk-video
+   pip install imageio imageio-ffmpeg
    ```
 
-2. **Model not found**: Check that the specified model exists in the `models/` directory
+2. **Model / device not found**: Environments are composed from registry keys, not bundled `models/` files. Run `python -m assist_sim list` to see valid `msk_key` / `device_key` values (see **[Defining an Environment](../getting-started/defining-an-environment.md)**).
 
 3. **Parameter file not found**: Verify the path to your optimization results file
 

@@ -1,37 +1,28 @@
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 
-from abc import ABC, abstractmethod
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.distributions import DiagGaussianDistribution
-from typing import Any, ClassVar, Optional, TypeVar, Union
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule, TensorDict
 
 from gymnasium import spaces
 import torch as th
-from torch import nn
-from typing import Callable, Tuple
 
-import gymnasium as gym
 
-from rl_train.utils.data_types import DictionableDataclass
 import rl_train.train.train_configs.config as myoassist_config
 from rl_train.train.policies.network_index_handler import NetworkIndexHandler
 from rl_train.train.train_configs.config_imiatation_exo import ExoImitationTrainSessionConfig
-import torch
-torch.autograd.set_detect_anomaly(True)
-
 from rl_train.train.policies.rl_agent_base import BasePPOCustomNetwork, BaseCustomActorCriticPolicy
 
-class CustomNetworkHumanExo(BasePPOCustomNetwork):
-    def __init__(self, observation_space: spaces.Space,
-                    action_space: spaces.Space,
-                    custom_policy_params: ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams,
-                ):
-        super().__init__(observation_space, action_space, custom_policy_params)
+# Runtime autograd flag, read during backward -- unaffected by import order.
+torch.autograd.set_detect_anomaly(True)
 
+
+class CustomNetworkHumanExo(BasePPOCustomNetwork):
+    def __init__(
+        self,
+        observation_space: spaces.Space,
+        action_space: spaces.Space,
+        custom_policy_params: ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams,
+    ):
+        super().__init__(observation_space, action_space, custom_policy_params)
 
     def forward_actor(self, obs: th.Tensor) -> th.Tensor:
         human_obs = self.network_index_handler.map_observation_to_network(obs, "human_actor")
@@ -45,7 +36,7 @@ class CustomNetworkHumanExo(BasePPOCustomNetwork):
     def forward_critic(self, obs: th.Tensor) -> th.Tensor:
         value_obs = self.network_index_handler.map_observation_to_network(obs, "common_critic")
         return self.value_net(value_obs)
-    
+
     def reset_policy_networks(self):
         self.network_index_handler = NetworkIndexHandler(self.net_indexing_info, self.observation_space, self.action_space)
         layers = []
@@ -60,41 +51,43 @@ class CustomNetworkHumanExo(BasePPOCustomNetwork):
         layers.append(nn.Tanh())
         self.human_policy_net = nn.Sequential(*layers)
 
-
         layers = []
         last_dim = self.network_index_handler.get_observation_num("exo_actor")
-        
+
         for dim in self.net_arch["exo_actor"]:
             layers.append(nn.Linear(last_dim, dim))
             layers.append(nn.Tanh())
             last_dim = dim
-            
 
         layers.append(nn.Linear(last_dim, self.network_index_handler.get_action_num("exo_actor")))
         layers.append(nn.Tanh())
         self.exo_policy_net = nn.Sequential(*layers)
+
     def reset_value_network(self):
         value_layers = []
         value_last_dim = self.network_index_handler.get_observation_num("common_critic")
-        
+
         for dim in self.net_arch["common_critic"]:
             value_layers.append(nn.Linear(value_last_dim, dim))
             value_layers.append(nn.Tanh())
             value_last_dim = dim
-            
+
         value_layers.append(nn.Linear(value_last_dim, 1))
-        
+
         self.value_net = nn.Sequential(*value_layers)
+
 
 class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
     def _get_custom_policy_type(self):
         return ExoImitationTrainSessionConfig.PolicyParams.CustomPolicyParams
-    def _build_policy_network(self, observation_space: spaces.Space,
-                              action_space: spaces.Space,
-                              custom_policy_params: myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams) -> BasePPOCustomNetwork:
-        return CustomNetworkHumanExo(observation_space,
-                                    action_space,
-                                    custom_policy_params)
+
+    def _build_policy_network(
+        self,
+        observation_space: spaces.Space,
+        action_space: spaces.Space,
+        custom_policy_params: myoassist_config.TrainSessionConfigBase.PolicyParams.CustomPolicyParams,
+    ) -> BasePPOCustomNetwork:
+        return CustomNetworkHumanExo(observation_space, action_space, custom_policy_params)
 
     # --------------------------------------------------
     # Override forward to mask EXO actions when disabled
@@ -125,8 +118,6 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
 
         actions = distribution.get_actions(deterministic=deterministic)
 
-        info = self.policy_network.network_index_handler.net_indexing_info
- 
         # ------------------------
         # Mask invalid action slots
         # ------------------------
@@ -142,7 +133,6 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
             self._valid_indices_disabled_exo = sorted(set(self._human_indices))
             self._cached_indices_ready = True
 
-
         # mask default value
         human_obs = self.policy_network.network_index_handler.map_observation_to_network(obs, "human_actor")
         exo_obs = self.policy_network.network_index_handler.map_observation_to_network(obs, "exo_actor")
@@ -157,7 +147,7 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
         #     all_indices = th.arange(self.action_space.shape[0], device=actions.device)
         #     mask = ~th.isin(all_indices, th.tensor(valid_indices, device=actions.device))
         #     actions[..., mask] = info["exo_actor"]["default_value"]
- 
+
         log_prob = distribution.log_prob(actions)
         return actions, value, log_prob
 
@@ -175,11 +165,12 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
             elif mapping["type"] == "index_mapping":
                 idxs.append(mapping["index"])
         return sorted(idxs)
+
     def reset_network(self, reset_shared_net: bool = False, reset_policy_net: bool = False, reset_value_net: bool = False):
         """Reset the networks if specified"""
         if reset_policy_net:
-            print(f"Resetting policy network")
+            print("Resetting policy network")
             self.policy_network.reset_policy_networks()
         if reset_value_net:
-            print(f"Resetting value network")
+            print("Resetting value network")
             self.policy_network.reset_value_network()

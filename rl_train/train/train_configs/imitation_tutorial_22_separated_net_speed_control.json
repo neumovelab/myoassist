@@ -48,23 +48,14 @@
             "pelvis_tilt",
             "pelvis_tx", "pelvis_ty"
         ],
-        "observation_sensor_keys": [
+        "observation_joint_sensor_keys": [
             "r_foot", "l_foot", "r_toes", "l_toes"
         ],
 
-        "joint_limit_sensor_keys": [
-            "r_knee_sensor",
-            "l_knee_sensor",
-            "r_hip_sensor",
-            "l_hip_sensor",
-            "r_ankle_sensor",
-            "l_ankle_sensor",
-            "r_mtp_sensor",
-            "l_mtp_sensor"
-        ],
+        "msk_key": "myolegs22",
+        "device_key": "Tutorial_L1",
+        "terrain": null,
 
-        "terrain_type": "flat",
-        
         "reward_keys_and_weights": {
             "qpos_imitation_rewards": {
                 "pelvis_ty": 0.0,
@@ -100,7 +91,6 @@
             "foot_force_penalty": 0.1
         },
         "custom_max_episode_steps": 1000,
-        "model_path": "models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml",
         "reference_data_path": "rl_train/reference_data/short_reference_gait.npz",
         "reference_data_keys": ["ankle_angle_l", "ankle_angle_r",
                                 "hip_flexion_l", "hip_flexion_r",

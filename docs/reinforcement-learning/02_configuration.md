@@ -1,10 +1,3 @@
----
-title: RL Configuration
-parent: Reinforcement Learning
-nav_order: 2
-layout: home
----
-
 # RL Configuration
 
 Configuration files define training parameters for reinforcement learning experiments. The system uses JSON files that are converted to dataclasses for easy access.
@@ -33,7 +26,7 @@ This example overrides two configuration parameters via the command line:
 
 ### Default Configuration Files
 
-Configuration files are located in `myoassist_rl/rl_train/train_configs/`:
+Configuration files are located in `rl_train/train/train_configs/`:
 
 - `imitation_tutorial_22_separated_net_partial_obs.json` - Imitation learning using the "TUTORIAL" model, which provides only ankle angle and velocity to the exo
 - `imitation_tutorial_22_separated_net_full_obs.json` - Full Exo observation imitation
@@ -95,11 +88,12 @@ TrainSessionConfigBase
 | `lumbar_joint_damping_value` | Lumbar joint damping value | 0.05 |
 | `observation_joint_pos_keys` | Joint position observation keys | ["ankle_angle_l", "hip_flexion_l"] |
 | `observation_joint_vel_keys` | Joint velocity observation keys | ["ankle_angle_l", "hip_flexion_l"] |
-| `observation_joint_limit_sensor_keys` | Joint limit sensor observation keys | ["r_foot", "l_foot"] |
-| `terrain_type` | Terrain type (flat, random, harmonic_sinusoidal, slope, dev) | "flat" |
-| `terrain_params` | Terrain parameters (space-separated values) | "0.1 20" |
+| `observation_joint_sensor_keys` | Joint sensor observation keys | ["r_foot", "l_foot"] |
+| `msk_key` | Human MSK model key, composed with `device_key` (see [Defining an Environment](../getting-started/defining-an-environment.md)) | "myolegs22" |
+| `device_key` | Assistive device key | "Humotech_L1" |
+| `terrain` | A `myoassist_terrains` JSON path or inline config (e.g. `{"terrain":"slope","deg":8}`); `null` = flat ground | null |
 | `custom_max_episode_steps` | Maximum episode steps | 1000 |
-| `model_path` | MuJoCo model file path | "models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml" |
+| `model_path` | Optional literal MJCF path (escape hatch); leave `null` to compose from `msk_key`/`device_key` | null |
 | `reference_data_path` | Path to reference motion data | "rl_train/reference_data/short_reference_gait.npz" |
 | `reference_data_keys` | Joint keys for reference data | ["ankle_angle_l", "hip_flexion_l"] |
 | `prev_trained_policy_path` | Path to previous trained policy | null |
@@ -154,7 +148,7 @@ TrainSessionConfigBase
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `net_arch` | Network architecture for human actor, exo actor, and common critic | {"human_actor": [64, 64], "exo_actor": [8, 8], "common_critic": [64, 64]} |
-| `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](04_network-index-handler) |
+| `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](04_network-index-handler.md) |
 | `log_std_init` | Initial log standard deviation | 0.0 |
 
 ### Evaluate Parameters
@@ -205,8 +199,8 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 
 ## Related Documentation
 
-- [Terrain Types](03_terrain-types) - Detailed explanation of terrain types and parameters
-- [Network Index Handler](04_network-index-handler) - Network indexing information and structure
+- [Terrain Types](03_terrain-types.md) - Detailed explanation of terrain types and parameters
+- [Network Index Handler](04_network-index-handler.md) - Network indexing information and structure
 
 ## Example Configuration
 

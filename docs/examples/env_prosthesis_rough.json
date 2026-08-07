@@ -1,0 +1,5 @@
+{
+  "msk": "myolegs22",
+  "device": "OpenSourceLeg_A_L1",
+  "terrain": { "terrain": "random", "amplitude": 0.06 }
+}

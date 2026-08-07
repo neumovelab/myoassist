@@ -1,10 +1,3 @@
----
-title: Network Index Handler
-parent: Reinforcement Learning
-nav_order: 4
-layout: home
----
-
 # Network Index Handler
 
 The Network Index Handler enables selective observation input and targeted action output mapping for different networks in multi-actor reinforcement learning systems. This system allows specific networks to receive only relevant parts of the full observation and maps their outputs to specific indices in the action space.
@@ -17,13 +10,10 @@ Network Indexing is essential when working with:
 - **Targeted Action Mapping**: Networks whose outputs should be mapped to specific action indices
 - **Multi-Actor Coordination**: Different actors controlling different parts of the action space
 
-<p align="center">
-  <img src="../assets/multiple_actor_observation.png" alt="Multiple Actor Structure" width="70%">
-</p>
 
 > **Note:**  
 The order of the observation vector can be checked in the `DEFAULT_OBS_KEYS` of the gym environment.([rl_train/envs/](https://github.com/neumovelab/myoassist/tree/main/rl_train/envs/))
-Within this, the order of `qpos` (joint position), `qvel` (joint velocity), and joint/sensor keys can be found in the configuration file (e.g., `observation_joint_pos_keys`, `observation_joint_vel_keys`, `observation_sensor_keys`).  
+Within this, the order of `qpos` (joint position), `qvel` (joint velocity), and joint/sensor keys can be found in the configuration file (e.g., `observation_joint_pos_keys`, `observation_joint_vel_keys`, `observation_joint_sensor_keys`).  
 Each observation component is concatenated, so you can determine the index of each element in the full observation vector.  
 The number of activations corresponds to the number of muscles.
 
@@ -235,9 +225,6 @@ Critic networks only predict a single value (the value function) and do not outp
 Here's a complete example of exoskeleton actor indexing:
 
 **Configuration File**: `imitation_tutorial_22_separated_net_partial_obs.json`
-<p align="center">
-  <img src="../assets/exo_network_indexing_example.png" alt="Exoskeleton network indexing example" width="90%">
-</p>
 
 ```json
 "exo_actor": {

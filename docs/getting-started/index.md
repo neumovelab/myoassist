@@ -1,10 +1,3 @@
----
-title: Getting Started
-nav_order: 2
-has_children: true
-layout: home
----
-
 # Getting Started with MyoAssist
 
 Welcome to MyoAssist! This section will help you get up and running with the framework.

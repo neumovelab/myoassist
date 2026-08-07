@@ -1,10 +1,3 @@
----
-title: Running Optimizations
-parent: Controller Optimization
-nav_order: 2
-layout: home
----
-
 # Running Optimizations
 
 This guide explains how to run optimizations for the neuromuscular reflex controller using the `run_optim.py` script, covering everything from basic configurations to advanced settings.
@@ -60,9 +53,9 @@ The configuration files in `optim/training_configs/` contain the command-line ar
 
 **Example `tutorial.bat`:**
 ```batch
-python -m optim.train ^
-    --musc_model 22 ^
-    --model tutorial ^
+python -m ctrl_optim.optim.train ^
+    --msk myolegs22 ^
+    --device Tutorial_L1 ^
     --sim_time 20 ^
     --pose_key walk_left ^
     --num_strides 5 ^
@@ -70,7 +63,6 @@ python -m optim.train ^
     --optim_mode single ^
     --reflex_mode uni ^
     --tgt_vel 1.25 ^
-    --tgt_slope 0 ^
     --trunk_err_type ref_diff ^
     --tgt_sym_th 0.1 ^
     --tgt_grf_th 1.5 ^
@@ -87,9 +79,9 @@ python -m optim.train ^
 
 **Equivalent `tutorial.sh`:**
 ```bash
-python -m optim.train \
-    --musc_model 22 \
-    --model tutorial \
+python -m ctrl_optim.optim.train \
+    --msk myolegs22 \
+    --device Tutorial_L1 \
     --sim_time 20 \
     --pose_key walk_left \
     --num_strides 5 \
@@ -97,7 +89,6 @@ python -m optim.train \
     --optim_mode single \
     --reflex_mode uni \
     --tgt_vel 1.25 \
-    --tgt_slope 0 \
     --trunk_err_type ref_diff \
     --tgt_sym_th 0.1 \
     --tgt_grf_th 1.5 \
@@ -124,8 +115,13 @@ You can create new configurations by:
 The `train.py` script accepts a wide range of arguments to customize the optimization. Here are the most important ones, grouped by category. For a complete list, refer to `ctrl_optim/optim/config/arg_parser.py`.
 
 ### Model Configuration
-- `--model`: The physical model, primarily used to specify different devices
-- `--musc_model`: The muscle model to use, e.g. 22 muscle for 2D or 26 muscle for 3D
+
+The environment is defined by raw registry keys — see [Defining an Environment](../getting-started/defining-an-environment.md) for the full reference, and run `python -m assist_sim list` for the valid keys.
+
+- `--msk`: human MSK model, e.g. `myolegs22` (2D) or `myolegs26` (3D). The muscle count and 2D/3D control mode are derived from this.
+- `--device`: assistive device, e.g. `Tutorial_L1`, `Humotech_L1`, `DephyExoBoot_L1`.
+- `--terrain`: optional terrain — a `myoassist_terrains` JSON path or an inline config such as `'{"terrain":"slope","deg":8}'`. Omitted → flat ground. (A `slope` terrain *is* the course grade; there is no separate `--tgt_slope`.)
+- `--env-spec`: alternatively, a path to a JSON env-spec (`{msk, device, terrain}`) instead of the three flags above.
 - `--delayed`: Use delayed muscle dynamics. (Default: `False`)
 
 ### Exoskeleton Configuration
@@ -136,7 +132,7 @@ The `train.py` script accepts a wide range of arguments to customize the optimiz
 - `--fixed_exo`: Keep exoskeleton parameters fixed (not optimized).
 
 ### Optimization Target
-- `-eff`, `-vel`, `-kine`, `-combined`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose one that best fits your goal (e.g., minimizing effort, matching a target velocity, or tracking reference kinematics). For more information see (**[Understanding Cost](Understanding_Cost)**).
+- `-eff`, `-vel`, `-kine`, `-combined`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose one that best fits your goal (e.g., minimizing effort, matching a target velocity, or tracking reference kinematics). For more information see (**[Understanding Cost](Understanding_Cost.md)**).
 
 ### Optimizer Settings
 - `--popsize`: The population size for the CMA-ES optimizer (number of solutions per generation).

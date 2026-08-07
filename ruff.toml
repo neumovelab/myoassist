@@ -1,0 +1,17 @@
+# Lint/format config -- mirrors assist_sim / myo_sim / myoassist.terrains so tooling is
+# consistent across the four repos. Notebooks are excluded (author-owned analysis scratch).
+line-length = 128
+extend-exclude = [".claude", "external", "*.ipynb"]
+
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# These modules run a warnings filter / sys.path setup before their imports, so their
+# module-level imports legitimately follow code (E402 is intentional here, not a defect).
+"ctrl_optim/ctrl/reflex/reflex_interface.py" = ["E402"]
+"ctrl_optim/optim/cost_functions/walk_cost.py" = ["E402"]
+"ctrl_optim/optim/train.py" = ["E402"]
+"ctrl_optim/run_ctrl.py" = ["E402"]
+"ctrl_optim/run_ctrl_minimal.py" = ["E402"]

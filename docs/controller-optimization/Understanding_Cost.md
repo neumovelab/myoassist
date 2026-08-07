@@ -1,10 +1,3 @@
----
-title: Cost Functions
-parent: Controller Optimization
-nav_order: 5
-layout: home
----
-
 # Understanding Cost Functions
 
 The heart of any optimization is its objective function—the "cost" that the optimizer tries to minimize. In this framework, there is a multi-stage cost function progression designed to guide the CMA-ES optimizer from a random set of parameters to a controller that produces stable and realistic locomotion.
@@ -12,14 +5,6 @@ The heart of any optimization is its objective function—the "cost" that the op
 ## A Brief Introduction to CMA-ES
 
 The **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)** is a stochastic optimization algorithm well-suited for complex, non-linear problems where the gradient is unavailable. At its core, CMA-ES works by iteratively sampling a "population" of candidate solutions (in our case, sets of controller parameters) from a multivariate normal distribution.
-
-<div style="text-align: center; display: flex; justify-content: center; gap: 20px;">
-  <div style="flex: 1; max-width: 600px;">
-    <img src="../assets/cmaes.png" alt="CMAES Overview" style="width: 100%; height: 400px; object-fit: contain;">
-    <br>
-    <i>CMA-ES cost landscape example</i>
-  </div>
-</div>
 
 For each generation, it performs three key steps:
 1.  **Sampling**: It generates a new population of solutions from a Gaussian distribution defined by its mean (the current best guess), its step-size (sigma), and its covariance matrix (the shape and orientation of the distribution).
@@ -80,7 +65,7 @@ The primary constraints are:
 - **Velocity**: The average velocity must be close to the target velocity.
 - **Pelvis Orientation**: The pelvis must remain reasonably upright (for 3D models).
 
-Values for these thresholds and targets are set through the config files and in `train.py` (**[Running_Optimizations](Running_Optimizations)**).
+Values for these thresholds and targets are set through the config files and in `train.py` (**[Running_Optimizations](Running_Optimizations.md)**).
 
 If these constraints are not met, the cost is calculated as:
 
