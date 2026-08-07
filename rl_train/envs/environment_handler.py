@@ -6,7 +6,68 @@ from rl_train.utils.data_types import DictionableDataclass
 from rl_train.train.train_configs.config import TrainSessionConfigBase
 
 
+# Env ids whose policy drives the device's non-muscle actuators (HumanExoActorCriticPolicy).
+# Every other env id selects the muscle-only HumanActorCriticPolicy. Single source of truth
+# for both the policy switch in get_stable_baselines3_model and the guard below, which is
+# only correct as long as the two agree.
+_EXO_ENV_IDS = ("myoAssistLegImitationExo-v0",)
+
+
 class EnvironmentHandler:
+    @staticmethod
+    def _validate_action_layout(model_xml: str, config) -> None:
+        """Fail fast when a config's action layout disagrees with the composed model.
+
+        Actuator counts are a property of the composed model (msk + device), not of the
+        config, so a config can declare an action layout for a model it no longer builds.
+        Without this check such a mismatch surfaces as a tensor-shape error inside the
+        policy forward pass, with nothing naming the config or the keys that caused it.
+
+        Two checks:
+          1. a muscle-only policy paired with a device that contributes motor actuators --
+             those actuators would be left permanently unaddressed;
+          2. the widest ``range_action`` the net indexing declares vs the model's ``nu``.
+             ``NetworkIndexHandler.map_network_to_action`` writes each mapping into an
+             ``nu``-wide tensor as ``result[:, start:end]``, so the *maximum* end index is
+             what has to match -- not the sum of the widths, which double-counts a
+             ``constant`` override of a range a ``range_mapping`` already covers.
+        """
+        import mujoco
+
+        model = mujoco.MjModel.from_xml_string(model_xml)
+        # Count muscles by actuator dynamics rather than as nu - na: a device's `general`
+        # actuator may declare its own activation dynamics, which would inflate na.
+        n_muscle = int((model.actuator_dyntype == mujoco.mjtDyn.mjDYN_MUSCLE).sum())
+        n_motor = model.nu - n_muscle
+
+        env_id = config.env_params.env_id
+        composed = f"env_id={env_id!r}, msk_key={config.env_params.msk_key!r}, device_key={config.env_params.device_key!r}"
+
+        if n_motor > 0 and env_id not in _EXO_ENV_IDS:
+            raise ValueError(
+                f"Composed model has {n_motor} motor actuator(s) but {composed} selects the "
+                f"muscle-only policy, so nothing would drive them. Use an exo env id "
+                f"({', '.join(_EXO_ENV_IDS)}) or a device that adds no motor actuators."
+            )
+
+        # Always present (config.py CustomPolicyParams), empty for a config that does not
+        # use custom net indexing -- in which case there is no declared width to check.
+        net_indexing_info = config.policy_params.custom_policy_params.net_indexing_info
+        declared_action_width = 0
+        for net_info in net_indexing_info.values():
+            for mapping in net_info.get("action", []):
+                action_range = mapping.get("range_action")
+                if action_range is not None:
+                    declared_action_width = max(declared_action_width, action_range[1])
+
+        if declared_action_width and declared_action_width != model.nu:
+            raise ValueError(
+                f"Action layout mismatch: net_indexing_info declares actions up to index "
+                f"{declared_action_width} but the composed model has nu={model.nu} "
+                f"({n_muscle} muscle + {n_motor} motor). {composed}. Fix the config's "
+                f"range_action entries to cover exactly the model's actuators."
+            )
+
     @staticmethod
     def create_environment(config, is_rendering_on: bool, is_evaluate_mode: bool = False):
 
@@ -32,6 +93,7 @@ class EnvironmentHandler:
                 .validate()
                 .compose()
             )
+            EnvironmentHandler._validate_action_layout(model_path, config)
 
         # Base gym.make arguments
         gym_make_args = {
@@ -161,7 +223,7 @@ class EnvironmentHandler:
         from rl_train.train.policies.rl_agent_human import HumanActorCriticPolicy
         from rl_train.train.policies.rl_agent_exo import HumanExoActorCriticPolicy
 
-        if config.env_params.env_id in ["myoAssistLegImitationExo-v0"]:
+        if config.env_params.env_id in _EXO_ENV_IDS:
             policy_class = HumanExoActorCriticPolicy
             print("Using HumanExoActorCriticPolicy")
         else:

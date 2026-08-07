@@ -43,15 +43,33 @@ Legend: **file:line** · issue · suggested fix · **test needed**.
 - **Left for RL-2:** the class of bug is unfixed — nothing still checks a config's action layout
   against the composed model's actuator count.
 
-## RL-2. Add an action-dim guard in `create_environment`
-- **`rl_train/envs/environment_handler.py:10-57`**
-- After composing, nothing checks the built model's actuator/muscle count against the config's
-  action layout, so RL-1-style mismatches surface deep in a run.
-- **Suggested fix:** after `compose_env_model(...)`, compile the returned XML and validate — e.g.
-  `n_motor = model.nu - model.na`; if a muscle-only policy (`env_id` not `…Exo-v0`) and
-  `n_motor > 0`, raise a clear error naming env + `msk_key/device_key`; also flag when the config's
-  action-net width != `model.nu`.
-- **Test needed:** guard raises clearly on `imitation.json`, passes the `separated_net_*` configs.
+## RL-2. Add an action-dim guard in `create_environment` — **DONE**
+- **`rl_train/envs/environment_handler.py`** — `EnvironmentHandler._validate_action_layout`,
+  called right after `EnvSpec(...).validate().compose()`.
+- After composing, nothing checked the built model's actuator/muscle count against the config's
+  action layout, so RL-1-style mismatches surfaced deep in a run as a tensor-shape error naming
+  neither the config nor the keys that caused it.
+- **Implemented as two checks**, both naming `env_id` + `msk_key` + `device_key` in the message:
+  1. **Unaddressed motor actuators** — a device contributing motor actuators paired with an
+     `env_id` outside `_EXO_ENV_IDS` (which selects the muscle-only `HumanActorCriticPolicy`).
+  2. **Declared action width vs `nu`** — the **maximum** `range_action` end index across all nets
+     must equal `model.nu`.
+- **Two deviations from the suggested fix, both deliberate:**
+  - Muscle count comes from `actuator_dyntype == mjDYN_MUSCLE`, not `nu - na`. A device's
+    `general` actuator may declare its own activation dynamics, which would inflate `na` and make
+    `nu - na` undercount the motors.
+  - The declared width is the **max** `range_action` end, not the **sum** of the widths. Summing
+    double-counts a `constant` override of a range a `range_mapping` already covers — `exo_off`
+    does exactly this on `[22,24]`, so the sum is 26 against `nu = 24`. Max also mirrors what
+    `NetworkIndexHandler.map_network_to_action` actually does (`result[:, start:end]` into an
+    `nu`-wide tensor).
+- **Test status:** the config-side arithmetic is verified against every shipped config — all 5
+  give `declared_action_width = 24`, and the retired `imitation.json` (fetched from
+  `origin/refactor`) trips **both** checks (`env_id = myoAssistLegImitation-v0` with 2 motor
+  actuators; width 26 != 24). This is the test this item asked for, minus the MuJoCo half: it
+  assumes the composed `myolegs22 + Tutorial_L1` gives `nu = 24` / 22 muscle rather than reading
+  it from a compiled model. **Still needs a stacked run** to confirm the `mjDYN_MUSCLE` count and
+  that the 5 configs build as before.
 
 ## RL-3. `create_environment` silently falls back to an absent `model_path`
 - **`rl_train/envs/environment_handler.py:20-27`** — composes only when **both** `msk_key` and
