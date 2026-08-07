@@ -1,10 +1,3 @@
----
-title: Code Structure
-parent: Reinforcement Learning
-nav_order: 5
-layout: home
----
-
 # RL Training Code Structure
 
 This page provides an overview of the directory layout and the main responsibilities of each module inside the `rl_train` package. Use it as a quick reference when you need to modify, debug, or extend the training pipeline.

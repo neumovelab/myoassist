@@ -1,9 +1,3 @@
----
-title: Terrain Types
-parent: Reinforcement Learning
-nav_order: 3
----
-
 # Terrain Types
 
 In RL, terrain is part of the [environment spec](../getting-started/defining-an-environment.md):

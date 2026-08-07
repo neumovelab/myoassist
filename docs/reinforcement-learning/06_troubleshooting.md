@@ -1,11 +1,3 @@
----
-title: Troubleshooting
-parent: Reinforcement Learning
-nav_order: 6
-layout: home
----
-
-
 ## Error: MuJoCo Viewer on macOS
 ```
 .../lib/python3.11/site-packages/mujoco/viewer.py", line 590, in launch_passive

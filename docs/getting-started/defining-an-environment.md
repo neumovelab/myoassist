@@ -1,9 +1,3 @@
----
-title: Defining an Environment
-parent: Getting Started
-nav_order: 2
----
-
 # Defining an Environment
 
 In MyoAssist an **environment** is a human musculoskeletal (MSK) model + an

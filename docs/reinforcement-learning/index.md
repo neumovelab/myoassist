@@ -1,10 +1,3 @@
----
-title: Reinforcement Learning
-nav_order: 4
-has_children: true
-layout: home
----
-
 # Reinforcement Learning
 
 MyoAssist’s reinforcement learning (RL) pipeline is built on top of **[Stable-Baselines3 (SB3) PPO](https://stable-baselines3.readthedocs.io/en/master/index.html)** and a set of custom **[MuJoCo](https://mujoco.org/)** environments that simulate human–exoskeleton interaction. This page gives you a bird’s-eye view of how everything fits together and where to find more information.
@@ -62,8 +55,8 @@ The agent outputs actions that control:
 
 ## Key Features
 
-- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](04_network-index-handler)).
-- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](03_terrain-types)).
+- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](04_network-index-handler.md)).
+- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](03_terrain-types.md)).
 - **Reference Motion Imitation** – Optional imitation reward using ground-truth gait trajectories.
 - **Realtime Evaluation** – Run policies in realtime with `--flag_realtime_evaluate`.
 
@@ -160,7 +153,7 @@ python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imi
 ```
 
 This file is the default example configuration we provide.  
-For more details, see the [RL Configuration](02_configuration) section.
+For more details, see the [RL Configuration](02_configuration.md) section.
 
 > **Note:**  
 > The provided config sets `num_envs` to 32.  
@@ -194,7 +187,7 @@ This folder contains various plots and videos that visualize your agent's perfor
 
 The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
-For more details on how to customize these parameters, see the [RL Configuration](02_configuration) section.
+For more details on how to customize these parameters, see the [RL Configuration](02_configuration.md) section.
 
 
 ## Transfer Learning

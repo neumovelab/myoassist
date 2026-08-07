@@ -1,10 +1,3 @@
----
-title: Cost Functions
-parent: Controller Optimization
-nav_order: 5
-layout: home
----
-
 # Understanding Cost Functions
 
 The heart of any optimization is its objective function—the "cost" that the optimizer tries to minimize. In this framework, there is a multi-stage cost function progression designed to guide the CMA-ES optimizer from a random set of parameters to a controller that produces stable and realistic locomotion.
@@ -72,7 +65,7 @@ The primary constraints are:
 - **Velocity**: The average velocity must be close to the target velocity.
 - **Pelvis Orientation**: The pelvis must remain reasonably upright (for 3D models).
 
-Values for these thresholds and targets are set through the config files and in `train.py` (**[Running_Optimizations](Running_Optimizations)**).
+Values for these thresholds and targets are set through the config files and in `train.py` (**[Running_Optimizations](Running_Optimizations.md)**).
 
 If these constraints are not met, the cost is calculated as:
 

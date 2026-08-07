@@ -1,10 +1,3 @@
----
-title: Reflex Control
-parent: Controller Optimization
-nav_order: 6
-layout: home
----
-
 # Reflex Control Overview
 
 This document describes the neuromuscular reflex control system implemented in MyoAssist, based on the neural circuitry proposed by Song and Geyer (2015) for human locomotion.

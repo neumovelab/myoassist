@@ -1,10 +1,3 @@
----
-title: Result Evaluation
-parent: Controller Optimization
-nav_order: 3
-layout: home
----
-
 # Evaluating Results
 
 This guide explains how to use the evaluation pipeline located in `ctrl_optim/results/evaluation/` to analyze and visualize the results of your optimization runs.
@@ -200,4 +193,4 @@ You can create custom evaluation configurations by:
 
 ## Quick Visualization
 
-For simple video generation without detailed analysis, you can also use the `run_ctrl.py` imulation script. See the **[Running Reflex Control](Running_Reflex_Control)** guide for more details.
+For simple video generation without detailed analysis, you can also use the `run_ctrl.py` imulation script. See the **[Running Reflex Control](Running_Reflex_Control.md)** guide for more details.

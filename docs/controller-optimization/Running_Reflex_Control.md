@@ -1,10 +1,3 @@
----
-title: Running Reflex Control
-parent: Controller Optimization
-nav_order: 1
-layout: home
----
-
 # Running Reflex Control
 
 This document explains how to run the reflex controller using the MyoAssist framework. There are two main scripts available:

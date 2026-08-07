@@ -1,10 +1,3 @@
----
-title: RL Configuration
-parent: Reinforcement Learning
-nav_order: 2
-layout: home
----
-
 # RL Configuration
 
 Configuration files define training parameters for reinforcement learning experiments. The system uses JSON files that are converted to dataclasses for easy access.
@@ -155,7 +148,7 @@ TrainSessionConfigBase
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `net_arch` | Network architecture for human actor, exo actor, and common critic | {"human_actor": [64, 64], "exo_actor": [8, 8], "common_critic": [64, 64]} |
-| `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](04_network-index-handler) |
+| `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](04_network-index-handler.md) |
 | `log_std_init` | Initial log standard deviation | 0.0 |
 
 ### Evaluate Parameters
@@ -206,8 +199,8 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 
 ## Related Documentation
 
-- [Terrain Types](03_terrain-types) - Detailed explanation of terrain types and parameters
-- [Network Index Handler](04_network-index-handler) - Network indexing information and structure
+- [Terrain Types](03_terrain-types.md) - Detailed explanation of terrain types and parameters
+- [Network Index Handler](04_network-index-handler.md) - Network indexing information and structure
 
 ## Example Configuration
 

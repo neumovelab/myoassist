@@ -1,10 +1,3 @@
----
-title: Network Index Handler
-parent: Reinforcement Learning
-nav_order: 4
-layout: home
----
-
 # Network Index Handler
 
 The Network Index Handler enables selective observation input and targeted action output mapping for different networks in multi-actor reinforcement learning systems. This system allows specific networks to receive only relevant parts of the full observation and maps their outputs to specific indices in the action space.

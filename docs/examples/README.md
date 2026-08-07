@@ -1,9 +1,3 @@
----
-title: Environment Examples
-parent: Getting Started
-nav_order: 3
----
-
 # Environment spec examples
 
 Each `.json` here is a complete **environment spec** — a human MSK model + an

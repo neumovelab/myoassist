@@ -1,17 +1,10 @@
----
-title: Exoskeleton Controllers
-parent: Controller Optimization
-nav_order: 4
-layout: home
----
-
 # Exoskeleton Controllers
 
 This document details the architecture, implementation, and optimization of the provided exoskeleton controllers within the MyoAssist Reflex framework.
 
 ## Overview
 
-Each exoskeleton's torque profile is governed by one of two spline-based controllers that are active during the stance phase of the gait cycle. The parameters of these controllers are optimized alongside the neuromuscular reflex parameters by the CMA-ES algorithm (**[Running Optimizations](Running_Optimizations)**).
+Each exoskeleton's torque profile is governed by one of two spline-based controllers that are active during the stance phase of the gait cycle. The parameters of these controllers are optimized alongside the neuromuscular reflex parameters by the CMA-ES algorithm (**[Running Optimizations](Running_Optimizations.md)**).
 
 ## 1. Actuator Definition
 
@@ -81,7 +74,7 @@ This is a more flexible controller that defines the torque profile using a varia
 
 ## 4. Continued Optimization and Bootstrapping
 
-The framework provides two options for continuing or refining previous optimizations, with some additional logic for the n-point controller. This is handled via the `--param_path` argument in `train.py` (**[Running Optimizations](Running_Optimizations)**).
+The framework provides two options for continuing or refining previous optimizations, with some additional logic for the n-point controller. This is handled via the `--param_path` argument in `train.py` (**[Running Optimizations](Running_Optimizations.md)**).
 
 ### Standard Continued Optimization
 If you provide a `--param_path` to an optimization result that used the *same* number of exoskeleton parameters as your new optimization, the framework simply loads the parameters and continues optimizing from that point. This will *always* be true for the `4param controller` and *only* true for the  `npoint controller` if the same npoints value is passed. The same logic applies if you load human-only parameters for a new optimization with an exoskeleton; the framework will initialize the specified number of exo parameters with their default values and append them.
