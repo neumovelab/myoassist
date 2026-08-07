@@ -171,9 +171,10 @@ first dimension, but have shapes (100,) and (1,)`, and `UnboundLocalError: norm`
 on `origin/refactor`** — they are what these functions do when handed a rollout with no gait cycle,
 not fallout from the deletions.
 
-### Two pre-existing defects found while doing this (NOT fixed here)
-Both silently disable parts of RL evaluation on `refactor`; neither is an RL-1/2/3 item and the
-first is in the compose pipeline that `REVIEW_1.md` quarantines to its own pass.
+### Two pre-existing defects found while doing this — **both FIXED on this branch**
+Both silently disabled parts of RL evaluation on `refactor`. Neither is an RL-1/2/3 item, and the
+first touches the compose pipeline `REVIEW_1.md` quarantines to its own pass; folded in here on
+the author's call because together they meant RL evaluation produced no video and no gait plots.
 
 1. **`compose_env_model` drops the offscreen framebuffer size.** Composed models emit `<visual>`
    with no `<global offwidth/offheight>`, so the framebuffer defaults to 640x480 and replay
@@ -181,14 +182,22 @@ first is in the compose pipeline that `REVIEW_1.md` quarantines to its own pass.
    the whole training run down from `_analyze_process`. The bundled model this replaced set it
    explicitly (`models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml` on `dev`:
    `<global offwidth="1920" offheight="1080"/>`). **RL replay video, and therefore the eval
-   composite built from it, cannot be produced on `refactor` as it stands.** One line in
-   `compose.py`.
+   composite built from it, could not be produced on `refactor` as it stood.**
+   **Fixed:** `_inject_lighting` becomes `_inject_render_defaults` and adds
+   `<global offwidth="1920" offheight="1080"/>` when the composed model has none, matching what
+   the per-model XMLs set. Verified: composed model reports `offwidth=1920 offheight=1080`, and a
+   full training run writes `replay_00.mp4` at **1920x1080, 200 frames**, with no shim.
 2. **`train_analyzer.py:102` reads `reference_data/segmented.npz`**, missing the `rl_train/`
    prefix. The file is at `rl_train/reference_data/segmented.npz`, so from the repo root the load
    raises `FileNotFoundError`, which the surrounding `except` turns into
    `"Warning: Reference data file not found. Skipping gait analysis."` — **every gait plot is
-   skipped in every training run launched from the repo root**, and the run still reports success
+   skipped in every training run launched from the repo root**, and the run still reported success
    with `train_analyzer_report.json` = `{"exceptions": []}`.
+   **Fixed:** the path resolves from `__file__` rather than the cwd (a cwd assumption was the
+   whole bug), and a skip is now recorded as an entry in the report instead of leaving it empty.
+   Verified: a full run from the repo root now emits `contact_data.png`,
+   `kinematics_data_{left,right}_based.png` and `segmented_muscle_data_{l,r}.png` alongside
+   `return.png`, and the report carries the real per-plot outcomes.
 
 ### macOS note
 `dm_control._render` only accepts `glfw`/`egl`/`osmesa`; on macOS only glfw is viable, and the

@@ -130,10 +130,24 @@ def _seat_dz_by_collision(
     return -penetration - min(gaps)
 
 
-def _inject_lighting(root: ET.Element) -> None:
-    """Add a headlight + a directional light so the composed model renders in a
-    viewer / eval.  Physics does not need this; only add what is missing."""
+def _inject_render_defaults(root: ET.Element) -> None:
+    """Add the render-only settings a composed model needs in a viewer / eval:
+    a headlight, a directional light, and an offscreen framebuffer big enough for
+    the eval's replay resolution.  Physics needs none of this; only add what is
+    missing.
+
+    The framebuffer matters because MuJoCo defaults ``offwidth``/``offheight`` to
+    640x480 and *raises* rather than downscaling when asked for a larger frame, so
+    without this the eval's 1920x1080 replay dies with "Image width 1920 >
+    framebuffer width 640" -- and, since the analyzer runs in a worker process,
+    takes the whole training run with it.  The per-model XMLs this pipeline replaced
+    set it themselves (`models/22muscle_2D/myoLeg22_2D_TUTORIAL.xml` on `dev`:
+    ``<global offwidth="1920" offheight="1080"/>``); composing from myo_sim +
+    assist_sim specs does not carry it over.
+    """
     visual = _find_or_make(root, "visual", 1)
+    if visual.find("global") is None:
+        ET.SubElement(visual, "global", {"offwidth": "1920", "offheight": "1080"})
     if visual.find("headlight") is None:
         ET.SubElement(
             visual,
@@ -249,7 +263,7 @@ def compose_env_model(
 
     # 3) merge terrain (colliding) + add default lighting + horizon haze.
     _inject_terrain(model_root, terrain_root)
-    _inject_lighting(model_root)
+    _inject_render_defaults(model_root)
     _inject_terrain_haze(model_root, terrain_root)
 
     # 4) seat the model so its feet rest on the terrain surface (light contact),
