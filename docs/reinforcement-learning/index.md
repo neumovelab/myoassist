@@ -11,8 +11,6 @@ MyoAssist’s reinforcement learning (RL) pipeline is built on top of **[Stable-
 
 Reinforcement learning (RL) is a machine learning paradigm where an agent learns to make decisions by interacting with an environment and receiving feedback in the form of rewards. In the context of MyoAssist, RL is used to train control policies for human–exoskeleton systems within MuJoCo simulation environments.
 
-<p align="center">
-</p>
 
 **Observation Space:**  
 In our environments, the agent receives observations that include:
@@ -111,8 +109,6 @@ If you see the error message `ModuleNotFoundError: No module named 'flatten_dict
 
 
 
-<p align="center">
-</p>
 
 
 
@@ -148,8 +144,6 @@ After training, check the results folder:
 # Results location
 rl_train/results/train_session_[date-time]/
 ```
-<p align="center">
-</p>
 
 **What you'll find:**
 - `analyze_results_[timesteps]_[evaluate_number]`: Training analysis results
@@ -216,8 +210,6 @@ or you can specify the `env_params.prev_trained_policy_path` in config(.json) fi
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
-<p align="center">
-</p>
 
 - windows:
 ```bash
@@ -233,7 +225,5 @@ mjpython rl_train/run_train.py --config_file_path [path/to/config.json] --config
 **Parameters:**
 - `[path/to/config.json]`: Path to the JSON file in the train_session folder
 - `[path/to/model_file]`: Path to the model file (.zip) without extension. It is located in the train_models folder
-<p align="center">
-</p>
 
 > Pretrained tutorial models are hosted on the [MyoAssist website](https://myoassist.neumove.org). Use the placeholder command above with a `train_session_*` directory you produced.

@@ -17,8 +17,6 @@ Network Indexing is essential when working with:
 - **Targeted Action Mapping**: Networks whose outputs should be mapped to specific action indices
 - **Multi-Actor Coordination**: Different actors controlling different parts of the action space
 
-<p align="center">
-</p>
 
 > **Note:**  
 The order of the observation vector can be checked in the `DEFAULT_OBS_KEYS` of the gym environment.([rl_train/envs/](https://github.com/neumovelab/myoassist/tree/main/rl_train/envs/))
@@ -234,8 +232,6 @@ Critic networks only predict a single value (the value function) and do not outp
 Here's a complete example of exoskeleton actor indexing:
 
 **Configuration File**: `imitation_tutorial_22_separated_net_partial_obs.json`
-<p align="center">
-</p>
 
 ```json
 "exo_actor": {

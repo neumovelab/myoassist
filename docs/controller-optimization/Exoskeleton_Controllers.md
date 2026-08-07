@@ -50,10 +50,6 @@ This is a version of a widely used controller defined by four parameters that de
 
 - **Fixed Controller (`--fixed_exo`)**: This command-line option allows the 4-parameter controller to be used with a fixed, predefined set of initial parameters instead of being optimized. This is useful for evaluating a known, static assistance profile.
 
-<p align="center">
-  <br>
-  <i>4 parameter phase-based spline control</i>
-</p>
 
 ### Controller B: N-Point Spline (`npoint_spline_ctrl.py`)
 
@@ -63,10 +59,6 @@ This is a more flexible controller that defines the torque profile using a varia
     - `n torque` parameters: The torque value at each control point (normalized 0-1).
     - `n timing` parameters: The temporal position of each control point (normalized 0-1).
 
-<p align="center">
-  <br>
-  <i>n-parameter spline control</i>
-</p>
 
 ## 3. Integration and Optimization
 
@@ -106,10 +98,6 @@ A more complex option within the framework is the **bootstrapping** capability f
     6. **Crucially**, it replaces the new time/torque point closest to the old peak with the *exact* time and torque of that peak. This ensures (arguably) the most important feature of the curve is preserved.
     7. The new, "bootstrapped" set of `2 * n` exo parameters are combined with the human parameters, and the optimization begins.
 
-<p align="center">
-  <br>
-  <i>n-parameter spline bootstrapping logic</i>
-</p>
 
 
 This method of bootstrapping provides a clean way to increase or decrease the complexity of the exoskeleton controller while transferring knowledge from previous optimization runs.
