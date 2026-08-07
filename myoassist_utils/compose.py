@@ -28,7 +28,7 @@ import mujoco as mj
 
 from assist_sim import load_combined
 from myoassist_terrains import build_terrain
-from myoassist_terrains.config import _config_from_dict, load_config
+from myoassist_terrains.config import config_from_dict, load_config
 
 # Seat the lowest collidable geom this far *below* the terrain surface so the
 # model opens in light contact (MuJoCo needs penetration, not just touching, to
@@ -181,7 +181,7 @@ def _flat_default_config():
     at z=0 (the assist_sim model-only export carries no surface).  This mirrors
     the old myoassist ground -- an effectively-infinite plane, one cheap geom --
     rather than a finite box tile, so a walking model never runs off the edge."""
-    return _config_from_dict({"terrain": "flat"})
+    return config_from_dict({"terrain": "flat"})
 
 
 # ---------------------------------------------------------------------------
