@@ -2,129 +2,57 @@
 title: Terrain Types
 parent: Reinforcement Learning
 nav_order: 3
-layout: home
 ---
 
 # Terrain Types
 
-> **⚠️ Being updated for MyoAssist 1.0.** The runtime `HfieldManager` described
-> below has been retired. Terrain is now part of the [environment spec](../getting-started/defining-an-environment.md)
-> — set the `terrain` field to a `myoassist_terrains` config (e.g.
-> `{"terrain": "slope", "deg": 8}` or `{"terrain": "random", "amplitude": 0.06}`),
-> and it is composed into the model. This page is retained for reference while the
-> RL terrain docs are rewritten.
+In RL, terrain is part of the [environment spec](../getting-started/defining-an-environment.md):
+set `env_params.terrain` in your training config. It is composed into the model
+when the environment is built — there is no separate runtime terrain manager.
 
-MyoAssist supports various terrain types for heightfield generation using the [HfieldManager](https://github.com/neumovelab/myoassist/blob/main/myoassist_utils/hfield_manager.py).
-
-## Available Terrain Types
-
-| Type | Description | Parameters | Use Case |
-|------|-------------|------------|----------|
-| `flat` | Flat terrain | No parameters required | Basic training and evaluation |
-| `random` | Random height variations | `amplitude` - Maximum height variation | Terrain adaptation training |
-| `harmonic_sinusoidal` | Harmonic sinusoidal waves | `amplitude_row period_row amplitude_col period_col` | Complex terrain simulation |
-| `slope` | Inclined slope | `slope_angle` - Slope angle in degrees | Slope walking training |
-
-## Terrain Parameters
-
-Parameters are space-separated values passed as strings:
-
-```bash
-# Random terrain with amplitude 0.1
-terrain_params: "0.1"
-
-# Harmonic sinusoidal with multiple waves
-terrain_params: "0.2 20 0.1 8"
-
-# Slope with 30% degree angle
-terrain_params: "0.3"
-```
-
-## Detailed Terrain Descriptions
-
-### Flat Terrain
-
-**Type**: `flat`
-
-**Description**: Creates a completely flat ground surface with no height variations.
-
-**Parameters**: None required
-
-**Use Case**: 
-- Basic training scenarios
-- Evaluation and testing
-- Imitation learning baseline
-
-**Example**:
 ```json
-{
-  "terrain_type": "flat",
-  "terrain_params": ""
+"env_params": {
+  "msk_key": "myolegs22",
+  "device_key": "Humotech_L1",
+  "terrain": { "terrain": "random", "amplitude": 0.06 }
 }
 ```
 
-### Random Terrain
-**Type**: `random`
+`terrain` accepts one of:
 
-**Description**: Creates terrain with random height variations across the surface.
+- `null` → a flat ground plane (the default).
+- an **inline uniform config** (one plane or one heightfield).
+- a **path to a [`myoassist_terrains`](https://github.com/neumovelab/myoassist.terrains) JSON config** for tiled / complex courses.
 
-**Parameters**: 
-- `amplitude` - Maximum height variation in meters
+## Uniform terrains
 
-**Example**:
+| `terrain` | Result |
+|-----------|--------|
+| `{ "terrain": "flat" }` | flat plane |
+| `{ "terrain": "slope", "deg": 8 }` | constant 8° incline |
+| `{ "terrain": "random", "amplitude": 0.06 }` | rough heightfield, ≤ 6 cm relief |
+| `{ "terrain": "sinusoidal", "amplitude": 0.05, "period": 1.0 }` | rolling waves |
+
+The `random` and `sinusoidal` heightfields keep a smooth **safe zone** near the
+origin (flattened around the reset point) so the agent doesn't spawn mid-obstacle.
+
+## Tiled terrains
+
+For multi-terrain courses, give `terrain` a `myoassist_terrains` config with a
+`grid` and per-cell `tiles` (types: `flat`, `slope`, `stairs`, `pyramid_stairs`,
+`rough`, `boulders`, `stepping_stones`, `discrete_obstacles`, `gap`), optionally
+filled by `randomization`:
+
 ```json
-{
-  "terrain_type": "random",
-  "terrain_params": "0.1"
+"terrain": {
+  "grid": { "rows": 3, "cols": 3, "tile_size": [8.0, 8.0] },
+  "border": { "width": 0.5 },
+  "tiles": [ { "row": 1, "col": 1, "type": "flat", "params": { "height": 0.0 } } ],
+  "randomization": { "seed": 17, "weights": { "rough": 0.4, "stairs": 0.3, "slope": 0.3 } }
 }
 ```
 
-
-
-### Harmonic Sinusoidal Terrain
-**Type**: `harmonic_sinusoidal`
-
-**Description**: Creates terrain with harmonic sinusoidal waves in both row and column directions.
-
-**Parameters**: 
-- `amplitude_row` - Amplitude of row-direction waves
-- `period_row` - Period of row-direction waves
-- `amplitude_col` - Amplitude of column-direction waves  
-- `period_col` - Period of column-direction waves
-
-You can continue to add more sets of these four parameters (`amplitude_row`, `period_row`, `amplitude_col`, `period_col`) to create additional sinusoidal components in the terrain.
-
-**Example**:
-```json
-{
-  "terrain_type": "harmonic_sinusoidal",
-  "terrain_params": "0.2 20 0.1 8"
-}
-```
-
-
-### Slope Terrain
-**Type**: `slope`
-
-**Description**: Creates an inclined slope starting from a center point.
-
-**Parameters**:
-- `slope_angle` - Slope angle as a ratio (tan value)
-
-**Example**:
-```json
-{
-  "terrain_type": "slope",
-  "terrain_params": "0.3"
-}
-```
-
-
-## Safe Zone
-
-All terrain types include a safe zone around the starting position where terrain variations are minimized to prevent immediate falls or contact penation during training.
-
-## Implementation Details
-
-Terrain generation is handled by the [HfieldManager](https://github.com/neumovelab/myoassist/blob/main/myoassist_utils/hfield_manager.py) class which:
-
+See the [`myoassist_terrains`](https://github.com/neumovelab/myoassist.terrains)
+repo for the full tile schema and parameters, and
+[Defining an Environment](../getting-started/defining-an-environment.md) for how
+the same `terrain` field is used by both the RL and CO pipelines.

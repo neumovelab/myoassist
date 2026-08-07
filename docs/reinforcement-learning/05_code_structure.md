@@ -103,7 +103,7 @@ Contains reference gait trajectories (e.g., **NPZ** files) used for imitation or
 
 ## Extending the Pipeline
 
-1. **Add a new terrain** – update `HfieldManager` and reference it in your JSON config.
+1. **Add a new terrain** – set `env_params.terrain` to a [`myoassist_terrains`](https://github.com/neumovelab/myoassist.terrains) config (a JSON path or an inline config); see [Defining an Environment](../getting-started/defining-an-environment.md).
 2. **Custom reward** – subclass `MyoAssistLegBase` and override `_calculate_reward()`.
 3. **Different algorithm** – replace the PPO import in `run_train.py` with any SB3 algorithm; the callback remains compatible.
 4. **New plots** – add a function in `analyzer/gait_analyze.py` and call it from `train_analyzer.py`.

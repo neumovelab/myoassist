@@ -183,10 +183,7 @@ Test a trained model:
 python rl_train/run_policy_eval.py [path/to/trainsession/folder]
 ```
 
-**Example (evaluating with a pretrained model we provide):**
-```bash
-python rl_train/run_policy_eval.py docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs
-```
+> Pretrained tutorial models are hosted on the [MyoAssist website](https://myoassist.neumove.org); point `run_policy_eval.py` at any `train_session_*` directory you produce.
 
 
 After training, an `analyze_results` folder will be created inside your `train_session` directory.  
@@ -199,8 +196,6 @@ This folder contains various plots and videos that visualize your agent's perfor
 - **What's inside:**  
   - Multiple plots (e.g., reward curves, kinematics, etc.)
   - Videos
-  <p align="center">
-  </p>
 
 
 The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
@@ -241,12 +236,4 @@ mjpython rl_train/run_train.py --config_file_path [path/to/config.json] --config
 <p align="center">
 </p>
 
-**Example (evaluating with a pretrained model we provide):**
-- windows:
-```bash
-python rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/session_config.json --config.env_params.prev_trained_policy_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/trained_models/model_19939328 --flag_realtime_evaluate
-```
-- mac:
-```bash
-mjpython rl_train/run_train.py --config_file_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/session_config.json --config.env_params.prev_trained_policy_path docs/assets/tutorial_rl_models/train_session_20250728-161129_tutorial_partial_obs/trained_models/model_19939328 --flag_realtime_evaluate
-```
+> Pretrained tutorial models are hosted on the [MyoAssist website](https://myoassist.neumove.org). Use the placeholder command above with a `train_session_*` directory you produced.
