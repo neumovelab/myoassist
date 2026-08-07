@@ -77,23 +77,43 @@ class EnvironmentHandler:
         # {msk, device, terrain} triple through the shared env-spec front-door --
         # the same validated path the CO pipeline uses -- to compose the model into
         # an XML string, passed as model_path (myosuite's SimScene routes "<mujoco"
-        # -> from_xml_string). Otherwise fall back to the literal model_path (escape
-        # hatch). Composed once here; the XML string pickles fine into SubprocVecEnv
-        # workers.
+        # -> from_xml_string). A literal model_path is the escape hatch for a
+        # pre-built MJCF. Composed once here; the XML string pickles fine into
+        # SubprocVecEnv workers.
+        msk_key = config.env_params.msk_key
+        device_key = config.env_params.device_key
         model_path = config.env_params.model_path
-        if getattr(config.env_params, "msk_key", None) and getattr(config.env_params, "device_key", None):
+
+        # Compose takes both keys or neither. Half a spec used to fall through to
+        # model_path, which is None in every migrated config, and failed inside
+        # gym.make without mentioning the key that was actually missing.
+        if bool(msk_key) != bool(device_key):
+            missing, present = ("device_key", f"msk_key={msk_key!r}") if msk_key else ("msk_key", f"device_key={device_key!r}")
+            raise ValueError(
+                f"Incomplete compose spec: {present} is set but {missing} is not. Set both to "
+                f"compose a model (run `python -m assist_sim list` for the valid keys), or "
+                f"neither and give an explicit model_path."
+            )
+
+        if msk_key and device_key:
             from myoassist_utils.env_spec import EnvSpec
 
             model_path = (
                 EnvSpec(
-                    msk=config.env_params.msk_key,
-                    device=config.env_params.device_key,
-                    terrain=getattr(config.env_params, "terrain", None),
+                    msk=msk_key,
+                    device=device_key,
+                    terrain=config.env_params.terrain,
                 )
                 .validate()
                 .compose()
             )
             EnvironmentHandler._validate_action_layout(model_path, config)
+        elif not model_path:
+            raise ValueError(
+                "No model specified: set msk_key + device_key to compose a model, or "
+                "model_path to load a pre-built MJCF. The shipped configs use the "
+                "compose keys; a config carrying neither is a migration oversight."
+            )
 
         # Base gym.make arguments
         gym_make_args = {

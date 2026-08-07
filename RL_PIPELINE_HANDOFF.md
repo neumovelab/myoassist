@@ -71,10 +71,30 @@ Legend: **file:line** · issue · suggested fix · **test needed**.
   it from a compiled model. **Still needs a stacked run** to confirm the `mjDYN_MUSCLE` count and
   that the 5 configs build as before.
 
-## RL-3. `create_environment` silently falls back to an absent `model_path`
-- **`rl_train/envs/environment_handler.py:20-27`** — composes only when **both** `msk_key` and
-  `device_key` are set; otherwise uses `config.env_params.model_path` (`None` in every migrated
-  config) → opaque `gym.make` failure. **Fix:** raise a clear error when exactly one key is set.
+## RL-3. `create_environment` silently falls back to an absent `model_path` — **DONE**
+- **`rl_train/envs/environment_handler.py`** — composed only when **both** `msk_key` and
+  `device_key` were set; otherwise used `config.env_params.model_path` (`None` in every migrated
+  config) → opaque `gym.make` failure that never named the missing key.
+- **Fixed** with two raises around the compose branch, and the model-source decision is now an
+  explicit table rather than an `if` with an implicit fall-through:
+
+  | `msk_key` | `device_key` | `model_path` | outcome |
+  |---|---|---|---|
+  | set | set | any | compose (then RL-2's layout guard) |
+  | set | — | any | **raise** — names `device_key` as missing |
+  | — | set | any | **raise** — names `msk_key` as missing |
+  | — | — | set | escape hatch: load the literal MJCF |
+  | — | — | — | **raise** — nothing specified at all |
+
+- Verified against the table above plus every shipped config (all 5 → compose) and a
+  pre-migration `dev` config carrying a literal `model_path` and no keys (→ escape hatch, so
+  old-style configs still load).
+- **Intentional strictness:** half a spec raises *even when a usable `model_path` is present*.
+  The config is ambiguous about which model was meant, and silently preferring one is what this
+  item is about. No shipped config is in that state.
+- Also dropped the defensive `getattr(env_params, "msk_key", None)` reads — `msk_key`,
+  `device_key` and `terrain` are all declared on the base `EnvParams` (`config.py:65-67`), so a
+  missing attribute would be a real defect worth surfacing, not something to paper over.
 
 ## Open questions — need a run with the RL stack
 - ~~**`imitation.json` obs keys**~~ — **RESOLVED by inspection; moot after RL-1.** The config
