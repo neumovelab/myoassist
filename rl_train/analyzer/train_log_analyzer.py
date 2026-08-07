@@ -1,7 +1,6 @@
 from rl_train.utils.train_log_handler import TrainLogHandler
 import matplotlib.pyplot as plt
 import os
-import numpy as np
 
 
 class TrainLogAnalyzer:
@@ -45,8 +44,6 @@ class TrainLogAnalyzer:
         # excluded_keys = ['sparse', 'solved', 'done', 'dense']
         # filtered_keys = [key for key in reward_dict_keys if key not in excluded_keys]
         # print(f"DEBUG: Keys after filtering (excluding {excluded_keys}): {filtered_keys}")
-
-        original_total_reward = [log_data.average_reward_per_episode for log_data in modified_log_datas]
 
         # Prepare data for each key in the average_reward_dict_per_episode, excluding 'sparse', 'solved', 'done', 'dense'
         # Add defensive check for missing keys
@@ -109,9 +106,7 @@ class TrainLogAnalyzer:
         negative_data = {k: v for k, v in reward_dict_data.items() if any(x < 0 for x in v)}
 
         # Calculate the total reward for each timestep to determine proportions
-        total_rewards = [sum(rewards) for rewards in zip(*reward_dict_data.values())]
         # print(f"{reward_dict_data=}")
-        reward_error = np.array(original_total_reward) - np.array(total_rewards)
         # Print the max, min, and mean of reward_error
         # print(f"Max reward error: {np.max(reward_error)}")
         # print(f"Min reward error: {np.min(reward_error)}")

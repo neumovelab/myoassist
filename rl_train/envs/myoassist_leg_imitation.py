@@ -4,7 +4,6 @@ from rl_train.envs.myoassist_leg_base import MyoAssistLegBase
 from rl_train.train.train_configs.config import TrainSessionConfigBase
 from rl_train.utils.data_types import DictionableDataclass
 from rl_train.utils import train_log_handler
-from stable_baselines3.common.vec_env import SubprocVecEnv
 from rl_train.utils.learning_callback import BaseCustomLearningCallback
 from rl_train.utils.train_checkpoint_data_imitation import ImitationTrainCheckpointData
 from rl_train.train.train_configs.config_imitation import ImitationTrainSessionConfig
@@ -45,7 +44,6 @@ class ImitationCustomLearningCallback(BaseCustomLearningCallback):
         #     print(f"DEBUG:: {idx=} {info['rwd_dict']=}")
         # print("======================self.locals    ======================")
 
-        subprocvec_env: SubprocVecEnv = self.model.get_env()
         # print(f"DEBUG:: {subprocvec_env=}")
         # print(f"DEBUG:: {subprocvec_env.env_method('subproc_env_test', 'This is param from learning callback')=}")
         for info in self.locals["infos"]:

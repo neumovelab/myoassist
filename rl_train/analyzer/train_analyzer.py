@@ -114,7 +114,7 @@ class TrainAnalyzer:
 
             # for cam_type in ["average_speed", "follow"]:
             file_name = f"replay_{eval_idx:02d}.mp4"
-            frames = gait_evaluator.replay(
+            gait_evaluator.replay(
                 gait_data_path,
                 os.path.join(analyze_result_dir, file_name),
                 cam_distance=evaluate_param["cam_distance"],

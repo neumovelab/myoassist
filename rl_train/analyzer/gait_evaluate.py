@@ -299,8 +299,6 @@ class GaitEvaluatorBase:
 
                         axs[plot_idx].set_ylim(*y_lim)
                     if False:
-                        x_range = [most_recent_segment_index[0], most_recent_segment_index[2]]
-
                         # Interpolate x to range 0-100 for plotting
                         x_original = np.arange(most_recent_segment_index[0], most_recent_segment_index[2])
                         if is_gait_cycle_plot:

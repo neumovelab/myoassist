@@ -118,8 +118,6 @@ class HumanExoActorCriticPolicy(BaseCustomActorCriticPolicy):
 
         actions = distribution.get_actions(deterministic=deterministic)
 
-        info = self.policy_network.network_index_handler.net_indexing_info
-
         # ------------------------
         # Mask invalid action slots
         # ------------------------

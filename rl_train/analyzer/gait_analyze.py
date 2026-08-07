@@ -64,7 +64,6 @@ class GaitAnalyzer:
         """
 
         primary_char = "r" if is_right_foot_based else "l"
-        secondary_char = "l" if is_right_foot_based else "r"
 
         result_strike_to_toe_off = []
         sensor_data = self.gait_data.series_data["sensor_data"]
@@ -86,33 +85,15 @@ class GaitAnalyzer:
                 curr_primary_combined = (
                     sensor_data[f"{primary_char}_foot"]["data"][idx][0] + sensor_data[f"{primary_char}_toes"]["data"][idx][0]
                 )
-                prev_secondary_combined = (
-                    sensor_data[f"{secondary_char}_foot"]["data"][idx - 1][0]
-                    + sensor_data[f"{secondary_char}_toes"]["data"][idx - 1][0]
-                )
-                curr_secondary_combined = (
-                    sensor_data[f"{secondary_char}_foot"]["data"][idx][0]
-                    + sensor_data[f"{secondary_char}_toes"]["data"][idx][0]
-                )
                 prev_primary_foot = sensor_data[f"{primary_char}_foot"]["data"][idx - 1][0]
                 curr_primary_foot = sensor_data[f"{primary_char}_foot"]["data"][idx][0]
                 prev_primary_toes = sensor_data[f"{primary_char}_toes"]["data"][idx - 1][0]
                 curr_primary_toes = sensor_data[f"{primary_char}_toes"]["data"][idx][0]
-                prev_secondary_foot = sensor_data[f"{secondary_char}_foot"]["data"][idx - 1][0]
-                curr_secondary_foot = sensor_data[f"{secondary_char}_foot"]["data"][idx][0]
-                prev_secondary_toes = sensor_data[f"{secondary_char}_toes"]["data"][idx - 1][0]
-                curr_secondary_toes = sensor_data[f"{secondary_char}_toes"]["data"][idx][0]
 
                 is_primary_foot_down = prev_primary_foot < foot_threshold and curr_primary_foot >= foot_threshold
                 is_primary_toe_off = prev_primary_toes > foot_threshold and curr_primary_toes <= foot_threshold
                 is_primary_rising_edge = prev_primary_combined < foot_threshold and curr_primary_combined >= foot_threshold
                 is_primary_falling_edge = prev_primary_combined >= foot_threshold and curr_primary_combined < foot_threshold
-                is_secondary_rising_edge = (
-                    prev_secondary_combined < foot_threshold and curr_secondary_combined >= foot_threshold
-                )
-                is_secondary_falling_edge = (
-                    prev_secondary_combined >= foot_threshold and curr_secondary_combined < foot_threshold
-                )
                 if is_primary_rising_edge and is_primary_foot_down and primary_stance_start_idx is None:
                     primary_stance_ing = True
                     primary_stance_start_idx = idx
@@ -187,10 +168,7 @@ class GaitAnalyzer:
         axes[5][1].plot([v[0] for v in sensor_data["r_toes"]["data"]], label="r_toes")
         axes[5][1].plot([v[0] for v in sensor_data["l_foot"]["data"]], label="l_foot", alpha=0.3)
         axes[5][1].plot([v[0] for v in sensor_data["l_toes"]["data"]], label="l_toes", alpha=0.3)
-        foot_threshold = 0.1
 
-        r_stance_ing = False
-        r_stance_start_idx = None
         gait_segment_index = self.get_gait_segment_index(is_right_foot_based=is_right_foot_based)
         for ax_row in axes:
             for ax in ax_row:
@@ -276,11 +254,8 @@ class GaitAnalyzer:
             x_normalized = np.linspace(0, 100, segment_length)
 
             # Map the x-axis to 0~100 using x_normalized for each joint angle data
-            hip_flexion_l_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_l"]["qpos"]][start_idx:end_idx])
             hip_flexion_r_data = np.rad2deg([v[0] for v in joint_data["hip_flexion_r"]["qpos"]][start_idx:end_idx])
-            knee_angle_l_data = np.rad2deg([v[0] for v in joint_data["knee_angle_l"]["qpos"]][start_idx:end_idx])
             knee_angle_r_data = np.rad2deg([v[0] for v in joint_data["knee_angle_r"]["qpos"]][start_idx:end_idx])
-            ankle_angle_l_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_l"]["qpos"]][start_idx:end_idx])
             ankle_angle_r_data = np.rad2deg([v[0] for v in joint_data["ankle_angle_r"]["qpos"]][start_idx:end_idx])
             actual_speed_smooth_segment = actual_speed_smooth[start_idx:end_idx]
 
@@ -810,7 +785,6 @@ class GaitAnalyzer:
     def plot_right_ref_comparison(self, *, result_dir):
         # Draw toe-off reference lines (average cycle percentage)
         toe_off_r = self.get_toe_off_average(is_right_foot_based=True) * 100
-        toe_off_l = self.get_toe_off_average(is_right_foot_based=False) * 100
 
         joint_data = self.gait_data.series_data["joint_data"]
         gait_segment_index_r = self.get_gait_segment_index(is_right_foot_based=True)
