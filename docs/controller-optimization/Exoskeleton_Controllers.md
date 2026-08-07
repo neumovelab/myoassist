@@ -15,7 +15,7 @@ Each exoskeleton's torque profile is governed by one of two spline-based control
 
 ## 1. Actuator Definition
 
-Each exoskeleton is defined as an actuator within the MuJoCo `.xml` model. There are multiple actuator types available within MuJoCo (**[Modeling](../modeling/Modeling)**). This actuator is what allows the framework to apply torque to the model.
+Each exoskeleton is defined as an actuator within the MuJoCo `.xml` model. There are multiple actuator types available within MuJoCo (see the [MuJoCo actuator reference](https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator)). This actuator is what allows the framework to apply torque to the model.
 
 Here is an example:
 ```xml
