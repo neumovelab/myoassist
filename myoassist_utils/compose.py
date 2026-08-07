@@ -190,7 +190,7 @@ def _flat_default_config():
 def compose_env_model(
     msk_key: str,
     device_key: str,
-    terrain: Optional[Union[str, Path]] = None,
+    terrain: Optional[Union[str, Path, dict]] = None,
     export_path: Optional[Union[str, Path]] = None,
 ) -> str:
     """Compose ``msk_key`` + ``device_key`` + a terrain into one loadable MJCF.
@@ -201,9 +201,10 @@ def compose_env_model(
         A human MSK registry key (e.g. ``"myolegs22"``, ``"myolegs26"``).
     device_key : str
         An assist_sim device key (e.g. ``"DephyExoBoot_L1"``).
-    terrain : str | Path | None
-        Path to a ``myoassist_terrains`` JSON config, or ``None`` for a flat
-        default ground (a single 1x1 flat tile at z=0).
+    terrain : str | Path | dict | None
+        A ``myoassist_terrains`` config: a path to a JSON file, or an inline
+        config dict (grid form, or uniform e.g. ``{"terrain": "slope", "deg": 8}``).
+        ``None`` gives a flat default ground plane.
     export_path : str | Path | None
         If given, the merged model is also written to this path as a
         standalone, ``from_xml_path``-loadable file.  Any terrain assets
@@ -224,8 +225,13 @@ def compose_env_model(
     # persistent) install location so the temp export dir can be removed.
     _absolutize_files(model_root, model_xml_path.parent)
 
-    # 2) build the terrain (flat default, or from a terrains JSON config).
-    cfg = _flat_default_config() if terrain is None else load_config(Path(terrain))
+    # 2) build the terrain (flat default, a terrains JSON path, or an inline config dict).
+    if terrain is None:
+        cfg = _flat_default_config()
+    elif isinstance(terrain, dict):
+        cfg = config_from_dict(terrain)
+    else:
+        cfg = load_config(Path(terrain))
     # Terrain assets (hfield PNGs / textures) must outlive this call.  When
     # exporting, keep them beside the export; otherwise use a persistent temp
     # dir (the flat default writes no assets, so this is a no-op for RL runs).

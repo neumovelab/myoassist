@@ -99,16 +99,21 @@ class SetupTester:
 
     def test_myoassist_imports(self):
         """Test MyoAssist package + composed-architecture dependency imports"""
-        try:
-            # MyoAssist code trees (this repo)
-            import rl_train
-            import ctrl_optim
-            import myoassist_utils
+        import importlib
 
+        packages = [
+            # MyoAssist code trees (this repo)
+            "rl_train",
+            "ctrl_optim",
+            "myoassist_utils",
             # Composed-architecture sibling packages (now external, was vendored)
-            import myo_sim
-            import assist_sim
-            import myoassist_terrains
+            "myo_sim",
+            "assist_sim",
+            "myoassist_terrains",
+        ]
+        try:
+            for name in packages:
+                importlib.import_module(name)
         except ImportError as e:
             raise ImportError(f"Failed to import MyoAssist packages: {e}")
 
@@ -128,6 +133,34 @@ class SetupTester:
             assert model.nq > 0, "Composed model has no generalized coordinates (nq == 0)"
         except Exception as e:
             raise RuntimeError(f"Composed model pipeline failed: {e}")
+
+    def test_env_spec(self):
+        """Test the shared EnvSpec front-door: build from a dict, validate against
+        the assist_sim registry, and compose (flat default + an inline uniform slope
+        terrain) into a usable model. Also confirm validation rejects a bad device."""
+        try:
+            import mujoco
+            from myoassist_utils.env_spec import EnvSpec
+
+            # flat default ground
+            spec = EnvSpec.from_dict({"msk": "myolegs22", "device": "DephyExoBoot_L1"}).validate()
+            assert mujoco.MjModel.from_xml_string(spec.compose()).nq > 0, "EnvSpec(flat) composed nq == 0"
+
+            # an inline uniform slope terrain rides inside the spec
+            sloped = EnvSpec.from_dict(
+                {"msk": "myolegs22", "device": "Tutorial_L1", "terrain": {"terrain": "slope", "deg": 5}}
+            ).validate()
+            assert mujoco.MjModel.from_xml_string(sloped.compose()).nq > 0, "EnvSpec(slope) composed nq == 0"
+
+            # validation rejects an unknown / incompatible device
+            try:
+                EnvSpec(msk="myolegs22", device="NotADevice_L9").validate()
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("EnvSpec.validate did not reject an unknown device")
+        except Exception as e:
+            raise RuntimeError(f"EnvSpec front-door failed: {e}")
 
     def test_mujoco_license(self):
         """Test MuJoCo license availability"""
@@ -369,6 +402,7 @@ class SetupTester:
             (self.test_myosuite_import, "MyoSuite Package Import"),
             (self.test_myoassist_imports, "MyoAssist Package Imports"),
             (self.test_compose_pipeline, "Composed Model Pipeline"),
+            (self.test_env_spec, "Shared EnvSpec Front-Door"),
             (self.test_mujoco_license, "MuJoCo License"),
             (self.test_rl_environment_initialization, "RL Environment Initialization"),
             (self.test_reflex_environment_initialization, "Reflex Environment Initialization"),
