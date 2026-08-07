@@ -1,0 +1,15 @@
+{
+  "msk": "myolegs22",
+  "device": "Humotech_L1",
+  "terrain": {
+    "terrain_name": "mixed_course",
+    "grid": { "rows": 1, "cols": 3, "tile_size": [4.0, 4.0] },
+    "border": { "width": 0.5, "match_mode": "min" },
+    "palette_preset": "uniform",
+    "tiles": [
+      { "row": 0, "col": 0, "type": "flat",   "params": { "height": 0.0 } },
+      { "row": 0, "col": 1, "type": "slope",  "params": { "angle_deg": 8.0, "axis": "x", "plateau_ratio": 0.1 } },
+      { "row": 0, "col": 2, "type": "stairs", "params": { "n_steps": 5, "step_height": 0.1, "peak_width": 0.4, "axis": "x" } }
+    ]
+  }
+}
