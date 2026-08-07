@@ -109,9 +109,14 @@ Legend: **file:line** · issue · suggested fix · **test needed**.
   (`myoassist_leg_base.py:187-216`) concatenates `qpos | qvel | act | sensor | target_velocity`, so
   the obs vector would have been `0 + 0 + 22 + 0 + 1 = 23` wide while the net-indexing sliced up to
   index 44. Third independent confirmation that the config was unusable well before this branch.
-- **Keyframe-DOF extension (RL side):** `myoassist_leg_base.py:170` indexes `key_qpos[0]`, assuming
-  assist_sim extends the human keyframes to cover the device DOFs when composing. Confirm the merged
-  `key_qpos` width == `nq`. (CO side of the same assumption is in `CO_PIPELINE_HANDOFF.md`.)
+- ~~**Keyframe-DOF extension (RL side)**~~ — **RESOLVED by a stacked run; the assumption holds,
+  but a different one does not.** Widths are extended correctly: composed `myolegs22 + Tutorial_L1`
+  and `+ DephyExoBoot_L1` both give `key_qpos (5, 39)` / `key_qvel (5, 39)` against `nq=39, nv=39`.
+  What is *not* safe is the `[0]`: composed **`myolegs26 + Humotech_L1` has `nkey=0`**
+  (`key_qpos (0, 47)`), so `key_qpos[0]` raises `IndexError` from deep inside `_setup`. Keyframes
+  come from the MSK model -- myolegs22 ships 5, myolegs26 ships none. Added an `assert model.nkey > 0`
+  naming that, since the raw IndexError says nothing about which MSK is at fault. Not live today
+  (no config uses myolegs26) and **one more reason the 26-muscle line has never trained**.
 
 ## Related design gap (surfaced by RL-1, not fixed by it)
 - **`compose_env_model` has no human-only path** — `device_key` is required and always attaches a

@@ -152,6 +152,14 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             f"rwd_keys_wt != actual_reward_keys. rwd_keys_wt: {self.rwd_keys_wt}, actual_reward_keys keys: {actual_reward_keys}"
         )
 
+        # The initial pose comes from the composed model's first keyframe. assist_sim extends
+        # the human keyframes to cover the device DOFs, so the widths match nq/nv -- but not
+        # every MSK ships keyframes at all (composed myolegs26 has nkey=0), and indexing [0]
+        # on an empty keyframe array raises IndexError from deep inside _setup.
+        assert self.sim.model.nkey > 0, (
+            "Composed model has no keyframes (nkey=0), so there is no initial pose to load. "
+            "Keyframes come from the MSK model; myolegs22 ships 5, myolegs26 ships none."
+        )
         self.init_qpos[:] = self.sim.model.key_qpos[0]
         self.init_qvel[:] = self.sim.model.key_qvel[0]
 
