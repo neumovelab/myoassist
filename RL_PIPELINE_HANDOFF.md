@@ -52,24 +52,30 @@ Legend: **file:line** · issue · suggested fix · **test needed**.
 - **Implemented as two checks**, both naming `env_id` + `msk_key` + `device_key` in the message:
   1. **Unaddressed motor actuators** — a device contributing motor actuators paired with an
      `env_id` outside `_EXO_ENV_IDS` (which selects the muscle-only `HumanActorCriticPolicy`).
-  2. **Declared action width vs `nu`** — the **maximum** `range_action` end index across all nets
-     must equal `model.nu`.
+  2. **Claimed actuator indices vs `[0, nu)`** — the union of every `range_action` must claim no
+     index at or beyond `nu`, and must leave no actuator unclaimed.
 - **Two deviations from the suggested fix, both deliberate:**
   - Muscle count comes from `actuator_dyntype == mjDYN_MUSCLE`, not `nu - na`. A device's
     `general` actuator may declare its own activation dynamics, which would inflate `na` and make
-    `nu - na` undercount the motors.
-  - The declared width is the **max** `range_action` end, not the **sum** of the widths. Summing
-    double-counts a `constant` override of a range a `range_mapping` already covers — `exo_off`
-    does exactly this on `[22,24]`, so the sum is 26 against `nu = 24`. Max also mirrors what
-    `NetworkIndexHandler.map_network_to_action` actually does (`result[:, start:end]` into an
-    `nu`-wide tensor).
-- **Test status:** the config-side arithmetic is verified against every shipped config — all 5
-  give `declared_action_width = 24`, and the retired `imitation.json` (fetched from
-  `origin/refactor`) trips **both** checks (`env_id = myoAssistLegImitation-v0` with 2 motor
-  actuators; width 26 != 24). This is the test this item asked for, minus the MuJoCo half: it
-  assumes the composed `myolegs22 + Tutorial_L1` gives `nu = 24` / 22 muscle rather than reading
-  it from a compiled model. **Still needs a stacked run** to confirm the `mjDYN_MUSCLE` count and
-  that the 5 configs build as before.
+    `nu - na` undercount the motors. (On `myolegs22 + Tutorial_L1` the two agree — both give 2
+    motors — so this is defensive rather than currently load-bearing: `Exo_R`/`Exo_L` are
+    `dyntype=0`.)
+  - Check 2 uses the **covered index set**, not the summed width and not just its maximum.
+    Summing double-counts a `constant` override of a range a `range_mapping` already covers —
+    `exo_off` does exactly this on `[22,24]`, so the sum is 26 against `nu = 24`. Taking only the
+    maximum was the first implementation and **it let an interior gap through**: with
+    `human_actor` claiming `[0,11]+[11,20]` and `exo_actor` `[22,24]`, the widest index still
+    lands on 24 while actuators 20 and 21 are driven by nothing and sit at zero. The covered set
+    catches that. Overlap stays legal, since the `constant` override depends on it.
+- **Test status — verified against the real stack** (see the run record at the end of this file):
+  - `n_muscle` from `mjDYN_MUSCLE` is **22**, `n_motor` **2** (`Exo_R`, `Exo_L`) on the composed
+    `myolegs22 + Tutorial_L1` (`nq=39, nu=24, na=22`).
+  - All 5 shipped configs build and step: `obs=(44,)`, `act=(24,)`.
+  - Every failure mode raises with a clear message: motor actuators under a muscle-only `env_id`;
+    an index claimed past `nu` (`exo [22,26]`); an unclaimed trailing actuator (`exo [22,23]`);
+    and the interior gap above.
+  - A 64-timestep PPO run on `..._partial_obs.json` completes (21 updates, exit 0), which is the
+    "short train step without a shape error" this item asked for.
 
 ## RL-3. `create_environment` silently falls back to an absent `model_path` — **DONE**
 - **`rl_train/envs/environment_handler.py`** — composed only when **both** `msk_key` and
@@ -113,3 +119,30 @@ Legend: **file:line** · issue · suggested fix · **test needed**.
   needs it (all 5 are exo configs, `env_id = myoAssistLegImitationExo-v0`), but it is why a clean
   muscle-only config cannot be written today. Belongs with the deferred compose-pipeline items in
   `REVIEW_1.md`, not with RL-2.
+
+---
+
+## Verification run record (2026-08-07, macOS arm64, Python 3.12.13)
+
+The RL pass was verified on a Mac, which required working around three dependency defects that
+are **not** RL-pass items -- they block anyone installing from `requirements.txt`. Recorded in
+`REPO_ALIGNMENT.md` under A7; summarised here because they gate reproducing this run.
+
+Stack that makes `test_setup.py` pass **15/15**:
+
+| package | version | why not the obvious choice |
+|---|---|---|
+| `myosuite` | **2.11.6** | 2.12.0 replaced `physics/mj_sim_scene.py`'s path/string dispatch with `env_base._get_spec` calling `MjSpec.from_file` unconditionally, so the XML *string* `compose_env_model` returns is treated as a filename -> `ValueError: could not decode content`. `requirements.txt` leaves `myosuite` unpinned, so a fresh install gets 2.12.x and every composed env fails. |
+| `mujoco` | **3.3.4** | myosuite 2.11.6 pins `mujoco==3.3.0`, which the compose path rejects: myo_sim's 26->22 reduction needs `MjSpec.delete`, absent before 3.3.4. The pin has to be deliberately overridden. |
+| `dm-control` | **1.0.31** | 1.0.28 (what myosuite 2.11.6 resolves to) reads `MjModel.light_directional`, removed in mujoco 3.3.4 -> `AttributeError` at env init. |
+| `myo_sim` | `MyoHub/myo_sim@dev` + shim | Ships `build_spec` at `myo_sim.build.compose.build_spec` but its `__init__.__getattr__` only re-exports `_COMPOSED_MODELS`, so `myo_sim.build_spec(...)` -- what `assist_sim.registry._resolve_msk` calls -- raises `AttributeError`. Bridged locally with `myo_sim.build_spec = myo_sim.build.compose.build_spec`; the real fix is REPO_ALIGNMENT C4 (public accessor), currently **deferred**. |
+| `myoassist_terrains` | local clone @ `origin/main` | The git URL in `requirements.txt` is not publicly reachable. |
+
+The XML-string dispatch is **upstream behaviour, not a myoassist local modification** -- the
+vendored 2.8.3 copy on `dev` and upstream 2.11.6 are near-identical there (2.11.6 in fact *adds*
+an `MjModel` branch). So this is not fallout from A2's un-audited fork removal.
+
+Also found: `assist_sim`'s `_COMPATIBLE_MSK_KEYS` gives `myolegs22`/`myolegs26`
+`min_mujoco=(3,3,3)` with an empty `note`, but the 26->22 reduction uses `MjSpec.delete`, which
+needs 3.3.4 -- so the declared floor is understated by one patch and the resulting error reads
+`requires ; installed mujoco is 3.3.0`.

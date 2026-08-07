@@ -26,11 +26,15 @@ class EnvironmentHandler:
         Two checks:
           1. a muscle-only policy paired with a device that contributes motor actuators --
              those actuators would be left permanently unaddressed;
-          2. the widest ``range_action`` the net indexing declares vs the model's ``nu``.
+          2. which actuator indices the net indexing claims, against ``[0, nu)``.
              ``NetworkIndexHandler.map_network_to_action`` writes each mapping into an
-             ``nu``-wide tensor as ``result[:, start:end]``, so the *maximum* end index is
-             what has to match -- not the sum of the widths, which double-counts a
-             ``constant`` override of a range a ``range_mapping`` already covers.
+             ``nu``-wide tensor as ``result[:, start:end]``, so what matters is the *set* of
+             indices covered, not the summed width -- summing double-counts a ``constant``
+             override of a range a ``range_mapping`` already covers, which ``exo_off`` does
+             on ``[22,24]``. Overlap is therefore legal; an index claimed past ``nu`` or an
+             actuator no mapping claims is not. Checking the covered set rather than just
+             its maximum is what catches an interior gap, where the widest index still
+             lands on ``nu`` but some actuator in the middle is left at zero.
         """
         import mujoco
 
@@ -51,21 +55,34 @@ class EnvironmentHandler:
             )
 
         # Always present (config.py CustomPolicyParams), empty for a config that does not
-        # use custom net indexing -- in which case there is no declared width to check.
+        # use custom net indexing -- in which case there is no declared layout to check.
         net_indexing_info = config.policy_params.custom_policy_params.net_indexing_info
-        declared_action_width = 0
+        claimed: set[int] = set()
         for net_info in net_indexing_info.values():
             for mapping in net_info.get("action", []):
                 action_range = mapping.get("range_action")
                 if action_range is not None:
-                    declared_action_width = max(declared_action_width, action_range[1])
+                    claimed.update(range(action_range[0], action_range[1]))
+        if not claimed:
+            return
 
-        if declared_action_width and declared_action_width != model.nu:
+        model_desc = f"the composed model has nu={model.nu} ({n_muscle} muscle + {n_motor} motor)"
+        beyond = sorted(i for i in claimed if i >= model.nu)
+        if beyond:
             raise ValueError(
-                f"Action layout mismatch: net_indexing_info declares actions up to index "
-                f"{declared_action_width} but the composed model has nu={model.nu} "
-                f"({n_muscle} muscle + {n_motor} motor). {composed}. Fix the config's "
-                f"range_action entries to cover exactly the model's actuators."
+                f"Action layout mismatch: net_indexing_info claims actuator index "
+                f"{beyond[0]}{f' (and {len(beyond) - 1} more)' if len(beyond) > 1 else ''} but "
+                f"{model_desc}. {composed}. Narrow the config's range_action entries to the "
+                f"model's actuators."
+            )
+        unclaimed = sorted(set(range(model.nu)) - claimed)
+        if unclaimed:
+            raise ValueError(
+                f"Action layout mismatch: no net_indexing_info mapping drives actuator "
+                f"index {unclaimed if len(unclaimed) <= 8 else f'{unclaimed[:8]} (+{len(unclaimed) - 8} more)'}, "
+                f"so {'it would stay' if len(unclaimed) == 1 else 'they would stay'} at zero; "
+                f"{model_desc}. {composed}. Extend the config's range_action entries to cover "
+                f"every actuator."
             )
 
     @staticmethod

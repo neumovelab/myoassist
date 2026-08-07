@@ -1,0 +1,46 @@
+Fri Aug  7 16:24:47 2026
+WARNING: Could not find decoder for resource '<mujoco model="myotorso_attach">
+  <compiler angle="radian" />
+
+  <size nkey="5" />
+
+  <visual>
+    <scale light="0.05" framewidth="0.005" />
+    <rgba actuator="0.7 0.4 0.4 1" actuatornegative="0.175 0.1 0.1 1" actuatorpositive="1 0 0 1" haze="0.353 0.439 0.529 1" />
+  <headlight diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" ambient="0.4 0.4 0.4" /></visual>
+
+  <statistic extent="5" center="0 -1 1" />
+
+  <default>
+    <default class="myotorso">
+      <joint limited="true" armature="0.01" damping="0.5" />
+      <geom contype="0" conaffinity="0" margin="0.001" material="mat_myotorso" rgba="0.8 0.8 0.8 1" />
+      <site size="0.001 0.005 0.005" group="3" />
+
+      <tendon limited="false" width="0.005" rgba="0.95 0.3 0.3 1" />
+      <default class="myotorso_muscle">
+        <general ctrllimited="true" ctrlrange="0 1" dyntype="muscle" dynprm="0.01 0.04 0 0 0 0 0 0 0 0" gaintype="muscle" biastype="muscle" gainprm="0.75 1.05 -1 200 0.5 1.6 1.5 1.3 1.2" biasprm="0.75 1.05 -1 200 
+
+Fri Aug  7 16:25:52 2026
+WARNING: Could not find decoder for resource '<mujoco model="myotorso_attach">
+  <compiler angle="radian" />
+
+  <size nkey="5" />
+
+  <visual>
+    <scale light="0.05" framewidth="0.005" />
+    <rgba actuator="0.7 0.4 0.4 1" actuatornegative="0.175 0.1 0.1 1" actuatorpositive="1 0 0 1" haze="0.353 0.439 0.529 1" />
+  <headlight diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" ambient="0.4 0.4 0.4" /></visual>
+
+  <statistic extent="5" center="0 -1 1" />
+
+  <default>
+    <default class="myotorso">
+      <joint limited="true" armature="0.01" damping="0.5" />
+      <geom contype="0" conaffinity="0" margin="0.001" material="mat_myotorso" rgba="0.8 0.8 0.8 1" />
+      <site size="0.001 0.005 0.005" group="3" />
+
+      <tendon limited="false" width="0.005" rgba="0.95 0.3 0.3 1" />
+      <default class="myotorso_muscle">
+        <general ctrllimited="true" ctrlrange="0 1" dyntype="muscle" dynprm="0.01 0.04 0 0 0 0 0 0 0 0" gaintype="muscle" biastype="muscle" gainprm="0.75 1.05 -1 200 0.5 1.6 1.5 1.3 1.2" biasprm="0.75 1.05 -1 200 
+
