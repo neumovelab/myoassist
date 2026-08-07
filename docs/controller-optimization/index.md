@@ -10,7 +10,7 @@ Controller optimization in MyoAssist enables optimization of a reflex-based musc
 2. **Define Objectives**: Specify environment configuration, cost functions, and optimization criteria
 3. **Optimize**: Run CMA-ES optimization to find optimal controller parameters
 4. **Monitor Progress**: Track CMA-ES progress and output cost values
-4. **Analyze Results**: Evaluate results and visualize performance
+5. **Analyze Results**: Evaluate results and visualize performance
 
 ## Key Features
 

@@ -42,7 +42,7 @@ The agent outputs actions that control:
 1. **Define a config** – start from an existing JSON preset or create one from scratch.
 2. **Launch training**
    ```bash
-   python rl_train/run_train.py --config_file_path rl_train/train_configs/my_config.json
+   python rl_train/run_train.py --config_file_path rl_train/train/train_configs/my_config.json
    ```
 3. **Monitor progress** – logs & results in `results/train_session_*`.
 4. **Evaluate policy** –
@@ -173,19 +173,21 @@ python rl_train/run_policy_eval.py [path/to/trainsession/folder]
 > Pretrained tutorial models are hosted on the [MyoAssist website](https://myoassist.neumove.org); point `run_policy_eval.py` at any `train_session_*` directory you produce.
 
 
-After training, an `analyze_results` folder will be created inside your `train_session` directory.  
-This folder contains various plots and videos that visualize your agent's performance.
+`run_policy_eval.py` creates one `analyze_results_NN/` folder per entry in your
+`evaluate_param_list`, inside the `train_session` directory.
 
 - **Where to find:**  
   ```
-  rl_train/results/train_session_[date-time]/analyze_results/
+  rl_train/results/train_session_[date-time]/analyze_results_[NN]/
   ```
 - **What's inside:**  
-  - Multiple plots (e.g., reward curves, kinematics, etc.)
-  - Videos
+  - `composite.png` (and `.svg`) — a single summary figure (snapshot, return curve, kinematics vs reference, activations, timeseries)
+  - `replay.mp4` — a rollout replay video
+  - `gait_evaluated_data.json` — the rollout in the `GaitData` schema
+  - legacy per-panel plots are opt-in via `--legacy-plots`
 
 
-The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
+The rollouts that are evaluated (velocity mode, timesteps, camera, etc.) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
 For more details on how to customize these parameters, see the [RL Configuration](02_configuration.md) section.
 

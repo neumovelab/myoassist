@@ -8,9 +8,15 @@ Each exoskeleton's torque profile is governed by one of two spline-based control
 
 ## 1. Actuator Definition
 
-Each exoskeleton is defined as an actuator within the MuJoCo `.xml` model. There are multiple actuator types available within MuJoCo (see the [MuJoCo actuator reference](https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator)). This actuator is what allows the framework to apply torque to the model.
+The exoskeleton is contributed by the **device** in your environment spec — an
+assist_sim device (e.g. `Tutorial_L1`) that is composed into the MuJoCo model
+together with the human MSK and terrain (see
+**[Defining an Environment](../getting-started/defining-an-environment.md)**). The
+device supplies the exoskeleton actuators; you do not hand-edit a bundled `.xml`.
 
-Here is an example:
+Each exoskeleton is an actuator in that composed MuJoCo model. There are multiple actuator types available within MuJoCo (see the [MuJoCo actuator reference](https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator)). This actuator is what allows the framework to apply torque to the model.
+
+The actuators look like this:
 ```xml
 <general biasprm="0 0 0" gainprm="100 0 0" dynprm="1 0 0" biastype="none" gaintype="fixed" dyntype="none" joint="ankle_angle_r" name="Exo_R" gear="1.0" ctrlrange="-1 0" ctrllimited="true"/>
 <general biasprm="0 0 0" gainprm="100 0 0" dynprm="1 0 0" biastype="none" gaintype="fixed" dyntype="none" joint="ankle_angle_l" name="Exo_L" gear="1.0" ctrlrange="-1 0" ctrllimited="true"/>
@@ -64,7 +70,7 @@ This is a more flexible controller that defines the torque profile using a varia
         - `peak_time`: 0.90
         - `fall_time`: 0.075
     - **N-Point Controller**: The initialization uses two key strategies:
-        - **Torque Values** (`utils/npoint_torque.py`): Initial values follow a geometric decay pattern where peak torque (0.5 x peak_torque) is placed at or just after the middle point. Surrounding points decrease by powers of two based on distance from peak (i.e., with 4 points: `[0.125, 0.25, 0.5, 0.25]`). 
+        - **Torque Values** (`optim/optim_utils/npoint_torque.py`): Initial values follow a geometric decay pattern where peak torque (0.5 x peak_torque) is placed at or just after the middle point. Surrounding points decrease by powers of two based on distance from peak (i.e., with 4 points: `[0.125, 0.25, 0.5, 0.25]`). 
         - **Timing Values**: Uses a segmented normalization approach: Divides stance phase into `n` equal segments (e.g., for `n=4: [0-25%], [25-50%], [50-75%], [75-100%]`) where each timing parameter is normalized to `[0, 1]` within its segment. This segmentation, or "binning", prevents parameter clustering and CMA-ES destabilization.
 
 ### Simulation Interfacing

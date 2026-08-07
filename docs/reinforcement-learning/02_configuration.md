@@ -26,7 +26,7 @@ This example overrides two configuration parameters via the command line:
 
 ### Default Configuration Files
 
-Configuration files are located in `myoassist_rl/rl_train/train_configs/`:
+Configuration files are located in `rl_train/train/train_configs/`:
 
 - `imitation_tutorial_22_separated_net_partial_obs.json` - Imitation learning using the "TUTORIAL" model, which provides only ankle angle and velocity to the exo
 - `imitation_tutorial_22_separated_net_full_obs.json` - Full Exo observation imitation

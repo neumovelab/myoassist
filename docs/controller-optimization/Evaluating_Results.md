@@ -1,196 +1,123 @@
 # Evaluating Results
 
-This guide explains how to use the evaluation pipeline located in `ctrl_optim/results/evaluation/` to analyze and visualize the results of your optimization runs.
+This guide explains how to evaluate a finished Controller Optimization (CO) run
+with the central evaluation pipeline: `ctrl_optim/run_eval.py` →
+`ctrl_optim/eval/gait_evaluator.py`.
 
 ## Overview
 
-The evaluation module provides two primary ways to analyze results:
-1. **Graphical User Interface (GUI)** for interactive, single-run analysis or batch processing multiple results folders (Windows).
-2. **Command-Line Interface** that uses a JSON configuration file for scriptable processing or batch processing (all platforms).
+`run_eval` takes an optimized reflex controller (a `_Best.txt` / `_BestLast.txt`
+parameter file from an `optim_results` folder), rolls it out in the same composed
+environment it was optimized in, and produces:
 
-The primary output for both methods includes simulation videos, kinematics plots, and detailed analysis reports.
+- **`gait_evaluated_data.json`** — the full rollout in the RL `GaitData` schema
+  (joint `qpos`/`qvel`, actuator force/ctrl, sensor traces, target velocity), so the
+  RL analyzers can consume CO output.
+- **`composite.png`** (and a matching `.svg`) — a single summary figure.
+- **`replay.mp4`** — an optional follow-camera replay video.
 
-## Quick Start
+The rollout is driven by `CtrlOptimGaitEvaluator` (config `CtrlOptimEvalConfig`);
+the figure is assembled by `myoassist_utils/eval_utils.py`
+(`build_composite` / `CompositeInputs`) — the *same* builder the RL eval uses; the
+follow camera comes from `ctrl_optim/eval/camera_setup.py`. The legacy Tkinter GUI
+eval has been removed.
 
-### Using `run_eval.py`
+## Running an evaluation
 
-The evaluation framework uses a unified approach with `run_eval.py` as the main entry point:
-
-```bash
-# Navigate to the ctrl_optim directory
-cd ctrl_optim
-
-# Run the evaluation pipeline
-python run_eval.py
-```
-
-This will launch the GUI interface (on Windows) or provide command-line options.
-
-## Method 1: Using the GUI (Windows)
-
-**Note: The GUI interface does not work on macOS due to tkinter compatibility issues. Mac users should use Method 2 (Command-Line) instead.**
-
-### Launching the GUI
+Run from the repository root as a module.
 
 ```bash
-cd ctrl_optim
-python run_eval.py
+# With a JSON config
+python -m ctrl_optim.run_eval --config ctrl_optim/eval/configs/example_config.json
+
+# Or point directly at a results directory (CLI flags fill the rest)
+python -m ctrl_optim.run_eval --results-dir ctrl_optim/results/preoptimized/exo_4param_125_0729_1339
 ```
 
-This will launch the "Controller Optimization Evaluation Pipeline" window.
+Given a results directory, `run_eval` auto-locates the parameter file
+(`*_Best.txt` or `*_BestLast.txt`, chosen by `param_type`) and the CMA-ES pickle
+(`*_Pickle.pkl`) inside it. A pop-out window shows the composite figure unless you
+pass `--no-show`.
 
-### GUI Options
+## JSON configuration
 
-The GUI is divided into sections that allow you to configure how the results are evaluated.
+Copy `ctrl_optim/eval/configs/example_config.json`, rename it, and fill in your
+values. Any field with a default can be omitted. Keys the pipeline reads:
 
-#### 1. Select Results Folder(s)
+| Key | Meaning | Default |
+|-----|---------|---------|
+| `results_dir` | folder holding the optimized run | (required) |
+| `param_type` | `"Best"` or `"BestLast"` — which param file to load | `"Best"` |
+| `param_file` | explicit param `.txt`; auto-located from `param_type` if null | auto |
+| `pkl_file` | explicit CMA-ES `_Pickle.pkl`; auto-located if null | auto |
+| `output_dir` | where outputs are written | `<results_dir>/eval_output` |
+| `sim_time` | rollout length (s) | `10.0` |
+| `target_velocity` | target walking speed (m/s), used for readouts | `1.25` |
+| `mode` | `"2D"` or `"3D"` | `"2D"` |
+| `init_pose` | starting keypose | `"walk_left"` |
+| `delayed` | biological neural delays | `false` |
+| `exo_bool` | exoskeleton enabled | `true` |
+| `fixed_exo` | hold exo params fixed | `false` |
+| `use_4param_spline` | 4-param vs n-point exo spline | `true` |
+| `max_torque` | max exo torque | `1.0` |
+| `n_points` | n-point spline points (when not 4-param) | `4` |
+| `msk_key` | human MSK registry key | `"myolegs22"` |
+| `device_key` | assist_sim device registry key | `"Tutorial_L1"` |
+| `terrain` | terrain spec (path or inline); drives the slope | null → flat |
+| `camera_speed` / `camera_distance` / `camera_elevation` / `camera_height` / `camera_azimuth` | follow-camera setup | see config |
+| `render_width` / `render_height` | render resolution | `1920` × `960` |
+| `show_actuators` | draw actuators in the render | `true` |
+| `export_video` | also write `replay.mp4` | `false` |
+| `video_fps` | replay frame rate | `100` |
 
-This is the primary input for the tool.
-- **Add Folder(s)**: Opens a dialog to select one or more results folders (e.g., `results/optim_results/baseline_date_time`). You can select multiple folders for batch processing.
-- **Clear**: Removes all selected folders from the list.
+The environment is defined the same way as everywhere else in MyoAssist — a
+`{msk, device, terrain}` env-spec of raw registry keys (see
+**[Defining an Environment](../getting-started/defining-an-environment.md)**). The
+course grade is the single source of truth: the incline is derived from a
+`slope` `terrain`, not a separate flag.
 
-When a folder is selected, the tool automatically finds the associated configuration file (`.bat` or `.sh`) and the `_Best.txt` or `_BestLast.txt` parameter files.
+## CLI overrides
 
-#### 2. Environment Configuration
-
-This section displays the loaded environment configuration. You may also override the environment settings that were used during the original optimization if desired. **Note**: Overriding environment settings is *not* recommended, as the optimized results are environment dependent, but this feature can be used to swap models or test other environments with your optimized parameters.
-
-- **Model**: The musculoskeletal model to use (e.g., `tutorial`, `baseline`, `dephy`)
-- **Mode**: 2D or 3D simulation mode
-- **Slope**: Terrain slope in degrees
-- **Max Torque**: Maximum exoskeleton torque
-- **Init Pose**: Initial walking pose
-- **Boolean Options**: Delayed controller, exoskeleton on/off, fixed exo profile, 4-parameter spline
-
-#### 3. Parameter Types to Evaluate
-
-Choose which parameter files to evaluate:
-- **Best**: Evaluate the best parameters found during optimization (`_Best.txt`)
-- **BestLast**: Evaluate the best parameters from the final population (`_BestLast.txt`)
-
-#### 4. Evaluation Mode
-
-This defines the level of detail in the output:
-- **Short**: 5-second simulation with video and kinematics plot
-- **Long**: 10-second simulation with video and kinematics plot
-
-#### 5. Output Directory
-
-Specify where the evaluation results will be saved. Results are automatically organized in timestamped folders.
-
-## Method 2: Command-Line with JSON (All Platforms)
-
-For automated workflows or macOS users, you can run the evaluation script from the command line using a JSON configuration file.
-
-### Running from the Command Line
+Instead of (or on top of) a config, you can pass flags; an explicit flag always
+overrides the JSON value:
 
 ```bash
-cd ctrl_optim
-python run_eval.py --config path/to/your_config.json
+python -m ctrl_optim.run_eval --results-dir <dir> \
+    --param-type BestLast --sim-time 20 --target-velocity 1.25 \
+    --mode 2D --exo-bool true --export-video --no-show
 ```
 
-### JSON Configuration File
+Available flags: `--config`, `--results-dir`, `--param-file`, `--pkl-file`,
+`--output-dir`, `--param-type {Best,BestLast}`, `--sim-time`, `--target-velocity`,
+`--mode {2D,3D}`, `--init-pose`, `--exo-bool`, `--export-video`, `--no-show`.
 
-Create a `.json` file to specify the evaluation parameters. See `ctrl_optim/results/evaluation/eval_config/example_config.json` for a template.
+## The composite figure
 
-**Example `config.json`:**
-```json
-{
-    "results_dir": "results/optim_results/baseline_0701_1200",
-    "evaluation_mode": "short",
-    "output_dir": "results/evaluation_outputs",
-    "include_best": true,
-    "include_bestlast": true
-}
-```
+`composite.png` is a black-and-white multi-panel summary:
 
-**Example batch processing with multiple directories:**
-```json
-{
-    "results_dirs": [
-        "results/optim_results/baseline_0701_1200",
-        "results/optim_results/exo_4param_0702_1400",
-        "results/optim_results/exo_npoint_0703_1600"
-    ],
-    "evaluation_mode": "short",
-    "output_dir": "results/evaluation_outputs",
-    "include_best": true,
-    "include_bestlast": false
-}
-```
+- **Environment snapshot** — a mid-rollout skeleton render.
+- **CMA-ES fitness** — best / median / worst cost per generation, read from
+  `outcmaes/*_fit.dat` in the results folder (falling back to `es.fit.hist` in the
+  pickle for older runs).
+- **Kinematics** — segmented right-leg hip / knee / ankle angles (mean ± SD)
+  overlaid on the shared human gait reference (`rl_train/reference_data/segmented.npz`).
+- **Kinetics** — active joint moments (Nm) per gait cycle.
+- **Activation** — a muscle-activation grid plus exo torque.
+- **Timeseries** — right-leg joint angles, pelvis height, and foot-contact sensors.
 
-### Configuration Parameters
+## Output structure
 
-- **`results_dir`** or **`results_dirs`**: Path to one or more results directories
-- **`evaluation_mode`**: Analysis mode (`"short"` or `"long"`)
-- **`output_dir`**: Directory where evaluation outputs will be saved
-- **`include_best`**: Whether to evaluate `_Best.txt` files (default: `true`)
-- **`include_bestlast`**: Whether to evaluate `_BestLast.txt` files (default: `true`)
-
-## Output Structure
-
-Each evaluation run creates a timestamped output directory:
+By default outputs land in `<results_dir>/eval_output/`:
 
 ```
-ctrl_optim/results/evaluation_outputs/MMDD_HHMM/
-├── parameter_name_001.mp4              # Simulation video
-├── parameter_name_001_kinematics.png   # Kinematics plot
-├── parameter_name_001_stats.txt        # Kinematic statistics
-├── parameter_name_001_exo.mp4          # Exoskeleton video (if applicable)
-├── parameter_name_001_exo_cost.png     # Exoskeleton controller + cost plot (if applicable)
-└── config_name_timestamp.bat           # Configuration file copy
+<results_dir>/eval_output/
+├── gait_evaluated_data.json   # rollout data in the RL GaitData schema
+├── composite.png              # summary figure
+├── composite.svg              # vector version of the same figure
+└── replay.mp4                 # only when export_video / --export-video is set
 ```
 
-## Platform Compatibility
+## Quick visualization
 
-### Windows
-- GUI interface available
-- Command-line interface available
-- All features supported
-
-### macOS/Linux
-- GUI interface NOT supported (tkinter compatibility issues)
-- Command-line interface available
-- All evaluation features supported via JSON configuration
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Module not found" errors**: Make sure you're running from the correct directory:
-   ```bash
-   cd ctrl_optim
-   python run_eval.py
-   ```
-
-2. **GUI not working**: Use the command-line interface instead:
-   ```bash
-   python run_eval.py --config eval_config/example_config.json
-   ```
-
-3. **No parameter files found**: Verify the results directory contains `_Best.txt` or `_BestLast.txt` files
-
-4. **Video generation fails**: Ensure required dependencies are installed:
-   ```bash
-   pip install imageio sk-video
-   ```
-
-### Creating Custom Configurations
-
-You can create custom evaluation configurations by:
-
-1. Copying the example config file:
-   ```bash
-   cp ctrl_optim/results/evaluation/eval_config/example_config.json my_config.json
-   ```
-
-2. Modifying the parameters as needed
-
-3. Running with your custom config:
-   ```bash
-   python run_eval.py --config my_config.json
-   ```
-
-## Quick Visualization
-
-For simple video generation without detailed analysis, you can also use the `run_ctrl.py` imulation script. See the **[Running Reflex Control](Running_Reflex_Control.md)** guide for more details.
+For a quick video without the full analysis figure, use the `run_ctrl.py`
+simulation script instead. See **[Running Reflex Control](Running_Reflex_Control.md)**.
