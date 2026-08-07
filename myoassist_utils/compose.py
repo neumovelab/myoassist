@@ -19,6 +19,8 @@ the figure-only bits (slide root, white scene, velocity arrows) are dropped here
 
 from __future__ import annotations
 
+import atexit
+import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -225,6 +227,10 @@ def compose_env_model(
     """
     # 1) compose human + device -> reload-safe, model-only XML (scene stripped).
     model_dir = Path(tempfile.mkdtemp(prefix="myoassist_compose_"))
+    # The immediate rmdir below only clears empty scratch dirs; register a
+    # process-exit cleanup so any that still hold files (e.g. a terrain assets
+    # dir the returned model references) are removed rather than leaked.
+    atexit.register(shutil.rmtree, str(model_dir), ignore_errors=True)
     model_xml_path = model_dir / "model_only.xml"
     load_combined(msk_key, device_key, export_xml=str(model_xml_path))
     model_root = ET.parse(model_xml_path).getroot()
@@ -248,6 +254,9 @@ def compose_env_model(
         assets_dir.mkdir(parents=True, exist_ok=True)
     else:
         assets_dir = Path(tempfile.mkdtemp(prefix="myoassist_terrain_"))
+        # Temp terrain-asset dir must outlive this call (the returned model
+        # references its files), so clean it at process exit, not immediately.
+        atexit.register(shutil.rmtree, str(assets_dir), ignore_errors=True)
     tspec = build_terrain(cfg, output_dir=assets_dir)
     tspec.compile()
     terrain_root = ET.fromstring(tspec.to_xml())
