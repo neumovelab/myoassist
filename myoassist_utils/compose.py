@@ -161,17 +161,27 @@ def _inject_lighting(root: ET.Element) -> None:
         )
 
 
+def _inject_terrain_haze(root: ET.Element, terrain_root: ET.Element) -> None:
+    """Propagate the terrain's horizon haze (fog) color onto the model's
+    ``<visual>`` so an infinite ground plane fades into its own color rather
+    than MuJoCo's default white.  No-op if the terrain declares no haze."""
+    t_vis = terrain_root.find("visual")
+    t_rgba = t_vis.find("rgba") if t_vis is not None else None
+    if t_rgba is None or t_rgba.get("haze") is None:
+        return
+    visual = _find_or_make(root, "visual", 1)
+    rgba = visual.find("rgba")
+    if rgba is None:
+        rgba = ET.SubElement(visual, "rgba")
+    rgba.set("haze", t_rgba.get("haze"))
+
+
 def _flat_default_config():
-    """A 1x1 flat tile at z=0 -- the default ground when no terrain is given
-    (the assist_sim model-only export carries no surface)."""
-    return _config_from_dict(
-        {
-            "terrain_name": "flat_default",
-            "grid": {"rows": 1, "cols": 1, "tile_size": [12.0, 12.0]},
-            "border": {"width": 0.0},
-            "tiles": [{"row": 0, "col": 0, "type": "flat", "params": {"height": 0.0}}],
-        }
-    )
+    """The default ground when no terrain is given: a single infinite flat plane
+    at z=0 (the assist_sim model-only export carries no surface).  This mirrors
+    the old myoassist ground -- an effectively-infinite plane, one cheap geom --
+    rather than a finite box tile, so a walking model never runs off the edge."""
+    return _config_from_dict({"terrain": "flat"})
 
 
 # ---------------------------------------------------------------------------
@@ -231,9 +241,10 @@ def compose_env_model(
     _absolutize_files(terrain_root, assets_dir)
     terrain_geom_names = {g.get("name") for g in terrain_root.find("worldbody").iter("geom") if g.get("name")}
 
-    # 3) merge terrain (colliding) + add default lighting.
+    # 3) merge terrain (colliding) + add default lighting + horizon haze.
     _inject_terrain(model_root, terrain_root)
     _inject_lighting(model_root)
+    _inject_terrain_haze(model_root, terrain_root)
 
     # 4) seat the model so its feet rest on the terrain surface (light contact),
     #    measured from the real collision geometry at the opening pose.
