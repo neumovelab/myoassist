@@ -70,7 +70,6 @@ def evaluateCost(
     # Extract basic data
     cost_const = data_store[0]["obj_func_out"]["const"]
     cost_mass = data_store[0]["obj_func_out"]["mass"]
-    const_theta_tgt = data_store[0]["obj_func_out"]["pelvis"]["theta_tgt"]
 
     # Initialize arrays
     unpacked_cost = np.zeros((len(data_store), 6))
@@ -177,10 +176,6 @@ def evaluateCost(
     )
 
     GRF_cost = calculate_grf_cost(unpacked_grf, index_vector, tgt_grf)
-
-    scruff_cost = calculate_scruff_cost(
-        left_stance_foot, right_stance_foot, stride_num, unpacked_grf, unpacked_spinal_phases_l, unpacked_spinal_phases_r
-    )
 
     # Calculate joint pain costs
     pain_costs = effort_costs.calculate_joint_limit_cost(unpacked_torque, index_vector)
@@ -609,62 +604,6 @@ def calculate_effort_and_emg_cost(
         musc_profile_cost = 0
 
     return effort_cost, musc_profile_cost
-
-
-def check_optimization_constraints(
-    optim_type,
-    velocity_cost,
-    sym_cost,
-    tgt_sym,
-    GRF_cost,
-    knee_pain,
-    hip_pain,
-    ankle_pain,
-    pelvis_cost,
-    cost_const,
-    scruff_cost=None,
-):
-    """Check constraints based on optimization type"""
-    pass_flag = False
-    pass_cost = 0
-
-    if optim_type == "Effort":
-        pass_flag = True
-        pass_cost = effort_cost
-    elif optim_type == "Eff_Knee":
-        pass_flag = pain_cost < 0.01
-        pass_cost = effort_cost + pain_cost
-    elif optim_type == "Velocity":
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym and pelvis_cost < 20
-        pass_cost = (
-            10 * cost_const
-            + (100 * velocity_cost * (not velocity_cost < 0.01))
-            + (100 * sym_cost * (not sym_cost < tgt_sym))
-            + (pelvis_cost * (not pelvis_cost < 20))
-        )
-    elif optim_type in ["Vel_grf", "vel_musc", "vel_musc_grf"]:
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym
-        pass_cost = (
-            10 * cost_const + (100 * velocity_cost * (not velocity_cost < 0.01)) + (100 * sym_cost * (not sym_cost < tgt_sym))
-        )
-    elif optim_type == "Classic":
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym and pelvis_cost < 20
-        pass_cost = (
-            10 * cost_const
-            + (1000 * velocity_cost * (not velocity_cost < 0.01))
-            + (100 * sym_cost * (not sym_cost < tgt_sym))
-            + (pelvis_cost * (not pelvis_cost < 20))
-        )
-    elif optim_type in ["Kine", "Kine_grf", "Kine_grf_musc", "Monolithic_Kine"]:
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym and pelvis_cost < 20
-        pass_cost = (
-            10 * cost_const
-            + (1000 * velocity_cost * (not velocity_cost < 0.01))
-            + (100 * sym_cost * (not sym_cost < tgt_sym))
-            + (pelvis_cost * (not pelvis_cost < 20))
-        )
-
-    return pass_flag, pass_cost
 
 
 def calculate_final_cost(

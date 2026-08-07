@@ -597,7 +597,6 @@ class myoLeg_reflex(object):
         # Have to collect observations after step, otherwise brain cmd would not have any values
         out_cost = self.collectCost()
 
-        body_xpos = self.env.sim.data.body("pelvis").xpos.copy()
         body_xquat = self.env.sim.data.body("pelvis").xquat.copy()
 
         # torso_euler = self.get_intrinsic_EulerXYZ(self.env.sim.data.body('torso').xquat.copy())
@@ -995,7 +994,15 @@ class myoLeg_reflex(object):
         btm_sites = ["r_heel_btm", "r_toe_btm", "l_heel_btm", "l_toe_btm"]
         touch_sites = ["r_foot_touch", "r_toes_touch", "l_foot_touch", "l_toes_touch"]
         site_names = {self.env.sim.model.site(i).name for i in range(self.env.sim.model.nsite)}
-        foot_sites = btm_sites if set(btm_sites) <= site_names else touch_sites
+        if set(btm_sites) <= site_names:
+            foot_sites = btm_sites
+        elif set(touch_sites) <= site_names:
+            foot_sites = touch_sites
+        else:
+            raise KeyError(
+                f"adjust_model_height: model exposes neither the legacy *_btm foot sites ({btm_sites}) "
+                f"nor the composed *_touch foot sites ({touch_sites}); no ground-contact reference to seat on."
+            )
 
         temp_sens_height = 100
         for sens_site in foot_sites:
@@ -1389,8 +1396,10 @@ class myoLeg_reflex(object):
 
     # ----- Internal plotting functions -----
 
-    def get_plot_data(self):
-
+    def get_full_plot_data(self):
+        # Renamed from get_plot_data (Review 1): it collided with the list-based
+        # get_plot_data(data_list) above (line ~429) and silently shadowed it, breaking
+        # its caller. Distinct name here; CO author to confirm the intended wiring.
         plot_data = {}
         plot_data["mus_act"] = self.env.sim.data.act.copy()
 

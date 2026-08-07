@@ -64,7 +64,9 @@ class ReflexEnvV0(BaseV0):
         )
         # Reset baseline == the model's "stand" keyframe (key 0), exactly as the
         # old ReachEnvV0 did (``init_qpos = key_qpos[0]``).  CO overrides the
-        # pose afterwards via keyframes + explicit joint sets.
+        # pose afterwards via keyframes + explicit joint sets.  ``key_qpos`` is
+        # ``(nkey, nq)`` (MuJoCo pads keyframes to nq), so this stays a full-width
+        # assignment even when the composed device adds DOFs.
         if self.sim.model.nkey > 0:
             self.init_qpos[:] = self.sim.model.key_qpos[0]
             self.init_qvel[:] = self.sim.model.key_qvel[0]

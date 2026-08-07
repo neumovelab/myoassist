@@ -115,19 +115,19 @@ def execute_config(config_name, original_dir):
         # Execute the configuration file
         if platform.system() == "Windows":
             if config_file.suffix == ".bat":
-                result = subprocess.run(["cmd", "/c", str(config_file)], shell=True, check=True)
+                subprocess.run(["cmd", "/c", str(config_file)], shell=True, check=True)
             else:
                 # For .sh files on Windows, we need bash
                 if not shutil.which("bash"):
                     print("Error: bash is required to run .sh files on Windows")
                     return False
-                result = subprocess.run(["bash", str(config_file)], shell=True, check=True)
+                subprocess.run(["bash", str(config_file)], shell=True, check=True)
         else:
             # On Unix-like systems
             if config_file.suffix == ".sh":
                 # Make executable and run
                 os.chmod(config_file, 0o755)
-                result = subprocess.run([str(config_file)], shell=True, check=True)
+                subprocess.run([str(config_file)], shell=True, check=True)
             else:
                 print("Error: .bat files are not supported on Unix-like systems")
                 print("Please use the equivalent .sh file instead")

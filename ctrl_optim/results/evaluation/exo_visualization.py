@@ -157,7 +157,7 @@ class ExoVisualizer:
                 torque_vals = np.array([env.ExoCtrl_R.torque_spline(v) for v in x_vals])
             else:
                 torque_vals = np.array([env.ExoCtrl_R.torque_spline(v) for v in x_vals])
-        except:
+        except Exception:
             torque_vals = np.zeros_like(x_vals)
 
         # Normalize for visualization
@@ -283,7 +283,7 @@ class ExoVisualizer:
                         # Un-normalize by multiplying by max_torque
                         if hasattr(env.ExoCtrl_L, "max_torque"):
                             current_torque_l *= env.ExoCtrl_L.max_torque
-                except:
+                except Exception:
                     pass
 
         return {

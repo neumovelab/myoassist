@@ -341,8 +341,8 @@ def main():
                 es.disp(200)
                 es.logger.add()
 
-                # Check current best solution
-                velCheck_dict = func_Walk_FitCost(
+                # Check current best solution (evaluated for its side effects; result unused)
+                func_Walk_FitCost(
                     es.result.xbest,
                     optim_type,
                     one_step,
@@ -391,7 +391,6 @@ def main():
         np.savetxt(f"{os.path.join(save_path, param_name_last)}.txt", best_last_solution)
 
         # Print summary information
-        end_time = datetime.now()
         print(f"Optimization complete - {datetime.now()}")
         print(f"Cost of best: {np.round(es.result.fbest, 5)}")
         print(f"Cost of best in last population: {np.round(min(last_pop_costs), 5)}")
