@@ -2,9 +2,11 @@ name: tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, refactor]
   pull_request:
-    branches: [main]
+    # `refactor` is included because the 1.0 refactor lands there as topic-branch PRs
+    # and only reaches main once, so gating on main alone leaves that work unchecked.
+    branches: [main, refactor]
 
 jobs:
   # Lint runs standalone (ruff only, no heavy deps) so the style/lint gate is enforced
@@ -24,8 +26,14 @@ jobs:
 
   # The suite needs the composed pipeline (myosuite + SB3 + the git-URL sibling repos), so
   # it installs the full deps and runs test_setup.py.
+  #
+  # Restricted to main: requirements.txt installs myoassist.terrains from a git URL that is
+  # not publicly reachable, so this job cannot get past `pip install` on a runner. Enabling
+  # it for `refactor` would only add a permanently red check. Drop the `if:` once terrains
+  # is public (or a deploy key is configured) -- see REPO_ALIGNMENT.md E7.
   test:
     name: test_setup (Python ${{ matrix.python-version }})
+    if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
