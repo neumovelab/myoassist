@@ -7,7 +7,6 @@ from myosuite.envs import env_base
 from rl_train.train.train_configs.config import TrainSessionConfigBase
 from rl_train.utils.data_types import DictionableDataclass
 import collections
-import mujoco
 from enum import Enum
 import random
 
@@ -106,20 +105,9 @@ class MyoAssistLegBase(env_base.MujocoEnv):
                     self._lumbar_joint_fixed_angle + 1e-6,
                 ]
 
-                # Adjust damping (whether the joint is fixed or not)
+                # Adjust damping (whether the joint is fixed or not). lumbar_extension is a
+                # hinge, so damping its first DOF covers the whole joint.
                 dof_adr = self.sim.model.jnt_dofadr[lumbar_joint_id]
-                joint_type = self.sim.model.jnt_type[lumbar_joint_id]
-                if joint_type == mujoco.mjtJoint.mjJNT_FREE:
-                    dof_count = 6
-                elif joint_type == mujoco.mjtJoint.mjJNT_BALL:
-                    dof_count = 3
-                elif joint_type == mujoco.mjtJoint.mjJNT_HINGE:
-                    dof_count = 1
-                elif joint_type == mujoco.mjtJoint.mjJNT_SLIDE:
-                    dof_count = 1
-                else:
-                    dof_count = 0  # Currently unused
-
                 self.sim.model.dof_damping[dof_adr] = self._lumbar_joint_damping_value
             else:
                 self.sim.model.body("torso").quat = [1, 0, 0, self._lumbar_joint_fixed_angle]
@@ -132,7 +120,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         original_reward_dict = DictionableDataclass.to_dict(env_params.reward_keys_and_weights)
         self.rwd_keys_wt = {}
         for key, value in original_reward_dict.items():
-            if type(value) == dict:
+            if isinstance(value, dict):
                 weight_sum = sum(value.values())
                 self.rwd_keys_wt[key] = weight_sum
             else:
@@ -164,6 +152,14 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             f"rwd_keys_wt != actual_reward_keys. rwd_keys_wt: {self.rwd_keys_wt}, actual_reward_keys keys: {actual_reward_keys}"
         )
 
+        # The initial pose comes from the composed model's first keyframe. assist_sim extends
+        # the human keyframes to cover the device DOFs, so the widths match nq/nv -- but not
+        # every MSK ships keyframes at all (composed myolegs26 has nkey=0), and indexing [0]
+        # on an empty keyframe array raises IndexError from deep inside _setup.
+        assert self.sim.model.nkey > 0, (
+            "Composed model has no keyframes (nkey=0), so there is no initial pose to load. "
+            "Keyframes come from the MSK model; myolegs22 ships 5, myolegs26 ships none."
+        )
         self.init_qpos[:] = self.sim.model.key_qpos[0]
         self.init_qvel[:] = self.sim.model.key_qvel[0]
 
@@ -222,7 +218,6 @@ class MyoAssistLegBase(env_base.MujocoEnv):
 
         time_passed = self.sim.data.time - self._prev_step_time
         if self._detect_heel_strike() and time_passed > 0:
-            travel_distance = self.sim.data.body("pelvis").xpos[0] - self._prev_pelvis_tx_pos
             self.reward_muscle_activation_penalty_per_step = self.dt * (-self._activation_square_sum)
             leg_length = 1  # see https://github.com/stanfordnmbl/osim-rl/blob/master/osim/env/osim.py
             self.reward_average_velocity_per_step = self.dt * (-np.abs(self._delta_velocity_sum)) / leg_length

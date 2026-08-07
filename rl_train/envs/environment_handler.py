@@ -6,7 +6,85 @@ from rl_train.utils.data_types import DictionableDataclass
 from rl_train.train.train_configs.config import TrainSessionConfigBase
 
 
+# Env ids whose policy drives the device's non-muscle actuators (HumanExoActorCriticPolicy).
+# Every other env id selects the muscle-only HumanActorCriticPolicy. Single source of truth
+# for both the policy switch in get_stable_baselines3_model and the guard below, which is
+# only correct as long as the two agree.
+_EXO_ENV_IDS = ("myoAssistLegImitationExo-v0",)
+
+
 class EnvironmentHandler:
+    @staticmethod
+    def _validate_action_layout(model_xml: str, config) -> None:
+        """Fail fast when a config's action layout disagrees with the composed model.
+
+        Actuator counts are a property of the composed model (msk + device), not of the
+        config, so a config can declare an action layout for a model it no longer builds.
+        Without this check such a mismatch surfaces as a tensor-shape error inside the
+        policy forward pass, with nothing naming the config or the keys that caused it.
+
+        Two checks:
+          1. a muscle-only policy paired with a device that contributes motor actuators --
+             those actuators would be left permanently unaddressed;
+          2. which actuator indices the net indexing claims, against ``[0, nu)``.
+             ``NetworkIndexHandler.map_network_to_action`` writes each mapping into an
+             ``nu``-wide tensor as ``result[:, start:end]``, so what matters is the *set* of
+             indices covered, not the summed width -- summing double-counts a ``constant``
+             override of a range a ``range_mapping`` already covers, which ``exo_off`` does
+             on ``[22,24]``. Overlap is therefore legal; an index claimed past ``nu`` or an
+             actuator no mapping claims is not. Checking the covered set rather than just
+             its maximum is what catches an interior gap, where the widest index still
+             lands on ``nu`` but some actuator in the middle is left at zero.
+        """
+        import mujoco
+
+        model = mujoco.MjModel.from_xml_string(model_xml)
+        # Count muscles by actuator dynamics rather than as nu - na: a device's `general`
+        # actuator may declare its own activation dynamics, which would inflate na.
+        n_muscle = int((model.actuator_dyntype == mujoco.mjtDyn.mjDYN_MUSCLE).sum())
+        n_motor = model.nu - n_muscle
+
+        env_id = config.env_params.env_id
+        composed = f"env_id={env_id!r}, msk_key={config.env_params.msk_key!r}, device_key={config.env_params.device_key!r}"
+
+        if n_motor > 0 and env_id not in _EXO_ENV_IDS:
+            raise ValueError(
+                f"Composed model has {n_motor} motor actuator(s) but {composed} selects the "
+                f"muscle-only policy, so nothing would drive them. Use an exo env id "
+                f"({', '.join(_EXO_ENV_IDS)}) or a device that adds no motor actuators."
+            )
+
+        # Always present (config.py CustomPolicyParams), empty for a config that does not
+        # use custom net indexing -- in which case there is no declared layout to check.
+        net_indexing_info = config.policy_params.custom_policy_params.net_indexing_info
+        claimed: set[int] = set()
+        for net_info in net_indexing_info.values():
+            for mapping in net_info.get("action", []):
+                action_range = mapping.get("range_action")
+                if action_range is not None:
+                    claimed.update(range(action_range[0], action_range[1]))
+        if not claimed:
+            return
+
+        model_desc = f"the composed model has nu={model.nu} ({n_muscle} muscle + {n_motor} motor)"
+        beyond = sorted(i for i in claimed if i >= model.nu)
+        if beyond:
+            raise ValueError(
+                f"Action layout mismatch: net_indexing_info claims actuator index "
+                f"{beyond[0]}{f' (and {len(beyond) - 1} more)' if len(beyond) > 1 else ''} but "
+                f"{model_desc}. {composed}. Narrow the config's range_action entries to the "
+                f"model's actuators."
+            )
+        unclaimed = sorted(set(range(model.nu)) - claimed)
+        if unclaimed:
+            raise ValueError(
+                f"Action layout mismatch: no net_indexing_info mapping drives actuator "
+                f"index {unclaimed if len(unclaimed) <= 8 else f'{unclaimed[:8]} (+{len(unclaimed) - 8} more)'}, "
+                f"so {'it would stay' if len(unclaimed) == 1 else 'they would stay'} at zero; "
+                f"{model_desc}. {composed}. Extend the config's range_action entries to cover "
+                f"every actuator."
+            )
+
     @staticmethod
     def create_environment(config, is_rendering_on: bool, is_evaluate_mode: bool = False):
 
@@ -16,21 +94,42 @@ class EnvironmentHandler:
         # {msk, device, terrain} triple through the shared env-spec front-door --
         # the same validated path the CO pipeline uses -- to compose the model into
         # an XML string, passed as model_path (myosuite's SimScene routes "<mujoco"
-        # -> from_xml_string). Otherwise fall back to the literal model_path (escape
-        # hatch). Composed once here; the XML string pickles fine into SubprocVecEnv
-        # workers.
+        # -> from_xml_string). A literal model_path is the escape hatch for a
+        # pre-built MJCF. Composed once here; the XML string pickles fine into
+        # SubprocVecEnv workers.
+        msk_key = config.env_params.msk_key
+        device_key = config.env_params.device_key
         model_path = config.env_params.model_path
-        if getattr(config.env_params, "msk_key", None) and getattr(config.env_params, "device_key", None):
+
+        # Compose takes both keys or neither. Half a spec used to fall through to
+        # model_path, which is None in every migrated config, and failed inside
+        # gym.make without mentioning the key that was actually missing.
+        if bool(msk_key) != bool(device_key):
+            missing, present = ("device_key", f"msk_key={msk_key!r}") if msk_key else ("msk_key", f"device_key={device_key!r}")
+            raise ValueError(
+                f"Incomplete compose spec: {present} is set but {missing} is not. Set both to "
+                f"compose a model (run `python -m assist_sim list` for the valid keys), or "
+                f"neither and give an explicit model_path."
+            )
+
+        if msk_key and device_key:
             from myoassist_utils.env_spec import EnvSpec
 
             model_path = (
                 EnvSpec(
-                    msk=config.env_params.msk_key,
-                    device=config.env_params.device_key,
-                    terrain=getattr(config.env_params, "terrain", None),
+                    msk=msk_key,
+                    device=device_key,
+                    terrain=config.env_params.terrain,
                 )
                 .validate()
                 .compose()
+            )
+            EnvironmentHandler._validate_action_layout(model_path, config)
+        elif not model_path:
+            raise ValueError(
+                "No model specified: set msk_key + device_key to compose a model, or "
+                "model_path to load a pre-built MJCF. The shipped configs use the "
+                "compose keys; a config carrying neither is a migration oversight."
             )
 
         # Base gym.make arguments
@@ -161,7 +260,7 @@ class EnvironmentHandler:
         from rl_train.train.policies.rl_agent_human import HumanActorCriticPolicy
         from rl_train.train.policies.rl_agent_exo import HumanExoActorCriticPolicy
 
-        if config.env_params.env_id in ["myoAssistLegImitationExo-v0"]:
+        if config.env_params.env_id in _EXO_ENV_IDS:
             policy_class = HumanExoActorCriticPolicy
             print("Using HumanExoActorCriticPolicy")
         else:

@@ -192,6 +192,33 @@ default Windows codepage. **Finding (→ A1/A8):** the 6 RL `train_configs/*.jso
 run *from a shipped config* until they're migrated — the A7 agent fixed only the test (in scope).
 Config migration is the A4/A1-A8 pass next.
 
+**A7 REOPENED 2026-08-07 (RL pass, from a clean macOS install):** `requirements.txt` as written
+cannot produce a working stack. Four separate defects, found by building the venv from it on
+macOS/arm64/py3.12 and bisecting until `test_setup.py` reached **15/15**:
+
+| # | defect | consequence |
+|---|---|---|
+| 1 | **`myosuite` is unpinned** | pip takes 2.12.x, which replaced `physics/mj_sim_scene.py`'s path-vs-string dispatch with `env_base._get_spec` calling `MjSpec.from_file` unconditionally. `compose_env_model` returns an XML *string*, so every composed env dies with `ValueError: could not decode content`. The dispatch survives through **2.11.6** and is **upstream behaviour, not a myoassist fork modification** (the vendored 2.8.3 copy on `dev` and upstream 2.11.6 are near-identical there) — so this is *not* fallout from A2's un-audited fork removal. |
+| 2 | **`mujoco>=3.3.4` is unsatisfiable together with (1)** | every myosuite with the string dispatch pins `mujoco==3.3.0` (or `==3.1.2` at 2.8.4). But myo_sim's 26→22 reduction needs `MjSpec.delete`, absent before **3.3.4**. So the pin must be *deliberately overridden* — `pip install mujoco==3.3.4 --no-deps` on top. No PyPI combination satisfies both declaratively. This is an **E4 decision item**: the "lowest that satisfies everyone" floor was set without accounting for myosuite. |
+| 3 | **`dm-control==1.0.31` is required but not pinned** | myosuite 2.11.6 resolves dm-control 1.0.28, which reads `MjModel.light_directional` — removed in mujoco 3.3.4 → `AttributeError` at env init. 1.0.31 works. |
+| 4 | **`myo_sim@dev` cannot satisfy assist_sim** | `assist_sim.registry._resolve_msk` calls `myo_sim.build_spec(...)`, but upstream `MyoHub/myo_sim@dev` (commit `9ff5224`) defines it at `myo_sim.build.compose.build_spec` and its `__init__.__getattr__` re-exports only `_COMPOSED_MODELS` → `AttributeError`. This makes **C4 (public composed-model accessor) a live blocker, not a deferred nicety**, and is the other half of **B11**. Bridged locally with `myo_sim.build_spec = myo_sim.build.compose.build_spec` to get the run through; needs a real fix in myo_sim (or a fallback import in assist_sim). |
+
+Plus **`myoassist.terrains` is not publicly reachable** (GitHub 404 for anyone without org
+access), so the git URL on line 25 fails for external users; the run used a local clone at
+`origin/main`. Verified working stack, for the record: `myosuite==2.11.6`, `mujoco==3.3.4`,
+`dm-control==1.0.31`, `numpy==2.2.6`, py3.12 → `test_setup.py` **15/15**, plus a 64-timestep PPO
+run and `run_ctrl_minimal`.
+
+**Also found (assist_sim, → B-series):** `_COMPATIBLE_MSK_KEYS` declares `myolegs22`/`myolegs26`
+`min_mujoco=(3,3,3)` with an empty `note`, but their compose path uses `MjSpec.delete` and so
+needs `(3,3,4)` like `myolegs`/`myofullbody`. The understated floor plus the empty note produces
+the unhelpful `MSK model 'myolegs22' requires ; installed mujoco is 3.3.0`.
+
+**Also found (myoassist, fixed in the RL pass):** composed `myolegs26 + Humotech_L1` has
+**`nkey=0`**, so `myoassist_leg_base`'s `key_qpos[0]` would `IndexError`. Keyframe *widths* are
+extended correctly by assist_sim (`(5, 39)` against `nq=39` for myolegs22), which was the open
+question — it is the *absence* of keyframes on myolegs26 that bites. Guarded with an assert.
+
 **2026-07-30 — wave 7 (A4 + config migration, on `refactor`):** 3 commits `60c1b1a` (retire
 `HfieldManager` — removed import/instantiation/guard from `myoassist_leg_base`, dropped legacy
 `terrain_type`/`terrain_params` from `EnvParams`, **deleted `myoassist_utils/hfield_manager.py`**
@@ -212,12 +239,28 @@ collab envs (wheelchair, MPL, AuxivoLiftsuit, bionic-bimanual) relocated into as
 `main`** (assist_sim PR#4, CI green; see wave 12). Remaining: A9 optional `tutorials/` dir, the deferred
 per-repo `/code-review` on `main`, and the E7 hygiene sweep before the myoassist `main` PR.
 
-**Follow-up flag (config, not pipeline):** `imitation.json` is stale — its `env_id`
-(`myoAssistLegImitation-v0`, muscle-only) + `net_indexing_info` (26-muscle net) don't match a
-composed `Tutorial_L1` model (which adds 2 exo actuators). It referenced a deleted baseline model +
-26-muscle net pre-migration. Not exercised by validation; needs action-space/net reconciliation (or
-retirement) before it runs. Same class: the imitation configs assume specific muscle/net layouts
-that the composed models must be checked against when the RL tutorials are re-anchored.
+**Follow-up flag (config, not pipeline) — RESOLVED 2026-08-07 (RL pass, RL-1):** `imitation.json`
+was stale — its `env_id` (`myoAssistLegImitation-v0`, muscle-only) + `net_indexing_info` (26-wide
+action net) didn't match a composed `Tutorial_L1` model (which adds 2 exo actuators).
+**Retired (deleted)** rather than reconciled: its pre-migration `model_path` pointed at
+`models/22muscle_2D/gait14dof22musc_cvt3_Right_Toeless_2D.xml`, a file **never tracked in this
+repo** — so the config could not have run at any point in its history (correcting the earlier
+"26-muscle net" framing here: the referenced file was a *22*-muscle 2D name that never existed).
+Combined with the author's confirmation that **no 26-muscle model has ever trained successfully**,
+there was no working result to preserve, and repairing it would have near-duplicated
+`imitation_tutorial_22_separated_net_exo_off.json`. All 5 remaining RL configs are now consistently
+`myolegs22` + `myoAssistLegImitationExo-v0`. Details + what was deliberately kept in
+`RL_PIPELINE_HANDOFF.md` RL-1.
+
+**Still open (same class):** nothing yet checks a config's declared action/obs layout against the
+composed model's actuator count — see `RL_PIPELINE_HANDOFF.md` RL-2. The imitation configs assume
+specific muscle/net layouts that the composed models must be checked against when the RL tutorials
+are re-anchored.
+
+**Scope note (RL vs. model support):** post-refactor the RL pipeline only ever composes `myolegs22`
+(all 5 configs). `myolegs26` is supported by the compose pipeline and assist_sim's 44-combo matrix
+in the sense that it **builds and steps** — it is **not** RL-training-validated. Docs and the 1.0
+paper should keep those two claims distinct (relevant to §E1 and the website rebuild).
 
 **2026-07-30 — wave 8 (D7 website transition COMPLETE):** `myoassist-web` reworked `pages.yml` to
 build from repo root (was docs/-subdir) + added `enablement: true` to `configure-pages` (self-enable

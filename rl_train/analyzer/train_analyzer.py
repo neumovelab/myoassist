@@ -1,6 +1,7 @@
 from rl_train.utils.train_log_handler import TrainLogHandler
 import os
 import json
+from pathlib import Path
 from rl_train.utils.data_types import DictionableDataclass
 from rl_train.analyzer.train_log_analyzer import TrainLogAnalyzer
 from rl_train.train.train_configs.config import TrainSessionConfigBase
@@ -98,13 +99,27 @@ class TrainAnalyzer:
 
             # Only load reference data and perform analysis for imitation learning environments
             if config.env_params.env_id in ["myoAssistLegImitation-v0", "myoAssistLegImitationExo-v0"]:
+                # Resolved from this file, not the cwd: the path used to be the bare
+                # "reference_data/segmented.npz", which only resolves when the process
+                # runs from inside rl_train/. Started from the repo root -- how every
+                # documented command starts -- the load raised FileNotFoundError, the
+                # except below swallowed it, and every gait plot was skipped while the
+                # report still claimed a clean run.
+                segmented_ref_path = Path(__file__).resolve().parents[1] / "reference_data" / "segmented.npz"
                 try:
-                    segmented_ref_data = np.load("reference_data/segmented.npz", allow_pickle=True)
+                    segmented_ref_data = np.load(segmented_ref_path, allow_pickle=True)
                     segmented_ref_data = {key: segmented_ref_data[key] for key in segmented_ref_data.files}
                     exception_report_list = self.analyze(gait_data, segmented_ref_data, analyze_result_dir, show_plot)
                 except FileNotFoundError:
-                    print("Warning: Reference data file not found. Skipping gait analysis.")
-                    exception_report_list = []
+                    # Still tolerated, but recorded -- a skipped analysis must not read
+                    # as a clean run in train_analyzer_report.json.
+                    print(f"Warning: Reference data not found at {segmented_ref_path}. Skipping gait analysis.")
+                    exception_report_list = [
+                        {
+                            "function_name": "analyze",
+                            "exception": f"segmented reference data not found at {segmented_ref_path}; gait analysis skipped",
+                        }
+                    ]
             else:
                 # For base environments, skip reference data analysis
                 print("Base environment detected. Skipping reference data analysis.")
@@ -114,7 +129,7 @@ class TrainAnalyzer:
 
             # for cam_type in ["average_speed", "follow"]:
             file_name = f"replay_{eval_idx:02d}.mp4"
-            frames = gait_evaluator.replay(
+            gait_evaluator.replay(
                 gait_data_path,
                 os.path.join(analyze_result_dir, file_name),
                 cam_distance=evaluate_param["cam_distance"],

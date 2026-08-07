@@ -1,7 +1,7 @@
 from myosuite.utils import gym
+from myosuite.envs.env_variants import register_env_variant
 
 register = gym.register
-from myosuite.envs.env_variants import register_env_variant
 
 
 def register_env_myoassist(id, entry_point, max_episode_steps, kwargs):

@@ -48,7 +48,7 @@ class DictionableDataclass:
                 DictionableDataclass.add_arguments(nested_instance, parser, prefix=f"{field_name}.")
             else:
                 # for boolean type
-                if field_type == bool:
+                if field_type is bool:
                     parser.add_argument(
                         f"--{field_name}",
                         type=bool,

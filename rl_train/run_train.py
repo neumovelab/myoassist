@@ -14,7 +14,8 @@ def get_git_info():
         commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("ascii").strip()
         branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode("ascii").strip()
         return {"commit": commit, "branch": branch}
-    except:
+    except Exception:
+        # Provenance metadata only -- a run outside a git checkout still has to start.
         return {"commit": "unknown", "branch": "unknown"}
 
 

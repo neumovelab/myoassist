@@ -42,14 +42,12 @@ class GaitData:
         printing=False,
     ):
         # TODO: there is no lumbar extension ctrl!!
-        muscle_act_ind = mj_model.actuator_dyntype == mujoco.mjtDyn.mjDYN_MUSCLE
 
         self.metadata["data_length"] += 1
 
         # for idx in range(mj_model.na):
         for idx in range(mj_model.nu):
             actuator_name = mj_model.actuator(idx).name
-            actuator_model = mj_model.actuator(actuator_name)
             actuator_data = mj_data.actuator(actuator_name)
 
             actuator_dict = self.series_data["actuator_data"].setdefault(
@@ -61,7 +59,6 @@ class GaitData:
             actuator_dict["ctrl"].append(numpy_utils.numpy2array(actuator_data.ctrl.copy()))
         for idx in range(mj_model.njnt):
             joint_name = mj_model.joint(idx).name
-            joint_model = mj_model.joint(joint_name)
             joint_data = mj_data.joint(joint_name)
 
             joint_dict = self.series_data["joint_data"].setdefault(f"{joint_name}", {"qpos": [], "qvel": []})
@@ -76,7 +73,6 @@ class GaitData:
             joint_dict.setdefault("qfrc_actuator", []).append(numpy_utils.numpy2array(qfrc))
         for idx in range(mj_model.nsensor):
             sensor_name = mj_model.sensor(idx).name
-            sensor_model = mj_model.sensor(sensor_name)
             sensor_data = mj_data.sensor(sensor_name)
             sensor_dict = self.series_data["sensor_data"].setdefault(f"{sensor_name}", {"data": []})
             sensor_dict["data"].append(numpy_utils.numpy2array(sensor_data.data.copy()))
@@ -116,21 +112,17 @@ class GaitData:
     ):
         for idx in range(mj_model.nu):
             actuator_name = mj_model.actuator(idx).name
-            actuator_model = mj_model.actuator(actuator_name)
             actuator_data = mj_data.actuator(actuator_name)
 
-            actuator_dict = self.series_data["actuator_data"].setdefault(
-                f"{actuator_name}", {"force": [], "velocity": [], "ctrl": []}
-            )
+            self.series_data["actuator_data"].setdefault(f"{actuator_name}", {"force": [], "velocity": [], "ctrl": []})
             actuator_data.force = self.series_data["actuator_data"][actuator_name]["force"][time_index]
             actuator_data.velocity = self.series_data["actuator_data"][actuator_name]["velocity"][time_index]
             actuator_data.ctrl = self.series_data["actuator_data"][actuator_name]["ctrl"][time_index]
         for idx in range(mj_model.njnt):
             joint_name = mj_model.joint(idx).name
-            joint_model = mj_model.joint(joint_name)
             joint_data = mj_data.joint(joint_name)
 
-            joint_dict = self.series_data["joint_data"].setdefault(f"{joint_name}", {"qpos": [], "qvel": []})
+            self.series_data["joint_data"].setdefault(f"{joint_name}", {"qpos": [], "qvel": []})
             joint_data.qpos = self.series_data["joint_data"][joint_name]["qpos"][time_index]
             joint_data.qvel = self.series_data["joint_data"][joint_name]["qvel"][time_index]
 
@@ -172,19 +164,21 @@ class GaitData:
         return data
 
     def print_brief_data(self):
+        # No-op: every print below is commented out, so the loops that fed them only
+        # iterated and discarded. Kept as the debug template -- uncomment to use.
         # print("=====================Start of GaitData==================")
         # print(f"{len(self.hip_flexion_r)=}, {self.hip_flexion_r[0]=}, {self.hip_flexion_r[-1]=}")
         # print("=====================Start of Series Data==================")
-        for j_key in self.series_data["joint_data"].keys():
-            for property_key in self.series_data["joint_data"][j_key]:
-                current_data = self.series_data["joint_data"][j_key][property_key]
-                # print(f"{j_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
-        for a_key in self.series_data["actuator_data"].keys():
-            current_data = self.series_data["actuator_data"][a_key]
-            for property_key in self.series_data["actuator_data"][a_key]:
-                current_data = self.series_data["actuator_data"][a_key][property_key]
-                # print(f"{a_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
+        # for j_key in self.series_data["joint_data"].keys():
+        #     for property_key in self.series_data["joint_data"][j_key]:
+        #         current_data = self.series_data["joint_data"][j_key][property_key]
+        #         print(f"{j_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
+        # for a_key in self.series_data["actuator_data"].keys():
+        #     for property_key in self.series_data["actuator_data"][a_key]:
+        #         current_data = self.series_data["actuator_data"][a_key][property_key]
+        #         print(f"{a_key=},{property_key=},{len(current_data)=},{np.min(current_data)=},{np.max(current_data)=}")
         # print("=====================End of GaitData==================")
+        pass
 
     def print_data_structure(self):
         def print_dict(d, indent=0):
