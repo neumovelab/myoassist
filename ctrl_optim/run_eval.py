@@ -34,6 +34,7 @@ from myoassist_utils.eval_utils import (
     build_composite,
     load_cma_fitness,
 )
+from myoassist_utils.env_spec import slope_deg_from_terrain
 
 REFERENCE_NPZ = "rl_train/reference_data/segmented.npz"
 
@@ -97,7 +98,7 @@ def _build_config_from_args(args, cfg_dict: dict) -> tuple[CtrlOptimEvalConfig, 
         target_velocity=pick("target_velocity", 1.25),
         mode=pick("mode", "2D"),
         init_pose=pick("init_pose", "walk_left"),
-        slope_deg=pick("slope_deg", 0.0),
+        slope_deg=slope_deg_from_terrain(cfg_dict.get("terrain")),
         delayed=pick("delayed", False),
         exo_bool=pick("exo_bool", True),
         fixed_exo=pick("fixed_exo", False),

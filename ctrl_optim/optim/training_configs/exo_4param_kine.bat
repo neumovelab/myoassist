@@ -9,7 +9,6 @@ python train.py ^
     --optim_mode single ^
     --reflex_mode uni ^
     --tgt_vel 1.25 ^
-    --tgt_slope 0 ^
     --trunk_err_type ref_diff ^
     --tgt_sym_th 0.1 ^
     --tgt_grf_th 1.5 ^

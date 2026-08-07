@@ -75,7 +75,6 @@ def initParser() -> argparse.Namespace:
         "--reflex_mode", required=False, help="(String) Unified or Individual [uni, ind]. Used only for 80 mus reflex model"
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
-    optim_group.add_argument("--tgt_slope", type=float, help="(float) Target slope (in degrees) to optimize for")
     optim_group.add_argument(
         "--trunk_err_type", help="(String) type of trunk error, from ['ref_diff','zero_diff','vel_square']"
     )
