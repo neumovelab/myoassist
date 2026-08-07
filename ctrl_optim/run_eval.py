@@ -132,9 +132,7 @@ def main():
     parser.add_argument("--target-velocity", type=float, default=None)
     parser.add_argument("--mode", choices=["2D", "3D"], default=None)
     parser.add_argument("--init-pose", default=None)
-    parser.add_argument("--slope-deg", type=float, default=None)
     parser.add_argument("--exo-bool", type=lambda v: v.lower() == "true", default=None)
-    parser.add_argument("--model", default=None)
     parser.add_argument("--no-show", action="store_true", help="Skip pop-out window.")
     parser.add_argument(
         "--export-video", action="store_true", help="Record the full rollout and write rollout.mp4 to the output dir."
@@ -183,7 +181,7 @@ def main():
     # 3. Composite figure (with shared human gait reference for kinematics)
     metadata = {
         "Param file": os.path.basename(eval_config.param_file),
-        "Model": eval_config.model,
+        "Model": f"{eval_config.msk_key} + {eval_config.device_key}",
         "Mode": eval_config.mode,
         "Init pose": eval_config.init_pose,
         "Sim time": f"{eval_config.sim_time:.1f} s",

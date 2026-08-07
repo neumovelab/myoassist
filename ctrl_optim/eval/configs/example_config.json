@@ -12,14 +12,16 @@
 
     "mode":              "2D",
     "init_pose":         "walk_left",
-    "slope_deg":         0.0,
     "delayed":           false,
     "exo_bool":          true,
     "fixed_exo":         false,
     "use_4param_spline": true,
     "max_torque":        100.0,
-    "model":             "tutorial",
     "n_points":          4,
+
+    "msk_key":  "myolegs22",
+    "device_key": "Tutorial_L1",
+    "terrain":  null,
 
     "camera_speed":     null,
     "camera_distance":  3.5,

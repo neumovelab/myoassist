@@ -144,6 +144,13 @@ def _inject_lighting(root: ET.Element) -> None:
                 "specular": "0.1 0.1 0.1",
             },
         )
+    # Enlarge the offscreen framebuffer so eval / composite renders work: MuJoCo
+    # defaults to 640x480, but the CO/RL eval renders at up to 1920x1080.
+    glob = visual.find("global")
+    if glob is None:
+        glob = ET.SubElement(visual, "global")
+    glob.set("offwidth", "1920")
+    glob.set("offheight", "1080")
     wb = root.find("worldbody")
     if not wb.findall("light"):
         ET.SubElement(
