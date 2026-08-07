@@ -1,4 +1,4 @@
-"""Shared model compose + load pipeline for MyoAssist (see REPO_ALIGNMENT.md A10).
+"""Shared model compose + load pipeline for MyoAssist.
 
 ``compose_env_model(msk_key, device_key, terrain=None, export_path=None) -> str``
 
