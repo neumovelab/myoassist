@@ -250,35 +250,18 @@ class SetupTester:
 
             env.get_sensor_data()
 
-            from ctrl_optim.optim.cost_functions.walk_cost import func_Walk_FitCost
-
-            dummy_params = np.random.rand(
-                77,
-            )
-            optim_type = "Kine"
-            one_step = np.random.rand(100, 10)
-            one_EMG = np.random.rand(100, 10)
-            trunk_err_type = "ref_diff"
-            input_tgt_vel = 1.25
-            stride_num = 1
-            tgt_sym = 0.1
-            tgt_grf = 1.5
-
-            try:
-                cost = func_Walk_FitCost(
-                    params=dummy_params,
-                    optim_type=optim_type,
-                    one_step=one_step,
-                    one_EMG=one_EMG,
-                    trunk_err_type=trunk_err_type,
-                    input_tgt_vel=input_tgt_vel,
-                    stride_num=stride_num,
-                    tgt_sym=tgt_sym,
-                    tgt_grf=tgt_grf,
-                )
-                assert isinstance(cost, (float, dict)), "Invalid cost function output"
-            except Exception as e:
-                print(f"Cost function test completed (simulation failure expected): {str(e)[:100]}...")
+            # Run a short reflex rollout and confirm the cost pipeline returns a cost.
+            # This drives the CO objective path (reflex control -> physics step ->
+            # per-step cost) for about half a second. Any error here is a real failure,
+            # not an "expected" one, so it is not swallowed.
+            env.reset(control_params)
+            rollout_steps = int(0.5 / env.dt)
+            cost_dict = None
+            for _ in range(rollout_steps):
+                cost_dict, _sim_time, done = env.run_reflex_step_Cost()
+                if done:
+                    break
+            assert isinstance(cost_dict, dict) and cost_dict, "Reflex rollout returned no cost"
 
         except Exception as e:
             raise RuntimeError(f"Reflex environment initialization failed: {e}")

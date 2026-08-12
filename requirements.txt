@@ -6,23 +6,29 @@ termcolor
 flatten_dict
 h5py
 numpy==2.2.6
-mujoco>=3.3.4
-dm-control==1.0.31
+mujoco>=3.4,<3.5
+dm-control==1.0.36
 Pillow
 pink-noise-rl
 packaging
 gitpython
 
 # MYOASSIST FRAMEWORK (composed architecture: human MSK + assistive device + terrain)
-# MyoSuite is published on PyPI and installs directly (2.8.4 verified against this stack).
-myosuite
-# The three sibling packages below are not on PyPI, so they install from git.
-# Contributors doing local multi-repo development should instead clone these three
-# and `pip install -e <local_clone>` (as the dev env does) so local edits are picked
-# up without reinstalling.
-git+https://github.com/MyoHub/myo_sim.git@dev
-git+https://github.com/neumovelab/assist_sim.git
-git+https://github.com/neumovelab/myoassist.terrains.git
+
+# Install with `uv pip install -e .`, not plain pip. MyoSuite 2.8.4's metadata pins
+# mujoco==3.1.2 and dm-control==1.0.16, but it runs on mujoco 3.4, which the three
+# sibling packages below require. 
+
+# The `[tool.uv] override-dependencies` in pyproject.toml
+# relaxes those two pins so uv resolves the whole stack in one command; plain pip cannot.
+
+# Contributors doing local multi-repo development can instead clone the three siblings and
+# `uv pip install -e <local_clone>` so local edits are picked up without reinstalling.
+
+myosuite==2.8.4
+myo-sim>=0.2.1
+assist-sim>=0.7.0
+myoassist-terrains>=0.1.0
 
 # RL
 stable-baselines3

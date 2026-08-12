@@ -1,5 +1,5 @@
 # Development dependencies. Install with:
-#   pip install -r requirements.txt -r requirements-dev.txt
+#   uv pip install -e . -r requirements-dev.txt
 
 -r requirements.txt
 

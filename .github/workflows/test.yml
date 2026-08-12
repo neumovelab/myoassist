@@ -24,10 +24,13 @@ jobs:
       - name: Lint and format check (ruff)
         run: ruff check . && ruff format --check .
 
-  # The suite needs the composed pipeline (myosuite + SB3 + the git-URL sibling repos), so
-  # it installs the full deps and runs test_setup.py. All three sibling repos
-  # (myo_sim / assist_sim / myoassist.terrains) are public, so the git-URL installs in
-  # requirements.txt resolve on a runner and this runs on both branches.
+  # The suite needs the composed pipeline (myosuite + SB3 + the PyPI sibling packages), so
+  # it installs the full deps and runs test_setup.py. The siblings (myo-sim / assist-sim /
+  # myoassist-terrains) are on PyPI, so the install resolves without any git clone.
+  #
+  # Install uses uv, not pip: MyoSuite 2.8.4's metadata pins an older mujoco, and the
+  # `[tool.uv] override-dependencies` in pyproject.toml relaxes it so the stack resolves in
+  # one command. Plain pip cannot do this and fails with a resolution error.
   #
   # Matrix mirrors setup.py's python_requires (>=3.11); do not add 3.10 back without
   # relaxing that floor.
@@ -43,10 +46,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          enable-cache: true
       - name: Install myoassist + dev deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e . -r requirements-dev.txt
+        run: uv pip install --system -e . -r requirements-dev.txt
       - name: Run setup checks
         run: python test_setup.py
