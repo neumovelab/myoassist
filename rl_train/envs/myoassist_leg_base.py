@@ -41,9 +41,6 @@ class MyoAssistLegBase(env_base.MujocoEnv):
     ]
 
     def __init__(self, model_path, obsd_model_path=None, seed=None, **kwargs):
-
-        print(f"=================environment seed: {seed}=====================")
-        print(f"=================environment model_path: {model_path}=====================")
         # EzPickle.__init__(**locals()) is capturing the input dictionary of the init method of this class.
         # In order to successfully capture all arguments we need to call gym.utils.EzPickle.__init__(**locals())
         # at the leaf level, when we do inheritance like we do here.

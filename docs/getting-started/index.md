@@ -6,9 +6,11 @@ Welcome to MyoAssist! This section will help you get up and running with the fra
 
 Before you begin, make sure you have:
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/) (Make sure to add Python to PATH during installation)
+- [uv](https://docs.astral.sh/uv/) (the installer; Step 3 explains why)
 - [Visual Studio Code](https://code.visualstudio.com/download) (Or other IDE)
-- [MuJoCo 3.3.3](https://github.com/google-deepmind/mujoco/releases/tag/3.3.3)
 - [Git](https://git-scm.com/downloads)
+
+MuJoCo 3.4 or newer installs automatically with the package.
 
 ## Installation
 
@@ -69,10 +71,19 @@ Virtual environments (venv) are essential because they allow you to create isola
 
 After creating and activating the virtual environment, you can install the required packages. This ensures that your dependencies are managed per project and do not affect your global Python installation.
 
-### Step 3: Install the Package
+### Step 3: Install uv and the Package
+
+Install uv once, then install MyoAssist with it:
+
 ```bash
-pip install -e .
+pip install uv
+uv pip install -e .
 ```
+
+MyoAssist installs with `uv`, not plain `pip`. MyoSuite 2.8.4 pins an older MuJoCo in its
+metadata, but the framework needs MuJoCo 3.4 for the sibling packages. The `[tool.uv]`
+override in `pyproject.toml` relaxes that pin, so `uv` resolves everything in one command.
+Plain `pip` cannot do this and stops with a resolution error.
 
 ### Step 4: Verify Installation
 
@@ -85,8 +96,8 @@ You should see output similar to this:
 ```bash
 Test Summary
 ----------------------------------------
-Total tests: 13
-Passed: 13
+Total tests: 15
+Passed: 15
 Failed: 0
 Total time: 13.60s
 ```

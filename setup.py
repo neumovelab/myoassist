@@ -18,9 +18,12 @@ def fetch_requirements():
 
     Comments, blank lines, pip option lines (``-r``/``-e``/``--``) and bare
     VCS URLs (``git+https://...``) are skipped: setuptools' ``install_requires``
-    only accepts PEP 508 specifiers, so the git-hosted sibling packages
-    (myo_sim / assist_sim / myoassist.terrains) install via
-    ``pip install -r requirements.txt`` rather than through the wheel metadata.
+    only accepts PEP 508 specifiers. The sibling packages (myo-sim / assist-sim /
+    myoassist-terrains) are on PyPI and forward straight into ``install_requires``.
+
+    Install with ``uv pip install -e .``. MyoSuite 2.8.4's metadata pins an older
+    MuJoCo, and the ``[tool.uv] override-dependencies`` in pyproject.toml relaxes it
+    so the full stack resolves in one command; plain pip cannot do this.
     """
     reqs = []
     with open("requirements.txt", "r", encoding="utf-8", errors="ignore") as f:
@@ -57,6 +60,7 @@ if __name__ == "__main__":
         url="https://github.com/neumovelab/myoassist",
         classifiers=[
             "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
             "License :: OSI Approved :: Apache Software License",
             "Topic :: Scientific/Engineering :: Artificial Intelligence :: Simulation",
             "Operating System :: OS Independent",

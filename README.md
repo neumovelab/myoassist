@@ -54,7 +54,8 @@ and the ready-to-run specs in [`docs/examples/`](docs/examples/).
 ### Prerequisites
 - Python 3.11+
 - Git
-- MuJoCo ≥ 3.3.4 (installed automatically as a dependency)
+- [uv](https://docs.astral.sh/uv/) (the installer; Step 3 explains why)
+- MuJoCo ≥ 3.4 (installed automatically as a dependency)
 
 ### Setup
 
@@ -75,14 +76,17 @@ and the ready-to-run specs in [`docs/examples/`](docs/examples/).
    .my_venv\Scripts\activate
    ```
 
-3. **Install the package and dependencies:**
+3. **Install uv, then the package:**
    ```bash
-   pip install -e . -r requirements.txt
+   pip install uv
+   uv pip install -e .
    ```
-   `requirements.txt` installs the three sibling packages (`myo_sim`, `assist_sim`,
-   `myoassist.terrains`) directly from git, since they are not yet on PyPI. Contributors doing
-   multi-repo development should instead clone those three locally and `pip install -e` each so
-   local edits are picked up (see the comments in `requirements.txt`).
+   MyoAssist installs with `uv`, not plain `pip`. MyoSuite 2.8.4 pins an older MuJoCo in its
+   metadata, but the framework needs MuJoCo 3.4 for the sibling packages (`myo-sim`,
+   `assist-sim`, `myoassist-terrains`). The `[tool.uv]` override in `pyproject.toml` relaxes
+   that pin, so `uv` resolves the whole stack in one command. Plain `pip` cannot do this and
+   stops with a resolution error. Contributors doing multi-repo development can clone the
+   three siblings and run `uv pip install -e` on each, so local edits are picked up.
 
 4. **Verify the installation:**
    ```bash
@@ -131,7 +135,8 @@ myoassist/
 │   └── env_spec.py      #   EnvSpec: validated {msk, device, terrain}
 ├── docs/                # Lightweight in-repo documentation + examples
 ├── setup.py             # Package configuration
-├── requirements.txt     # Dependencies (incl. git-hosted siblings)
+├── pyproject.toml       # Build backend + uv dependency override
+├── requirements.txt     # Dependencies (PyPI siblings)
 └── test_setup.py        # Installation verification
 ```
 

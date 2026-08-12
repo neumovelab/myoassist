@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+# Package metadata (name, version, packages, dependencies) lives in setup.py and
+# requirements.txt. This file only adds the build backend and the uv override below.
+
+[tool.uv]
+# MyoAssist installs MyoSuite 2.8.4, whose packaging metadata pins mujoco==3.1.2 and
+# dm-control==1.0.16. The sibling packages (myo-sim, assist-sim, myoassist-terrains)
+# require mujoco>=3.4, and MyoSuite 2.8.4 runs correctly on mujoco 3.4. This override
+# relaxes those two transitive pins so `uv pip install -e .` resolves the whole stack
+# in one command. Plain pip has no per-dependency override and cannot do this.
+#
+# dm-control is pinned to 1.0.36 (not MyoSuite's 1.0.16): 1.0.36 is the first dm-control
+# release that targets mujoco 3.4.0. Older dm-control (<=1.0.34) indexes the MjData field
+# `B_colind`, which mujoco 3.4 moved to MjModel, so MyoSuite's dm-control physics backend
+# crashes on env creation with 1.0.31. 1.0.37+ requires mujoco>=3.5, above our ceiling.
+override-dependencies = ["mujoco>=3.4,<3.5", "dm-control==1.0.36"]
