@@ -8,6 +8,7 @@ Journal of physiology, 2015.
 
 from __future__ import division  # '/' always means non-truncating division
 import numpy as np
+import mujoco
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning, module="gymnasium.core")
@@ -974,26 +975,32 @@ class myoLeg_reflex(object):
         self.env.sim.forward()
 
     def adjust_model_height(self):
-        # The legacy models/ tree exposed foot ground-contact reference points as
-        # *_btm sites; the composed models expose them as the foot-touch sensor
-        # sites (*_touch).  Use whichever the loaded model actually has.
-        btm_sites = ["r_heel_btm", "r_toe_btm", "l_heel_btm", "l_toe_btm"]
-        touch_sites = ["r_foot_touch", "r_toes_touch", "l_foot_touch", "l_toes_touch"]
-        site_names = {self.env.sim.model.site(i).name for i in range(self.env.sim.model.nsite)}
-        if set(btm_sites) <= site_names:
-            foot_sites = btm_sites
-        elif set(touch_sites) <= site_names:
-            foot_sites = touch_sites
-        else:
+        # Seat the model so its ground-contact reference rests on the floor
+        # (height_offset).  The reference is wherever the foot GRF sensors sit:
+        # a barefoot model reads them on calcn/toes, a shod device (Humotech,
+        # STRIDE, ...) re-points them onto the shoe sole, an amputee model onto
+        # the prosthetic foot.  Reading the sensor->site binding rather than a
+        # hardcoded site name keeps seating device-agnostic and always consistent
+        # with the load signal the reflex controller reads.  Cost is identical to
+        # the old hardcoded-site lookup -- four site positions from the forward()
+        # that already ran -- with no extra pass or collision detection.
+        model, data = self.env.sim.model, self.env.sim.data
+        site_zs = []
+        for sensor_name in ("r_foot", "r_toes", "l_foot", "l_toes"):
+            try:
+                sensor = model.sensor(sensor_name)
+            except KeyError:
+                continue
+            if sensor.objtype[0] != mujoco.mjtObj.mjOBJ_SITE:
+                continue
+            site_zs.append(float(data.site_xpos[int(sensor.objid[0])][2]))
+        if not site_zs:
             raise KeyError(
-                f"adjust_model_height: model exposes neither the legacy *_btm foot sites ({btm_sites}) "
-                f"nor the composed *_touch foot sites ({touch_sites}); no ground-contact reference to seat on."
+                "adjust_model_height: none of the foot touch sensors "
+                "(r_foot/r_toes/l_foot/l_toes) are bound to sites; no ground-contact "
+                "reference to seat on."
             )
-
-        temp_sens_height = 100
-        for sens_site in foot_sites:
-            if temp_sens_height > self.env.sim.data.site(sens_site).xpos[2]:
-                temp_sens_height = self.env.sim.data.site(sens_site).xpos[2].copy()
+        temp_sens_height = min(site_zs)
 
         diff_height = self.height_offset - temp_sens_height  # Small offset -0.0105
         if self.mode == "2D":
@@ -1044,9 +1051,13 @@ class myoLeg_reflex(object):
             # Punish for too much pitch of pelvis
             is_valid = False
 
-        # Checking for any body parts that is below ground
-        if np.any((self.env.sim.data.xpos[2:][:, 2]) - self.height_offset < 0.005):
-            # print('Body in ground')
+        # Reject a pose only if a body has actually punched THROUGH the floor.
+        # (Was `< 0.005`: requiring every body origin to clear the ground by 5 mm.
+        # Too strict for composed models -- the foot/sole body origins legitimately
+        # sit within a few mm of the ground after seating, so even a valid barefoot
+        # stand failed.  A small negative tolerance flags real penetration while
+        # letting the feet rest on the surface.)
+        if np.any((self.env.sim.data.xpos[2:][:, 2]) - self.height_offset < -0.005):
             is_valid = False
 
         # Ensure at least 1 foot is on the ground
