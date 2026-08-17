@@ -82,6 +82,14 @@ def initParser() -> argparse.Namespace:
         action="store_true",
         help="Append 2 normalized pf/df prosthetic-ankle stiffness params to the CMA-ES vector (prosthetic feet)",
     )
+    optim_group.add_argument(
+        "--ankle_range",
+        type=float,
+        nargs=2,
+        default=None,
+        metavar=("MIN", "MAX"),
+        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step (both ankles)",
+    )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(
         "--trunk_err_type", help="(String) type of trunk error, from ['ref_diff','zero_diff','vel_square']"

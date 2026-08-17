@@ -97,6 +97,7 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "terrain": spec.terrain,
         "reflex_mode": args.reflex_mode,
         "optimize_stiffness": args.optimize_stiffness,
+        "ankle_range": args.ankle_range,
     }
 
     return env_dict

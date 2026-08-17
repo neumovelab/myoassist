@@ -141,6 +141,7 @@ class myoLeg_reflex(object):
         terrain=None,
         reflex_mode=None,
         optimize_stiffness=False,
+        ankle_range=None,
     ):
 
         self.dt = dt
@@ -159,6 +160,9 @@ class myoLeg_reflex(object):
         # Device-stiffness optimization: 2 normalized pf/df prosthetic-ankle spring
         # parameters in the vector tail (feet with a df_/pf_ankle_angle joint pair).
         self.optimize_stiffness = optimize_stiffness
+        # Ankle ROM: a hard [lo, hi] rad constraint (per-step qpos clamp + qvel zero)
+        # swept from the optimization config; applies to both ankles (bilateral exo).
+        self.ankle_range = ankle_range
         # The gait2392-lineage 80-muscle model (myolegs) uses POSITIVE knee flexion,
         # while the reflex controller is written for the myoLeg NEGATIVE-flexion
         # convention (22/26).  Read/write the knee through this sign so the same
@@ -324,6 +328,7 @@ class myoLeg_reflex(object):
         self.set_init_pose(key_name=self.init_pose)
         self.adjust_initial_pose_cmaes()
         self.adjust_model_height()
+        self._apply_rom_clamp()
 
         if self.delayed:
             # Make one single timestep to obtain the joint velocities after reset.
@@ -340,6 +345,18 @@ class myoLeg_reflex(object):
         self.ReflexCtrl.reset_spinal_phases(self.init_pose)
         self.ReflexCtrl.reset_delay_buffers(self.SENSOR_DATA, self.init_pose, self.DEFAULT_INIT_MUSC)  # , updateFlag=True
         self.ReflexCtrl.reset(reflex_params)
+
+    def _apply_rom_clamp(self):
+        """Hard-clamp the ankle joints into the configured ROM after a physics step
+        (qpos into [lo, hi], qvel zeroed at a limit).  No-op when ankle_range is
+        unset.  See ctrl/exo/joint_rom.py and the MYOASSIST_FEATURES decision log."""
+        if self.ankle_range is None:
+            return
+        from ctrl_optim.ctrl.exo.joint_rom import clamp_joint_rom
+
+        hit = clamp_joint_rom(self.env.sim, ("ankle_angle_r", "ankle_angle_l"), self.ankle_range[0], self.ankle_range[1])
+        if hit:
+            self.env.forward()
 
     def run_reflex_step(self, data_list=None):
         # Run a step of the Mujoco env and Reflex controller
@@ -364,6 +381,7 @@ class myoLeg_reflex(object):
                 plt_dict["new_step"] = 0
 
         self.env.step(new_act)
+        self._apply_rom_clamp()
 
         self.update_footstep()
 
@@ -580,6 +598,7 @@ class myoLeg_reflex(object):
             new_act[self.torque_dict["Exo_L"]] = 0
 
         self.env.step(new_act)
+        self._apply_rom_clamp()
 
         self.update_footstep()
 

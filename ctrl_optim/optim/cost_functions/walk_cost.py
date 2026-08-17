@@ -71,6 +71,7 @@ def func_Walk_FitCost(
             terrain=env_dict.get("terrain"),
             reflex_mode=env_dict.get("reflex_mode"),
             optimize_stiffness=env_dict.get("optimize_stiffness", False),
+            ankle_range=env_dict.get("ankle_range"),
         )
     else:
         raise ValueError(f"Unsupported leg model: {env_dict['leg_model']}")

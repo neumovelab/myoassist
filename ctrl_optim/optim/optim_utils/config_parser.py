@@ -50,6 +50,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "leg_model": None,
         "reflex_mode": None,
         "optimize_stiffness": False,
+        "ankle_range": None,
     }
 
     try:
@@ -117,6 +118,11 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                 elif flag == "--optimize_stiffness":
                     config["optimize_stiffness"] = True
 
+        # Ankle ROM: two floats (radians), a swept study constraint carried for eval.
+        rom_match = re.search(r"--ankle_range\s+(-?[\d.]+)\s+(-?[\d.]+)", content)
+        if rom_match:
+            config["ankle_range"] = [float(rom_match.group(1)), float(rom_match.group(2))]
+
         # Derive the muscle model + 2D/3D control mode from the MSK key.
         msk_to_musc = {"myolegs22": "22", "myolegs26": "26", "myolegs": "80"}
         if config["msk_key"] in msk_to_musc:
@@ -178,6 +184,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             terrain=config.get("terrain"),
             reflex_mode=config.get("reflex_mode"),
             optimize_stiffness=config.get("optimize_stiffness", False),
+            ankle_range=config.get("ankle_range"),
         )
 
         return TestEnv, config
