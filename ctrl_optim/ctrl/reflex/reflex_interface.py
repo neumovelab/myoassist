@@ -14,6 +14,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="gymnasium.core")
 
 from .reflex_ctrl import MyoLocoCtrl
+from ctrl_optim.ctrl.param_layout import ParamLayout
 
 
 import copy
@@ -148,34 +149,19 @@ class myoLeg_reflex(object):
         self.max_torque = max_torque
         self.leg_model = leg_model
 
-        # Initialize spline_params to 0 by default when exo is disabled
-        spline_params = 0
+        # Parameter-vector layout: the single source of truth for block sizes
+        # (ctrl_optim/param_layout.py).  spline_params is 0 when the exo is off;
+        # the bilateral / stiffness tails are added by their respective features.
+        if self.exo_bool and not use_4param_spline and n_points < 1:
+            raise ValueError("Number of spline points must be at least 1")
+        spline_params = (4 if use_4param_spline else n_points * 2) if self.exo_bool else 0
 
-        # check spline configuration only if exo is enabled
-        if self.exo_bool:
-            if not use_4param_spline and n_points < 1:
-                raise ValueError("Number of spline points must be at least 1")
-
-            self.n_points = n_points
-            self.use_4param_spline = use_4param_spline
-
-            # Set spline_params based on configuration
-            spline_params = 4 if use_4param_spline else (n_points * 2)
-
-            # Expected parameter count
-            if mode == "2D":
-                base_params = 77
-                expected_params = base_params + spline_params
-            else:
-                base_params = 97
-                expected_params = base_params + spline_params
-        else:
-            # if exo is disabled, use base parameters only
-            expected_params = 77 if mode == "2D" else 97
+        self.layout = ParamLayout(mode, bilateral=False, spline=spline_params, stiffness=0)
+        expected_params = self.layout.total
         if len(control_params) != expected_params:
-            print(f"Wrong number of params, Defaulting to {expected_params}")
-            control_params = np.ones(
-                expected_params,
+            raise ValueError(
+                f"myoLeg_reflex: expected {expected_params} parameters for mode={mode} "
+                f"(spline={spline_params}), got {len(control_params)}"
             )
 
         self.muscle_labels = {}
@@ -248,11 +234,7 @@ class myoLeg_reflex(object):
 
         self.CONTROL_PARAM = control_params
 
-        if self.mode == "2D":
-            # Update the slice indices based on spline parameters
-            self.update_init_pose_param_cmaes(self.CONTROL_PARAM[51 : len(self.CONTROL_PARAM) - spline_params])
-        elif self.mode == "3D":
-            self.update_init_pose_param_cmaes(self.CONTROL_PARAM[63 : len(self.CONTROL_PARAM) - spline_params])
+        self.update_init_pose_param_cmaes(self.CONTROL_PARAM[self.layout.slice_pose()])
 
         # Store the action space for number of muscles
         self.action_space = self.env.sim.model.nu
@@ -293,29 +275,16 @@ class myoLeg_reflex(object):
         if params is not None:
             self.CONTROL_PARAM = params
 
-        # Calculate spline parameters first
-        if self.exo_bool:
-            spline_params = 4 if self.use_4param_spline else (self.n_points * 2)
-        else:
-            spline_params = 0
+        # Validate parameter length against the layout (single source of truth).
+        if len(self.CONTROL_PARAM) != self.layout.total:
+            raise ValueError(f"Expected {self.layout.total} parameters, got {len(self.CONTROL_PARAM)}")
 
-        # Validate parameter length
-        expected_params = 77 + spline_params if self.mode == "2D" else 97 + spline_params
-        if len(self.CONTROL_PARAM) != expected_params:
-            raise ValueError(f"Expected {expected_params} parameters, got {len(self.CONTROL_PARAM)}")
+        pose_params = self.CONTROL_PARAM[self.layout.slice_pose()]
+        self.update_init_pose_param_cmaes(pose_params)
+        reflex_params = self.CONTROL_PARAM[self.layout.slice_reflex()]
 
-        if self.mode == "2D":
-            # The pose parameters are the 26 parameters after the first 51
-            pose_params = self.CONTROL_PARAM[51 : 51 + 26]
-            self.update_init_pose_param_cmaes(pose_params)
-            reflex_params = self.CONTROL_PARAM[0:51]
-        else:  # 3D mode
-            pose_params = self.CONTROL_PARAM[63 : 63 + 34]
-            self.update_init_pose_param_cmaes(pose_params)
-            reflex_params = self.CONTROL_PARAM[0:63]
-
-        # Extract spline parameters
-        spline_params_values = self.CONTROL_PARAM[-spline_params:]
+        # Exo spline tail (empty slice when the exo is disabled)
+        spline_params_values = self.CONTROL_PARAM[self.layout.slice_spline()]
 
         # Reset controllers with appropriate parameters
         if self.exo_bool:  # Only reset exo controllers if exo is enabled
@@ -519,28 +488,21 @@ class myoLeg_reflex(object):
             # temp_mus_len = self.env.sim.data.actuator_length.copy()
             # temp_mus_vel = self.env.sim.data.actuator_velocity.copy()
 
-            self.SENSOR_DATA[s_leg]["F_GLU"] = -1 * (
-                temp_mus_force[self.muscles_dict[s_leg]["GLU"]] / (self.muscle_Fmax[s_leg]["GLU"])
-            )
-            self.SENSOR_DATA[s_leg]["F_VAS"] = -1 * (
-                temp_mus_force[self.muscles_dict[s_leg]["VAS"]] / (self.muscle_Fmax[s_leg]["VAS"])
-            )
-            self.SENSOR_DATA[s_leg]["F_SOL"] = -1 * (
-                temp_mus_force[self.muscles_dict[s_leg]["SOL"]] / (self.muscle_Fmax[s_leg]["SOL"])
-            )
-            self.SENSOR_DATA[s_leg]["F_GAS"] = -1 * (
-                temp_mus_force[self.muscles_dict[s_leg]["GAS"]] / (self.muscle_Fmax[s_leg]["GAS"])
-            )
-            self.SENSOR_DATA[s_leg]["F_HAM"] = -1 * (
-                temp_mus_force[self.muscles_dict[s_leg]["HAM"]] / (self.muscle_Fmax[s_leg]["HAM"])
-            )
+            def _group_force(group):
+                # Total group force normalized by total group Fmax -> a scalar for
+                # any group size (single-actuator 22/26 groups and multi-actuator
+                # 80-muscle groups alike).
+                ids = self.muscles_dict[s_leg][group]
+                return -1.0 * np.sum(temp_mus_force[ids]) / np.sum(self.muscle_Fmax[s_leg][group])
+
+            self.SENSOR_DATA[s_leg]["F_GLU"] = _group_force("GLU")
+            self.SENSOR_DATA[s_leg]["F_VAS"] = _group_force("VAS")
+            self.SENSOR_DATA[s_leg]["F_SOL"] = _group_force("SOL")
+            self.SENSOR_DATA[s_leg]["F_GAS"] = _group_force("GAS")
+            self.SENSOR_DATA[s_leg]["F_HAM"] = _group_force("HAM")
             if self.mode == "3D":
-                self.SENSOR_DATA[s_leg]["F_HAB"] = -1 * (
-                    temp_mus_force[self.muscles_dict[s_leg]["HAB"]] / (self.muscle_Fmax[s_leg]["HAB"])
-                )
-            self.SENSOR_DATA[s_leg]["F_FDL"] = -1 * (
-                temp_mus_force[self.muscles_dict[s_leg]["FDL"]] / (self.muscle_Fmax[s_leg]["FDL"])
-            )
+                self.SENSOR_DATA[s_leg]["F_HAB"] = _group_force("HAB")
+            self.SENSOR_DATA[s_leg]["F_FDL"] = _group_force("FDL")
 
         # return sensor_data
 
@@ -902,44 +864,18 @@ class myoLeg_reflex(object):
             )  # *2*np.pi/180 + (-17*np.pi/180)
             # self.JNT_OPTIM['joint_angles']['lumbar_flexion'] = jnt_params[self.pose_map['lumbar_flexion']] *5*np.pi/180 +(-5)*np.pi/180 # Making head angle to be ~12 deg (default rest pos)
 
-            # Last 30 is for acts
-            act_params = jnt_params[8 : 8 + 18]
+        # Initial muscle activations from the pose block's activation tail.  This
+        # applies in both 2D and 3D: the tail follows the joint/velocity pose
+        # params (8 in 2D, 12 in 3D), and 3D carries four extra entries for the
+        # HAB/HAD groups (18 -> 22).  The map is keyed like "GLU_r" -> r_leg/GLU.
+        act_start = 12 if self.mode == "3D" else 8
+        act_n = 22 if self.mode == "3D" else 18
+        act_params = jnt_params[act_start : act_start + act_n]
 
-            # self.DEFAULT_INIT_MUSC[self.mode]['r_leg'] = {}
-            # self.DEFAULT_INIT_MUSC[self.mode]['l_leg'] = {}
-
-            """
-            Override for 3D controller on 2D model
-            """
-            self.DEFAULT_INIT_MUSC["r_leg"] = {}
-            self.DEFAULT_INIT_MUSC["l_leg"] = {}
-
-            for musc in [
-                "GLU_r",
-                "HFL_r",
-                "HAM_r",
-                "RF_r",
-                "BFSH_r",
-                "GAS_r",
-                "SOL_r",
-                "VAS_r",
-                "TA_r",
-                "GLU_l",
-                "HFL_l",
-                "HAM_l",
-                "RF_l",
-                "BFSH_l",
-                "GAS_l",
-                "SOL_l",
-                "VAS_l",
-                "TA_l",
-            ]:
-                # self.DEFAULT_INIT_MUSC[self.mode][f"{musc[-1]}_leg"][f"{musc[0:-2]}"] = act_params[self.init_act_map[musc]] * 0.01
-                """
-                Override for 3D controller on 2D model
-                """
-                self.DEFAULT_INIT_MUSC[f"{musc[-1]}_leg"][f"{musc[0:-2]}"] = act_params[self.init_act_map[musc]] * 0.01
-                # self.DEFAULT_INIT_MUSC[self.mode][f"{musc[-1]}_leg"][f"{musc[0:-2]}"] = act_params[self.init_act_map[musc]] * 0.01
+        self.DEFAULT_INIT_MUSC["r_leg"] = {}
+        self.DEFAULT_INIT_MUSC["l_leg"] = {}
+        for musc in self.init_act_key[:act_n]:
+            self.DEFAULT_INIT_MUSC[f"{musc[-1]}_leg"][f"{musc[0:-2]}"] = act_params[self.init_act_map[musc]] * 0.01
 
         self.JNT_OPTIM["model_vel"] = {}
         self.JNT_OPTIM["model_vel"]["vel_pelvis_tx"] = jnt_params[self.pose_map["vel_pelvis_tx"]] * 0.1 + 1.4  # *0.2 + 1.3
@@ -952,7 +888,15 @@ class myoLeg_reflex(object):
 
         for vel in self.JNT_OPTIM["model_vel"].keys():
             tmp_var = vel.split("_")
-            self.env.sim.data.joint(f"{tmp_var[1]}_{tmp_var[2]}").qvel[0] = self.JNT_OPTIM["model_vel"][vel]
+            joint_name = f"{tmp_var[1]}_{tmp_var[2]}"  # e.g. "pelvis_tx"
+            value = self.JNT_OPTIM["model_vel"][vel]
+            try:
+                self.env.sim.data.joint(joint_name).qvel[0] = value
+            except KeyError:
+                # Freejoint-root model (3D myolegs26 / myolegs): there is no planar
+                # pelvis_tx slide joint; the forward velocity is the root free
+                # joint's global-x linear DOF (qvel index 0, root joint is first).
+                self.env.sim.data.qvel[0] = value
         # Run forward() after modifying and joint angles or velocities
 
         self.env.sim.data.act[:] = 0.01
@@ -1124,175 +1068,55 @@ class myoLeg_reflex(object):
         self.torque_dict["Exo_L"] = exo_l
 
     def _set_muscle_groups(self):
-        # ----- Gluteus group -----
-        glu_r = [self.env.sim.model.actuator("glutmax_r").id]
+        # Muscle-group -> actuator-name map, per muscle model.  The reflex law
+        # drives 13 groups; the 22/26 models use lumped muscles (one actuator per
+        # group), while the 80-muscle model splits them, so a group maps to
+        # several actuators.  Names are right-side; the left side swaps the
+        # trailing "_r" for "_l".  HAB/HAD are only consumed in 3D.
+        if self.leg_model == "80":
+            group_names = {
+                "GLU": ["glmax1_r", "glmax2_r", "glmax3_r"],
+                "HAM": ["bflh_r", "semimem_r", "semiten_r"],
+                "BFSH": ["bfsh_r"],
+                "GAS": ["gasmed_r", "gaslat_r"],
+                "SOL": ["soleus_r"],
+                "HFL": ["psoas_r", "iliacus_r"],
+                "RF": ["recfem_r"],
+                "VAS": ["vasint_r", "vaslat_r", "vasmed_r"],
+                "TA": ["tibant_r"],
+                "FDL": ["fdl_r", "fhl_r"],
+                "EDL": ["edl_r", "ehl_r"],
+                "HAB": ["glmed1_r", "glmed2_r", "glmed3_r", "glmin1_r", "glmin2_r", "glmin3_r"],
+                "HAD": ["addbrev_r", "addlong_r", "addmagDist_r", "addmagIsch_r", "addmagMid_r", "addmagProx_r", "grac_r"],
+            }
+        else:
+            group_names = {
+                "GLU": ["glutmax_r"],
+                "HAM": ["hamstrings_r"],
+                "BFSH": ["bifemsh_r"],
+                "GAS": ["gastroc_r"],
+                "SOL": ["soleus_r"],
+                "HFL": ["iliopsoas_r"],
+                "RF": ["rectfem_r"],
+                "VAS": ["vasti_r"],
+                "TA": ["tibant_r"],
+                "FDL": ["fdl_r"],
+                "EDL": ["edl_r"],
+                "HAB": ["abd_r"],
+                "HAD": ["add_r"],
+            }
 
-        glu_l = [self.env.sim.model.actuator("glutmax_l").id]
-
-        glu_r_lbl = ["glutmax_r"]
-        glu_l_lbl = ["glutmax_l"]
-
-        # ----- Hamstring (semitendinosus and semimembranosus) -----
-        ham_r = [self.env.sim.model.actuator("hamstrings_r").id]
-
-        ham_l = [self.env.sim.model.actuator("hamstrings_l").id]
-
-        ham_r_lbl = ["hamstrings_r"]
-        ham_l_lbl = ["hamstrings_l"]
-
-        # ----- BF short head (biceps femoris) -----
-        bfsh_r = [self.env.sim.model.actuator("bifemsh_r").id]
-
-        bfsh_l = [self.env.sim.model.actuator("bifemsh_l").id]
-
-        bfsh_r_lbl = ["bifemsh_r"]
-        bfsh_l_lbl = ["bifemsh_l"]
-
-        # ----- Gastrocnemius -----
-        gas_r = [self.env.sim.model.actuator("gastroc_r").id]
-
-        gas_l = [self.env.sim.model.actuator("gastroc_l").id]
-
-        gas_r_lbl = ["gastroc_r"]
-        gas_l_lbl = ["gastroc_l"]
-
-        # ----- Soleus -----
-        sol_r = [self.env.sim.model.actuator("soleus_r").id]
-
-        sol_l = [self.env.sim.model.actuator("soleus_l").id]
-
-        sol_r_lbl = ["soleus_r"]
-        sol_l_lbl = ["soleus_l"]
-
-        # ----- Hip Flexors (psoas and iliacus) -----
-        hfl_r = [self.env.sim.model.actuator("iliopsoas_r").id]
-
-        hfl_l = [self.env.sim.model.actuator("iliopsoas_l").id]
-
-        hfl_r_lbl = ["iliopsoas_r"]
-        hfl_l_lbl = ["iliopsoas_l"]
-
-        # ----- Hip Abductors (piriformis, satorius and tensor fasciae latae) -----
+        group_order = ["GLU", "HAM", "BFSH", "GAS", "SOL", "HFL", "RF", "VAS", "TA", "FDL", "EDL"]
         if self.mode == "3D":
-            hab_r = [self.env.sim.model.actuator("abd_r").id]
-            hab_l = [self.env.sim.model.actuator("abd_l").id]
+            group_order = ["HAB", "HAD"] + group_order
 
-            hab_r_lbl = ["abd_r"]
-            hab_l_lbl = ["abd_l"]
-
-        # ----- Hip Adductors (adductor [brevis, longus, magnus], gracilis) -----
-        if self.mode == "3D":
-            had_r = [self.env.sim.model.actuator("add_r").id]
-            had_l = [self.env.sim.model.actuator("add_l").id]
-
-            had_r_lbl = ["add_r"]
-            had_l_lbl = ["add_l"]
-
-        # ----- rectus femoris -----
-        rf_r = [self.env.sim.model.actuator("rectfem_r").id]
-
-        rf_l = [self.env.sim.model.actuator("rectfem_l").id]
-
-        rf_r_lbl = ["rectfem_r"]
-        rf_l_lbl = ["rectfem_l"]
-
-        # ----- Vastius group -----
-        vas_r = [self.env.sim.model.actuator("vasti_r").id]
-
-        vas_l = [self.env.sim.model.actuator("vasti_l").id]
-
-        vas_r_lbl = ["vasti_r"]
-        vas_l_lbl = ["vasti_l"]
-
-        # ----- tibialis anterior -----
-        ta_r = [self.env.sim.model.actuator("tibant_r").id]
-
-        ta_l = [self.env.sim.model.actuator("tibant_l").id]
-
-        ta_r_lbl = ["tibant_r"]
-        ta_l_lbl = ["tibant_l"]
-
-        # ----- toe flexors -----
-        fdl_r = [self.env.sim.model.actuator("fdl_r").id]
-
-        fdl_l = [self.env.sim.model.actuator("fdl_l").id]
-
-        fdl_r_lbl = ["fdl_r"]
-        fdl_l_lbl = ["fdl_l"]
-
-        # ----- toe extensors -----
-        edl_r = [self.env.sim.model.actuator("edl_r").id]
-
-        edl_l = [self.env.sim.model.actuator("edl_l").id]
-
-        edl_r_lbl = ["edl_r"]
-        edl_l_lbl = ["edl_l"]
-
-        # ----- Consolidating into a single dict -----
-        self.muscles_dict["r_leg"] = {}
-        if self.mode == "3D":
-            self.muscles_dict["r_leg"]["HAB"] = hab_r
-            self.muscles_dict["r_leg"]["HAD"] = had_r
-        self.muscles_dict["r_leg"]["GLU"] = glu_r
-        self.muscles_dict["r_leg"]["HAM"] = ham_r
-        self.muscles_dict["r_leg"]["BFSH"] = bfsh_r
-        self.muscles_dict["r_leg"]["GAS"] = gas_r
-        self.muscles_dict["r_leg"]["SOL"] = sol_r
-        self.muscles_dict["r_leg"]["HFL"] = hfl_r
-        self.muscles_dict["r_leg"]["RF"] = rf_r
-        self.muscles_dict["r_leg"]["VAS"] = vas_r
-        self.muscles_dict["r_leg"]["TA"] = ta_r
-        self.muscles_dict["r_leg"]["FDL"] = fdl_r
-        self.muscles_dict["r_leg"]["EDL"] = edl_r
-
-        self.muscles_dict["l_leg"] = {}
-        if self.mode == "3D":
-            self.muscles_dict["l_leg"]["HAB"] = hab_l
-            self.muscles_dict["l_leg"]["HAD"] = had_l
-        self.muscles_dict["l_leg"]["GLU"] = glu_l
-        self.muscles_dict["l_leg"]["HAM"] = ham_l
-        self.muscles_dict["l_leg"]["BFSH"] = bfsh_l
-        self.muscles_dict["l_leg"]["GAS"] = gas_l
-        self.muscles_dict["l_leg"]["SOL"] = sol_l
-        self.muscles_dict["l_leg"]["HFL"] = hfl_l
-        self.muscles_dict["l_leg"]["RF"] = rf_l
-        self.muscles_dict["l_leg"]["VAS"] = vas_l
-        self.muscles_dict["l_leg"]["TA"] = ta_l
-        self.muscles_dict["l_leg"]["FDL"] = fdl_l
-        self.muscles_dict["l_leg"]["EDL"] = edl_l
-
-        # Muscle labels
-        self.muscle_labels["r_leg"] = {}
-        if self.mode == "3D":
-            self.muscle_labels["r_leg"]["HAB"] = hab_r_lbl
-            self.muscle_labels["r_leg"]["HAD"] = had_r_lbl
-        self.muscle_labels["r_leg"]["GLU"] = glu_r_lbl
-        self.muscle_labels["r_leg"]["HAM"] = ham_r_lbl
-        self.muscle_labels["r_leg"]["BFSH"] = bfsh_r_lbl
-        self.muscle_labels["r_leg"]["GAS"] = gas_r_lbl
-        self.muscle_labels["r_leg"]["SOL"] = sol_r_lbl
-        self.muscle_labels["r_leg"]["HFL"] = hfl_r_lbl
-        self.muscle_labels["r_leg"]["RF"] = rf_r_lbl
-        self.muscle_labels["r_leg"]["VAS"] = vas_r_lbl
-        self.muscle_labels["r_leg"]["TA"] = ta_r_lbl
-        self.muscle_labels["r_leg"]["FDL"] = fdl_r_lbl
-        self.muscle_labels["r_leg"]["EDL"] = edl_r_lbl
-
-        self.muscle_labels["l_leg"] = {}
-        if self.mode == "3D":
-            self.muscle_labels["l_leg"]["HAB"] = hab_l_lbl
-            self.muscle_labels["l_leg"]["HAD"] = had_l_lbl
-        self.muscle_labels["l_leg"]["GLU"] = glu_l_lbl
-        self.muscle_labels["l_leg"]["HAM"] = ham_l_lbl
-        self.muscle_labels["l_leg"]["BFSH"] = bfsh_l_lbl
-        self.muscle_labels["l_leg"]["GAS"] = gas_l_lbl
-        self.muscle_labels["l_leg"]["SOL"] = sol_l_lbl
-        self.muscle_labels["l_leg"]["HFL"] = hfl_l_lbl
-        self.muscle_labels["l_leg"]["RF"] = rf_l_lbl
-        self.muscle_labels["l_leg"]["VAS"] = vas_l_lbl
-        self.muscle_labels["l_leg"]["TA"] = ta_l_lbl
-        self.muscle_labels["l_leg"]["FDL"] = fdl_l_lbl
-        self.muscle_labels["l_leg"]["EDL"] = edl_l_lbl
+        for leg, sfx in (("r_leg", "_r"), ("l_leg", "_l")):
+            self.muscles_dict[leg] = {}
+            self.muscle_labels[leg] = {}
+            for group in group_order:
+                names = [name[:-2] + sfx for name in group_names[group]]
+                self.muscles_dict[leg][group] = [self.env.sim.model.actuator(n).id for n in names]
+                self.muscle_labels[leg][group] = names
 
         # --- Muscle normalizations ---
 

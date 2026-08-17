@@ -27,7 +27,6 @@ def evaluateCost(
     stride_num: int,
     tgt_sym: float,
     tgt_grf: float,
-    muslen_param: np.ndarray,
     eval_mode: bool = False,
 ) -> Union[float, Dict[str, Any]]:
     """
@@ -51,7 +50,6 @@ def evaluateCost(
         stride_num: Number of strides to evaluate
         tgt_sym: Target symmetry threshold
         tgt_grf: Target ground reaction force threshold
-        muslen_param: Muscle length parameters
         eval_mode: If True, return detailed cost breakdown
 
     Returns:
@@ -287,10 +285,6 @@ def evaluateCost(
                 total_cost = effort_cost + kinematic_cost + trunk_cost + GRF_cost
             elif optim_type == "Kine_grf_musc":
                 total_cost = effort_cost + kinematic_cost + trunk_cost + GRF_cost + musc_profile_cost
-
-    # Add muscle length parameter cost if provided
-    if len(muslen_param) > 0:
-        total_cost += np.sum(np.sqrt(np.square(muslen_param - 1)))
 
     if eval_mode:
         return create_cost_dictionary(
@@ -616,7 +610,6 @@ def calculate_final_cost(
     GRF_cost,
     musc_profile_cost,
     pain_cost,
-    muslen_param,
 ):
     """Calculate final cost based on optimization type"""
     if not pass_flag:
@@ -640,10 +633,6 @@ def calculate_final_cost(
         total_cost = effort_cost + trunk_cost + GRF_cost + musc_profile_cost
     else:
         total_cost = effort_cost
-
-    # Add muscle length parameter cost if provided
-    if len(muslen_param) > 0:
-        total_cost += np.sum(np.sqrt(np.square(muslen_param - 1)))
 
     return total_cost
 
