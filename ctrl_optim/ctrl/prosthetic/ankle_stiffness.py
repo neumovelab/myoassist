@@ -14,11 +14,10 @@ elements (the composed names are ``<Device>_pf_ankle_angle_r`` etc.).
 
 import numpy as np
 
-# Absolute denormalization ranges (Nm/rad).  These are the ME5374 / ANAT working
-# ranges; replace with published quasi-stiffness data for the specific foot and
-# record the citation here (the normalized value is meaningless without them).
-PF_RANGE = (30.0, 305.0)
-DF_RANGE = (100.0, 1050.0)
+# Absolute denormalization ranges (Nm/rad): plantarflexion 30-300, dorsiflexion
+# 100-1000.  The normalized parameter is meaningless without these bounds.
+PF_RANGE = (30.0, 300.0)
+DF_RANGE = (100.0, 1000.0)
 
 N_STIFFNESS_PARAMS = 2
 PF_JOINT_SUFFIX = "pf_ankle_angle_r"
