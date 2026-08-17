@@ -148,6 +148,11 @@ class myoLeg_reflex(object):
         self.fixed_exo = fixed_exo
         self.max_torque = max_torque
         self.leg_model = leg_model
+        # The gait2392-lineage 80-muscle model (myolegs) uses POSITIVE knee flexion,
+        # while the reflex controller is written for the myoLeg NEGATIVE-flexion
+        # convention (22/26).  Read/write the knee through this sign so the same
+        # controller drives both; it is identity (+1) for 22/26.
+        self.knee_sign = -1.0 if leg_model == "80" else 1.0
 
         # Parameter-vector layout: the single source of truth for block sizes
         # (ctrl_optim/param_layout.py).  spline_params is 0 when the exo is off;
@@ -201,7 +206,11 @@ class myoLeg_reflex(object):
             )
         self.msk_key = msk_key
         self.device_key = device_key
-        model_xml = compose_env_model(self.msk_key, self.device_key, terrain=terrain)
+        # planar_root=True: re-orient the 3D-lineage MSKs (myolegs26 / myolegs) to
+        # the myolegs22 frame + named pelvis DOF root so this (2D-frame-calibrated)
+        # reflex controller can drive them.  No-op on myolegs22.  RL does not set
+        # it, so the RL build keeps the floating freejoint base untouched.
+        model_xml = compose_env_model(self.msk_key, self.device_key, terrain=terrain, planar_root=True)
 
         # Determine movement dimension from mode
         mvt_dim = 2 if mode == "2D" else 3
@@ -452,14 +461,18 @@ class myoLeg_reflex(object):
 
             # Leg joint angles
             self.SENSOR_DATA[s_leg]["phi_hip"] = np.pi - self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qpos[0].copy()
-            self.SENSOR_DATA[s_leg]["phi_knee"] = np.pi + self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
+            self.SENSOR_DATA[s_leg]["phi_knee"] = (
+                np.pi + self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
+            )
             self.SENSOR_DATA[s_leg]["phi_ankle"] = (
                 0.5 * np.pi - self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").qpos[0].copy()
             )
             self.SENSOR_DATA[s_leg]["phi_mtp"] = 0.5 * np.pi - self.env.sim.data.joint(f"mtp_angle_{s_leg[0]}").qpos[0].copy()
 
             self.SENSOR_DATA[s_leg]["dphi_hip"] = -1 * self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qvel[0].copy()
-            self.SENSOR_DATA[s_leg]["dphi_knee"] = self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qvel[0].copy()
+            self.SENSOR_DATA[s_leg]["dphi_knee"] = (
+                self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qvel[0].copy()
+            )
 
             # Check sign - BODY FRAME ALPHA
             self.SENSOR_DATA[s_leg]["alpha"] = self.SENSOR_DATA[s_leg]["phi_hip"] - 0.5 * self.SENSOR_DATA[s_leg]["phi_knee"]
@@ -638,7 +651,7 @@ class myoLeg_reflex(object):
             cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").xanchor.copy()
 
             # Joint torque: https://github.com/google-deepmind/mujoco/issues/1095: data.joint("my_joint").qfrc_constraint + data.joint("my_joint").qfrc_smooth
-            cost_dict[s_leg]["joint"]["knee_torque"] = (
+            cost_dict[s_leg]["joint"]["knee_torque"] = self.knee_sign * (
                 self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qfrc_constraint[0].copy()
                 + self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qfrc_smooth[0].copy()
             )
@@ -884,7 +897,10 @@ class myoLeg_reflex(object):
 
         # Values in radians
         for joint_name in self.JNT_OPTIM["joint_angles"].keys():
-            self.env.sim.data.joint(joint_name).qpos[0] = self.JNT_OPTIM["joint_angles"][joint_name]
+            value = self.JNT_OPTIM["joint_angles"][joint_name]
+            if "knee_angle" in joint_name:
+                value *= self.knee_sign  # 80-muscle model uses positive knee flexion
+            self.env.sim.data.joint(joint_name).qpos[0] = value
 
         for vel in self.JNT_OPTIM["model_vel"].keys():
             tmp_var = vel.split("_")
@@ -1007,13 +1023,9 @@ class myoLeg_reflex(object):
         # Ensure at least 1 foot is on the ground
         # Foot sensor positions have negative height, so not that informative to check them. Checking the vertical GRF is better
         foot_sens = ["l_foot", "r_foot", "l_toes", "r_toes"]
-        foot_sens_site = ["l_foot_touch", "r_foot_touch", "l_toes_touch", "r_toes_touch"]
         grf_values = []
-        sens_site = []
         for sens in foot_sens:
             grf_values.append(self.env.sim.data.sensor(sens).data[0].copy() / (np.sum(self.env.sim.model.body_mass) * 9.8))
-        for foot_site in foot_sens_site:
-            sens_site.append(self.env.sim.data.site(foot_site).xpos[2].copy())
 
         if not np.any(np.array(grf_values) > 0.1):  # and ( np.any(np.array(grf_values)[[1,3]] <= 0) ):
             # print(f"L foot: {np.array(grf_values)[[0,2]]}")

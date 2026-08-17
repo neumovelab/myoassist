@@ -208,6 +208,7 @@ def compose_env_model(
     device_key: str,
     terrain: Optional[Union[str, Path, dict]] = None,
     export_path: Optional[Union[str, Path]] = None,
+    planar_root: bool = False,
 ) -> str:
     """Compose ``msk_key`` + ``device_key`` + a terrain into one loadable MJCF.
 
@@ -225,6 +226,11 @@ def compose_env_model(
         If given, the merged model is also written to this path as a
         standalone, ``from_xml_path``-loadable file.  Any terrain assets
         (heightfields / textures) are written to a sibling ``*_assets`` dir.
+    planar_root : bool
+        CO-only.  Re-orient a freejoint 3D-lineage leg MSK (``myolegs26``,
+        ``myolegs``) to the ``myolegs22`` frame and swap the freejoint for the
+        named pelvis DOF joints, so the reflex controller can drive it.  No-op on
+        the planar ``myolegs22``.  Leave False for RL (keeps the freejoint base).
 
     Returns
     -------
@@ -239,7 +245,7 @@ def compose_env_model(
     # dir the returned model references) are removed rather than leaked.
     atexit.register(shutil.rmtree, str(model_dir), ignore_errors=True)
     model_xml_path = model_dir / "model_only.xml"
-    load_combined(msk_key, device_key, export_xml=str(model_xml_path))
+    load_combined(msk_key, device_key, export_xml=str(model_xml_path), planar_root=planar_root)
     model_root = ET.parse(model_xml_path).getroot()
     # meshes are written relative to the export dir -> resolve to the (absolute,
     # persistent) install location so the temp export dir can be removed.
