@@ -233,6 +233,9 @@ def main():
                 params_0[-(input_args.n_points * 2) : -input_args.n_points] = torque_values  # Torque points
                 params_0[-(input_args.n_points) :] = 0.5  # Time points remain at 0.5
 
+    if input_args.optimize_stiffness and params_0 is not None:
+        params_0[-2:] = 0.5  # start the pf/df prosthetic-ankle stiffness at mid-range, not the ceiling
+
     if params_0 is not None:
         for i in range(len(params_0)):
             if i < len(bound_start):

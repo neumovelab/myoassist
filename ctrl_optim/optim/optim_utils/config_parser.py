@@ -49,6 +49,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "terrain": None,
         "leg_model": None,
         "reflex_mode": None,
+        "optimize_stiffness": False,
     }
 
     try:
@@ -72,7 +73,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         }
 
         # Check for flags
-        flag_patterns = ["--use_4param_spline", "--fixed_exo"]
+        flag_patterns = ["--use_4param_spline", "--fixed_exo", "--optimize_stiffness"]
 
         # Parse parameter values
         for param, (pattern, type_func) in patterns.items():
@@ -113,6 +114,8 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                     config["use_4param_spline"] = True
                 elif flag == "--fixed_exo":
                     config["fixed_exo"] = True
+                elif flag == "--optimize_stiffness":
+                    config["optimize_stiffness"] = True
 
         # Derive the muscle model + 2D/3D control mode from the MSK key.
         msk_to_musc = {"myolegs22": "22", "myolegs26": "26", "myolegs": "80"}
@@ -174,6 +177,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             device_key=config.get("device_key"),
             terrain=config.get("terrain"),
             reflex_mode=config.get("reflex_mode"),
+            optimize_stiffness=config.get("optimize_stiffness", False),
         )
 
         return TestEnv, config

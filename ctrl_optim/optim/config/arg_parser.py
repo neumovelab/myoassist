@@ -77,6 +77,11 @@ def initParser() -> argparse.Namespace:
         choices=["uni", "ind", "bilat", "amp"],
         help="(String) [uni, ind] legacy 80-mus; bilat = independent per-leg blocks; amp = bilat + prosthetic tolerance",
     )
+    optim_group.add_argument(
+        "--optimize_stiffness",
+        action="store_true",
+        help="Append 2 normalized pf/df prosthetic-ankle stiffness params to the CMA-ES vector (prosthetic feet)",
+    )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(
         "--trunk_err_type", help="(String) type of trunk error, from ['ref_diff','zero_diff','vel_square']"
