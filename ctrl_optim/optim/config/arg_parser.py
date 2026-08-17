@@ -74,8 +74,8 @@ def initParser() -> argparse.Namespace:
     optim_group.add_argument(
         "--reflex_mode",
         required=False,
-        choices=["uni", "ind", "bilat"],
-        help="(String) [uni, ind] are legacy 80-mus modes; bilat = independent per-leg reflex blocks",
+        choices=["uni", "ind", "bilat", "amp"],
+        help="(String) [uni, ind] legacy 80-mus; bilat = independent per-leg blocks; amp = bilat + prosthetic tolerance",
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(

@@ -149,10 +149,12 @@ class myoLeg_reflex(object):
         self.fixed_exo = fixed_exo
         self.max_torque = max_torque
         self.leg_model = leg_model
-        # Bilateral reflex: independent per-leg reflex parameter blocks [r_leg | l_leg]
-        # (vs the symmetric default that mirrors one block to both legs).
+        # Bilateral / amputee reflex: independent per-leg reflex parameter blocks
+        # [r_leg | l_leg] (vs the symmetric default that mirrors one block to both
+        # legs).  amp uses the same doubled layout; it adds prosthetic tolerance
+        # (removed muscles, empty groups, and the df+pf prosthetic ankle).
         self.reflex_mode = reflex_mode
-        self.is_bilat = reflex_mode == "bilat"
+        self.is_bilat = reflex_mode in ("bilat", "amp")
         # The gait2392-lineage 80-muscle model (myolegs) uses POSITIVE knee flexion,
         # while the reflex controller is written for the myoLeg NEGATIVE-flexion
         # convention (22/26).  Read/write the knee through this sign so the same
@@ -453,8 +455,9 @@ class myoLeg_reflex(object):
             self.SENSOR_DATA[s_leg]["contact_contra"] = 1 if self.SENSOR_DATA[s_legc]["load_ipsi"] > 0.1 else 0
             self.SENSOR_DATA[s_leg]["load_contra"] = self.SENSOR_DATA[s_legc]["load_ipsi"]
 
-            tal_world_xpos = self.env.sim.data.body(f"talus_{s_legc[0]}").xpos.copy()
-            tal_world_xvel = self.env.sim.data.object_velocity(f"talus_{s_legc[0]}", "body", local_frame=False)[0].copy()
+            placement_body = self._placement_body(s_legc[0])
+            tal_world_xpos = self.env.sim.data.body(placement_body).xpos.copy()
+            tal_world_xvel = self.env.sim.data.object_velocity(placement_body, "body", local_frame=False)[0].copy()
 
             tal_x_local, tal_y_local = self.rotate_frame(tal_world_xpos[0], tal_world_xpos[1], -1 * temp_pelvis_euler[2])
             tal_dx_local, tal_dy_local = self.rotate_frame(tal_world_xvel[0], tal_world_xvel[1], -1 * temp_pelvis_euler[2])
@@ -469,10 +472,12 @@ class myoLeg_reflex(object):
             self.SENSOR_DATA[s_leg]["phi_knee"] = (
                 np.pi + self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
             )
-            self.SENSOR_DATA[s_leg]["phi_ankle"] = (
-                0.5 * np.pi - self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").qpos[0].copy()
-            )
-            self.SENSOR_DATA[s_leg]["phi_mtp"] = 0.5 * np.pi - self.env.sim.data.joint(f"mtp_angle_{s_leg[0]}").qpos[0].copy()
+            self.SENSOR_DATA[s_leg]["phi_ankle"] = 0.5 * np.pi - self._reflex_ankle_angle(s_leg[0])
+            try:
+                mtp = self.env.sim.data.joint(f"mtp_angle_{s_leg[0]}").qpos[0].copy()
+            except KeyError:
+                mtp = 0.0  # no toe (mtp) joint on the prosthetic side
+            self.SENSOR_DATA[s_leg]["phi_mtp"] = 0.5 * np.pi - mtp
 
             self.SENSOR_DATA[s_leg]["dphi_hip"] = -1 * self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qvel[0].copy()
             self.SENSOR_DATA[s_leg]["dphi_knee"] = (
@@ -509,8 +514,11 @@ class myoLeg_reflex(object):
             def _group_force(group):
                 # Total group force normalized by total group Fmax -> a scalar for
                 # any group size (single-actuator 22/26 groups and multi-actuator
-                # 80-muscle groups alike).
+                # 80-muscle groups alike).  An empty group -- a muscle amputated away
+                # on the prosthetic side of an amp model -- reads 0, not NaN.
                 ids = self.muscles_dict[s_leg][group]
+                if len(ids) == 0:
+                    return 0.0
                 return -1.0 * np.sum(temp_mus_force[ids]) / np.sum(self.muscle_Fmax[s_leg][group])
 
             self.SENSOR_DATA[s_leg]["F_GLU"] = _group_force("GLU")
@@ -649,11 +657,16 @@ class myoLeg_reflex(object):
             cost_dict[s_leg]["joint"] = {}
             cost_dict[s_leg]["joint"]["hip"] = np.pi - self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qpos[0].copy()
             cost_dict[s_leg]["joint"]["knee"] = np.pi + self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
-            cost_dict[s_leg]["joint"]["ankle"] = 0.5 * np.pi - self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").qpos[0].copy()
+            cost_dict[s_leg]["joint"]["ankle"] = 0.5 * np.pi - self._reflex_ankle_angle(s_leg[0])
 
             cost_dict[s_leg]["joint"]["hip_pos"] = self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").xanchor.copy()
             cost_dict[s_leg]["joint"]["knee_pos"] = self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").xanchor.copy()
-            cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").xanchor.copy()
+            try:
+                cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").xanchor.copy()
+            except KeyError:
+                self._reflex_ankle_angle(s_leg[0])  # populate the prosthetic-ankle cache
+                df, _ = self._pros_ankle_cache[s_leg[0]]
+                cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(df).xanchor.copy()
 
             # Joint torque: https://github.com/google-deepmind/mujoco/issues/1095: data.joint("my_joint").qfrc_constraint + data.joint("my_joint").qfrc_smooth
             cost_dict[s_leg]["joint"]["knee_torque"] = self.knee_sign * (
@@ -770,6 +783,46 @@ class myoLeg_reflex(object):
         self.env.sim.data.qpos = self.env.sim.model.keyframe(key_name).qpos
         self.env.sim.data.qvel = self.env.sim.model.keyframe(key_name).qvel
         self.env.forward()
+
+    def _reflex_ankle_angle(self, side):
+        """Ankle angle for the reflex law: the biological ``ankle_angle_{side}``
+        joint if present, else the prosthetic ``df_+pf_ankle_angle_{side}`` pair
+        (their sum is the compound ankle angle).  Resolves the assist_sim
+        device-prefixed prosthetic joint names once and caches them."""
+        data, model = self.env.sim.data, self.env.sim.model
+        try:
+            return data.joint(f"ankle_angle_{side}").qpos[0].copy()
+        except KeyError:
+            pass
+        cache = getattr(self, "_pros_ankle_cache", None)
+        if cache is None:
+            cache = self._pros_ankle_cache = {}
+        if side not in cache:
+            names = [model.joint(i).name for i in range(model.njnt)]
+            df = next(n for n in names if n.endswith(f"df_ankle_angle_{side}"))
+            pf = next(n for n in names if n.endswith(f"pf_ankle_angle_{side}"))
+            cache[side] = (df, pf)
+        df, pf = cache[side]
+        return data.joint(df).qpos[0] + data.joint(pf).qpos[0]
+
+    def _placement_body(self, side):
+        """Foot-placement reference body for the reflex's alpha target: the
+        biological ``talus_{side}`` if present, else the prosthetic foot -- the
+        body the ``{side}_foot`` GRF sensor sits on -- for an amputated side.
+        Device-agnostic (no hardcoded prosthetic body name).  Cached per side."""
+        cache = getattr(self, "_placement_body_cache", None)
+        if cache is None:
+            cache = self._placement_body_cache = {}
+        if side not in cache:
+            model = self.env.sim.model
+            try:
+                model.body(f"talus_{side}")
+                cache[side] = f"talus_{side}"
+            except KeyError:
+                sensor = model.sensor(f"{side}_foot")
+                site_id = int(sensor.objid[0])
+                cache[side] = model.body(int(model.site_bodyid[site_id])).name
+        return cache[side]
 
     def adjust_initial_pose(self, joint_dict):
         """
@@ -905,7 +958,10 @@ class myoLeg_reflex(object):
             value = self.JNT_OPTIM["joint_angles"][joint_name]
             if "knee_angle" in joint_name:
                 value *= self.knee_sign  # 80-muscle model uses positive knee flexion
-            self.env.sim.data.joint(joint_name).qpos[0] = value
+            try:
+                self.env.sim.data.joint(joint_name).qpos[0] = value
+            except KeyError:
+                pass  # joint amputated away (e.g. ankle_angle_r on a prosthetic side)
 
         for vel in self.JNT_OPTIM["model_vel"].keys():
             tmp_var = vel.split("_")
@@ -998,12 +1054,12 @@ class myoLeg_reflex(object):
             ]
 
         for jnts in joints_vec:
-            # print(f"Joint limits: {self.env.sim.model.joint(jnts).range}, IsWithinRange: {self.env.sim.data.joint(jnts).qpos[0].copy()}")
-            if not (
-                self.env.sim.data.joint(jnts).qpos[0].copy() >= self.env.sim.model.joint(jnts).range[0]
-                and self.env.sim.data.joint(jnts).qpos[0].copy() <= self.env.sim.model.joint(jnts).range[1]
-            ):
-                # print(f"Jnt: {self.env.sim.model.joint(jnts).name}. Joint limits: {self.env.sim.model.joint(jnts).range}, IsWithinRange: {self.env.sim.data.joint(jnts).qpos[0].copy()}")
+            try:
+                q = self.env.sim.data.joint(jnts).qpos[0].copy()
+                jrange = self.env.sim.model.joint(jnts).range
+            except KeyError:
+                continue  # joint amputated away (prosthetic side); nothing to bound-check
+            if not (q >= jrange[0] and q <= jrange[1]):
                 is_valid = False
                 return is_valid
 
@@ -1132,8 +1188,15 @@ class myoLeg_reflex(object):
             self.muscle_labels[leg] = {}
             for group in group_order:
                 names = [name[:-2] + sfx for name in group_names[group]]
-                self.muscles_dict[leg][group] = [self.env.sim.model.actuator(n).id for n in names]
-                self.muscle_labels[leg][group] = names
+                ids, present = [], []
+                for n in names:
+                    try:
+                        ids.append(self.env.sim.model.actuator(n).id)
+                        present.append(n)
+                    except KeyError:
+                        pass  # actuator removed by an amputation device (amp models) -> group shrinks/empties
+                self.muscles_dict[leg][group] = ids
+                self.muscle_labels[leg][group] = present
 
         # --- Muscle normalizations ---
 

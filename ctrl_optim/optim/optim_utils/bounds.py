@@ -117,7 +117,7 @@ def get_bounds(
         raise ValueError(f"3D control needs hip ab/adductors; muscle model {musc_model!r} is 2D-only")
 
     spline = _spline_count() if exo_spline is None else exo_spline
-    bil = (getattr(input_args, "reflex_mode", None) == "bilat") if bilateral is None else bilateral
+    bil = (getattr(input_args, "reflex_mode", None) in ("bilat", "amp")) if bilateral is None else bilateral
     stiff = (2 if getattr(input_args, "optimize_stiffness", False) else 0) if stiffness is None else stiffness
 
     layout = ParamLayout(control_mode, bilateral=bil, spline=spline, stiffness=stiff)
