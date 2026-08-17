@@ -1011,11 +1011,15 @@ class MyoLocoCtrl(object):
         return stim, stim_C_aff
 
     def set_control_params(self, params):
-        if len(params) != self.n_par:
-            raise Exception(f"Wrong params: {len(params)} vs {self.n_par}")
-        else:
+        # Symmetric: n_par mirrored to both legs.  Bilateral: 2*n_par split [r_leg | l_leg].
+        if len(params) == self.n_par:
             self.set_control_params_leg("r_leg", params)
             self.set_control_params_leg("l_leg", params)
+        elif len(params) == 2 * self.n_par:
+            self.set_control_params_leg("r_leg", params[: self.n_par])
+            self.set_control_params_leg("l_leg", params[self.n_par :])
+        else:
+            raise Exception(f"Wrong params: {len(params)} vs {self.n_par} (or {2 * self.n_par} for bilateral)")
 
     def set_control_params_leg(self, s_leg, params):
         cp = {}

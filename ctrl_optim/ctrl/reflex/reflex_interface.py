@@ -139,6 +139,7 @@ class myoLeg_reflex(object):
         msk_key=None,
         device_key=None,
         terrain=None,
+        reflex_mode=None,
     ):
 
         self.dt = dt
@@ -148,6 +149,10 @@ class myoLeg_reflex(object):
         self.fixed_exo = fixed_exo
         self.max_torque = max_torque
         self.leg_model = leg_model
+        # Bilateral reflex: independent per-leg reflex parameter blocks [r_leg | l_leg]
+        # (vs the symmetric default that mirrors one block to both legs).
+        self.reflex_mode = reflex_mode
+        self.is_bilat = reflex_mode == "bilat"
         # The gait2392-lineage 80-muscle model (myolegs) uses POSITIVE knee flexion,
         # while the reflex controller is written for the myoLeg NEGATIVE-flexion
         # convention (22/26).  Read/write the knee through this sign so the same
@@ -161,7 +166,7 @@ class myoLeg_reflex(object):
             raise ValueError("Number of spline points must be at least 1")
         spline_params = (4 if use_4param_spline else n_points * 2) if self.exo_bool else 0
 
-        self.layout = ParamLayout(mode, bilateral=False, spline=spline_params, stiffness=0)
+        self.layout = ParamLayout(mode, bilateral=self.is_bilat, spline=spline_params, stiffness=0)
         expected_params = self.layout.total
         if len(control_params) != expected_params:
             raise ValueError(

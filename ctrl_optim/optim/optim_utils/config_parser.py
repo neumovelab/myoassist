@@ -48,6 +48,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "device_key": None,
         "terrain": None,
         "leg_model": None,
+        "reflex_mode": None,
     }
 
     try:
@@ -67,6 +68,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
             "--device": (r"--device\s+(\S+)", str),
             "--terrain": (r"--terrain\s+(\S+)", str),
             "--pose_key": (r"--pose_key\s+(\w+)", str),
+            "--reflex_mode": (r"--reflex_mode\s+(\w+)", str),
         }
 
         # Check for flags
@@ -101,6 +103,8 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                         config["init_pose"] = "walk_left"
                     else:
                         config["init_pose"] = value
+                elif param == "--reflex_mode":
+                    config["reflex_mode"] = value
 
         # Check for flags
         for flag in flag_patterns:
@@ -111,7 +115,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                     config["fixed_exo"] = True
 
         # Derive the muscle model + 2D/3D control mode from the MSK key.
-        msk_to_musc = {"myolegs22": "22", "myolegs26": "26"}
+        msk_to_musc = {"myolegs22": "22", "myolegs26": "26", "myolegs": "80"}
         if config["msk_key"] in msk_to_musc:
             config["leg_model"] = msk_to_musc[config["msk_key"]]
             config["mode"] = "2D" if config["leg_model"] == "22" else "3D"
@@ -169,6 +173,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             msk_key=config.get("msk_key"),
             device_key=config.get("device_key"),
             terrain=config.get("terrain"),
+            reflex_mode=config.get("reflex_mode"),
         )
 
         return TestEnv, config

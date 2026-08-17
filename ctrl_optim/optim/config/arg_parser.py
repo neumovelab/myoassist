@@ -72,7 +72,10 @@ def initParser() -> argparse.Namespace:
         help="(String) Optimization to be done. Currently supports only [evaluate, single, multispeed, multislope]",
     )
     optim_group.add_argument(
-        "--reflex_mode", required=False, help="(String) Unified or Individual [uni, ind]. Used only for 80 mus reflex model"
+        "--reflex_mode",
+        required=False,
+        choices=["uni", "ind", "bilat"],
+        help="(String) [uni, ind] are legacy 80-mus modes; bilat = independent per-leg reflex blocks",
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(
