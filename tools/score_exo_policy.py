@@ -15,9 +15,10 @@ a self-selected speed, and each is named where it is used:
 
   * ankle plantarflexion moment peaks at ~50 % of the gait cycle, just before toe-off
     (Winter, *Biomechanics and Motor Control of Human Movement*, 4th ed.).
-  * powered ankle exoskeletons deliver a peak of roughly 0.15-0.5 N*m/kg; below that the
-    device is doing nothing useful, above it the assistance stops resembling augmentation
-    (Zhang et al. 2017 human-in-the-loop optimisation; Mooney & Herr 2016).
+  * powered ankle exoskeletons deliver a peak of roughly 0.15-0.80 N*m/kg; below that the
+    device is doing nothing useful, above it the assistance stops resembling augmentation.
+    The upper bound is the human-in-the-loop optimum of Zhang et al. 2017, 0.77 +/- 0.08
+    N*m/kg (see PEAK_BAND_NM_PER_KG, which this must stay consistent with).
   * stance occupies ~60 % of the cycle at walking speeds, and both feet leave the ground in
     running, so a stance fraction far below that is a different gait, not a better one.
 
