@@ -147,5 +147,8 @@ class TrainSessionConfigBase:
         sde_sample_freq: int = -1
         target_kl: float = None
         device: str = "cpu"
+        # Weight on the left/right mirror-symmetry penalty (see rl_train/train/mirror_ppo.py).
+        # 0 disables it, and PPO then behaves exactly as before.
+        mirror_coef: float = 0.0
 
     ppo_params: PPOParams = field(default_factory=PPOParams)

@@ -291,14 +291,72 @@ class EnvironmentHandler:
                 reset_value_net=config.policy_params.custom_policy_params.reset_value_net_after_load,
             )
         else:
-            model = stable_baselines3.PPO(
-                policy=policy_class,
-                env=env,
-                policy_kwargs=DictionableDataclass.to_dict(config.policy_params),
-                verbose=2,
-                **DictionableDataclass.to_dict(config.ppo_params),
-            )
+            ppo_kwargs = DictionableDataclass.to_dict(config.ppo_params)
+            mirror_coef = ppo_kwargs.pop("mirror_coef", 0.0)
+            if mirror_coef > 0:
+                from rl_train.train.mirror_ppo import MirrorPPO
+
+                obs_perm, act_perm, n_muscle = EnvironmentHandler._mirror_permutations(config)
+                model = MirrorPPO(
+                    policy=policy_class,
+                    env=env,
+                    policy_kwargs=DictionableDataclass.to_dict(config.policy_params),
+                    verbose=2,
+                    mirror_coef=mirror_coef,
+                    obs_perm=obs_perm,
+                    act_perm=act_perm,
+                    n_muscle_actuators=n_muscle,
+                    **ppo_kwargs,
+                )
+            else:
+                model = stable_baselines3.PPO(
+                    policy=policy_class,
+                    env=env,
+                    policy_kwargs=DictionableDataclass.to_dict(config.policy_params),
+                    verbose=2,
+                    **ppo_kwargs,
+                )
         return model
+
+    @staticmethod
+    def _mirror_permutations(config):
+        """Left/right mirror maps for the observation and action vectors, and the muscle count.
+
+        Derived from the composed model's actuator names plus the config's own observation
+        keys, so a config that changes either cannot end up with a stale map. The muscle count
+        comes back too because the action vector is muscles followed by device actuators, and
+        the split is what lets the penalty report how much of itself reaches the device.
+        """
+        import mujoco
+
+        from myoassist_utils.compose import compose_env_model
+        from rl_train.train.policies.mirror import action_permutation, observation_permutation
+
+        model = mujoco.MjModel.from_xml_string(
+            compose_env_model(
+                config.env_params.msk_key,
+                config.env_params.device_key,
+                terrain=config.env_params.terrain,
+            )
+        )
+        n_muscle = int((model.actuator_dyntype == mujoco.mjtDyn.mjDYN_MUSCLE).sum())
+        names = [model.actuator(i).name for i in range(model.nu)]
+        act_perm = action_permutation(names)
+        # A device actuator that mirrors to itself contributes nothing to the mirror penalty, and
+        # a self-map passes the involution check, so an unrecognised side-naming convention fails
+        # silently on exactly the pair the penalty exists to constrain. UTAnkleExo_L2's `_dx`/`_sx`
+        # did this before the rule was extended. One self-mapping device actuator is legitimate --
+        # the unilateral prostheses have a single one -- so only flag a set of two or more where
+        # none found a partner.
+        device_slots = list(range(n_muscle, model.nu))
+        if len(device_slots) >= 2 and all(int(act_perm[i]) == i for i in device_slots):
+            raise ValueError(
+                f"Mirror map leaves every device actuator mapped to itself, so the mirror penalty "
+                f"cannot constrain them: {[names[i] for i in device_slots]}. Their side naming is "
+                f"not recognised by rl_train/train/policies/mirror.py:_swap_name -- add the "
+                f"convention there."
+            )
+        return observation_permutation(config.env_params, n_muscle, names), act_perm, n_muscle
 
     @staticmethod
     def updateconfig_from_model_policy(config, model):
