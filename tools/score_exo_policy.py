@@ -435,11 +435,16 @@ def score_run(run_dir: pathlib.Path, mass: float, joint: str) -> dict:
     else:
         abs_time["one_side_silent"] = True
 
+    # Exclude the device by the actuator names already resolved above, not by an "Exo" prefix:
+    # only some devices use it, so STRIDE_L2_cable_r was being averaged into the muscle RMS.
     muscle_rms = float(
-        np.sqrt(np.mean([_series(v["ctrl"]) ** 2 for k, v in series["actuator_data"].items() if not k.startswith("Exo")]))
+        np.sqrt(np.mean([_series(v["ctrl"]) ** 2 for k, v in series["actuator_data"].items() if k not in exo_names.values()]))
     )
     return {
-        "run": run_dir.name,
+        # Session and evaluation directory, because the analyze directory name is the step count
+        # and collides across sessions: scoring seven devices' 29245440 checkpoints produced seven
+        # identically labelled rows.
+        "run": f"{run_dir.parent.name}/{run_dir.name}" if run_dir.parent.name.startswith("train_session") else run_dir.name,
         "device": config["env_params"].get("device_key"),
         "segmentation": segmentation,
         "tendon_driven": tendon_driven,
@@ -548,10 +553,10 @@ def main() -> None:
         print(f"\n=== {name}\n  NOT SCORED: {reason}")
 
     print("\n--- ranked ---")
-    print(f"{'run':52} {'total':>6} {'stab':>6} {'symm':>6} {'plaus':>6}")
+    print(f"{'device':16} {'run':58} {'total':>6} {'stab':>6} {'symm':>6} {'plaus':>6}")
     for r in sorted(results, key=order):
         print(
-            f"{r['run']:52} {r['total']:6.3f} {r['stability']['score']:6.3f}"
+            f"{r['device'] or '-':16} {r['run']:58} {r['total']:6.3f} {r['stability']['score']:6.3f}"
             f" {r['symmetry']['score']:6.3f} {r['plausibility']['score']:6.3f}"
         )
 
