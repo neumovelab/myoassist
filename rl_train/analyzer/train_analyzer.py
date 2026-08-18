@@ -1,6 +1,7 @@
 from rl_train.utils.train_log_handler import TrainLogHandler
 import os
 import json
+import sys
 from pathlib import Path
 from rl_train.utils.data_types import DictionableDataclass
 from rl_train.analyzer.train_log_analyzer import TrainLogAnalyzer
@@ -69,11 +70,18 @@ class TrainAnalyzer:
 
             gait_data_name = f"gait_evaluated_data_{eval_idx:02d}.json"
 
-            if os.path.exists(os.path.join(analyze_result_dir, gait_data_name)):
-                user_input = input(f"Regenerate evaluate data? ({gait_data_name}) (y/n(anything))")
+            if not os.path.exists(os.path.join(analyze_result_dir, gait_data_name)):
+                is_regen_evaluating_data = True
+            elif sys.stdin is not None and sys.stdin.isatty():
+                is_regen_evaluating_data = input(f"Regenerate evaluate data? ({gait_data_name}) (y/n(anything))") == "y"
             else:
-                user_input = "y"
-            is_regen_evaluating_data = True if user_input == "y" else False
+                # No console to answer on -- the analyzer runs in a worker process, and a
+                # training run launched from a scheduler or a redirected shell has no stdin.
+                # `input()` there raises EOFError, which propagates out of the callback and
+                # kills the whole run: a 30M-step HMEDI_L1 run died this way at 26.7M.
+                # Keep the existing data, which is what the branch below already handles.
+                print(f"Evaluate data {gait_data_name} already exists and stdin is not interactive; keeping it.")
+                is_regen_evaluating_data = False
 
             gait_evaluator = ImitationGaitEvaluator(log_handler, config)
             gait_evaluator.load_reference_data()

@@ -127,8 +127,25 @@ if __name__ == "__main__":
 
     DictionableDataclass.set_from_args(config, args, prefix="config.")
 
-    log_dir = os.path.join("rl_train", "results", f"train_session_{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-    os.makedirs(log_dir, exist_ok=True)
+    # Second-resolution timestamps collide when runs are launched together, and `exist_ok=True`
+    # then silently hands two trainings the same directory: they interleave writes to
+    # train_log.json and overwrite each other's checkpoints. That happened during the eight-device
+    # sweep -- OpenExo_L1 and Humotech_L1 both landed on train_session_20260818-030709, OpenExo_L1
+    # died reading a half-written log, and Humotech_L1 kept running with a corrupted one (33
+    # checkpoints against 32 log entries). Claiming the directory with exist_ok=False and stepping
+    # to the next free suffix makes a collision impossible rather than unlikely.
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    for suffix in range(100):
+        candidate = os.path.join("rl_train", "results", f"train_session_{stamp}" + (f"_{suffix}" if suffix else ""))
+        try:
+            os.makedirs(candidate, exist_ok=False)
+        except FileExistsError:
+            continue
+        log_dir = candidate
+        break
+    else:
+        raise RuntimeError(f"could not claim a session directory for {stamp}: 100 suffixes already exist")
+    print(f"Session directory: {log_dir}")
     train_log_handler = train_log_handler.TrainLogHandler(log_dir)
 
     if args.flag_realtime_evaluate:

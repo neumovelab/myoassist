@@ -33,11 +33,28 @@ class TrainLogHandler:
         self.log_file.flush()
 
     def write_json_file(self):
+        """Write the training log atomically.
+
+        Opening the destination with "w" truncates it before the dump starts, so a reader that
+        arrives in between sees an empty file. The periodic analyzer runs in a worker process and
+        reads exactly this file, and it does fail: `OpenExo_L1` died at 3M steps with
+        `json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)` raised out of
+        the analyzer pool, which propagates and takes the whole training run down. The window
+        widens as the log grows and as the machine gets busier -- it appeared once six runs were
+        training at once, having never shown up with one or two.
+
+        Writing a sibling temp file and renaming makes the replacement atomic on both POSIX and
+        Windows, so a reader sees either the previous complete file or the new complete one.
+        """
         data = {
             "log_datas": [DictionableDataclass.to_dict(log_data) for log_data in self.log_datas],
         }
-        with open(self.log_path, "w", encoding="utf-8") as file:
+        tmp_path = f"{self.log_path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(tmp_path, self.log_path)
 
     def load_log_data(self, checkpoint_data_type: type[TrainCheckpointData]):
         with open(self.log_path, "r", encoding="utf-8") as file:
