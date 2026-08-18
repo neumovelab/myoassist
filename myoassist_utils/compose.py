@@ -20,11 +20,15 @@ the figure-only bits (slide root, white scene, velocity arrows) are dropped here
 from __future__ import annotations
 
 import atexit
+import hashlib
+import json
+import os
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Optional, Union
+from uuid import uuid4
 
 import mujoco as mj
 
@@ -36,6 +40,46 @@ from myoassist_terrains.config import config_from_dict, load_config
 # model opens in light contact (MuJoCo needs penetration, not just touching, to
 # register a contact).  ~5 mm matches the validated merge prototype.
 _CONTACT_SEAT_DEPTH = 0.005
+
+# Opt every caller into the compose cache without threading a ``cache_dir`` through each
+# config.  An explicit ``cache_dir=`` argument still wins over the variable.
+CACHE_DIR_ENV = "MYOASSIST_CACHE_DIR"
+
+
+def _terrain_fingerprint(terrain) -> str:
+    """A stable string for the terrain argument, for the cache key.
+
+    A dict is serialised with sorted keys; a path contributes its resolved location *and*
+    mtime, so editing a terrain JSON invalidates the entry.
+    """
+    if terrain is None:
+        return "flat-default"
+    if isinstance(terrain, dict):
+        return json.dumps(terrain, sort_keys=True)
+    path = Path(terrain).resolve()
+    stamp = path.stat().st_mtime_ns if path.exists() else "missing"
+    return f"{path}@{stamp}"
+
+
+def _compose_cache_key(msk_key: str, device_key: str, terrain, planar_root: bool) -> str:
+    """Hash everything that changes the merged model.
+
+    Folds in assist_sim's own source token, so editing the combine pipeline invalidates these
+    entries too -- otherwise this cache would serve a model built by an older assist_sim while
+    assist_sim's own cache correctly rebuilt.  This module is hashed for the same reason: the
+    terrain merge, the render defaults and the seating all live here and all change the output.
+    """
+    from assist_sim.loading import _assist_sim_token
+
+    parts = [
+        msk_key,
+        device_key,
+        _terrain_fingerprint(terrain),
+        f"planar={bool(planar_root)}",
+        _assist_sim_token(),
+        f"compose@{Path(__file__).resolve().stat().st_mtime_ns}",
+    ]
+    return hashlib.sha1("|".join(parts).encode()).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -209,6 +253,7 @@ def compose_env_model(
     terrain: Optional[Union[str, Path, dict]] = None,
     export_path: Optional[Union[str, Path]] = None,
     planar_root: bool = False,
+    cache_dir: Optional[Union[str, Path]] = None,
 ) -> str:
     """Compose ``msk_key`` + ``device_key`` + a terrain into one loadable MJCF.
 
@@ -231,6 +276,21 @@ def compose_env_model(
         ``myolegs``) to the ``myolegs22`` frame and swap the freejoint for the
         named pelvis DOF joints, so the reflex controller can drive it.  No-op on
         the planar ``myolegs22``.  Leave False for RL (keeps the freejoint base).
+    cache_dir : str | Path | None
+        Opt in to caching the *merged* MJCF, keyed on everything that changes it
+        (see :func:`_compose_cache_key`).  Also read from the ``MYOASSIST_CACHE_DIR``
+        environment variable, which this argument overrides.
+
+        This is worth doing because the model is composed far more often than once
+        per run: ``func_Walk_FitCost`` builds a ``myoLeg_reflex`` per CMA candidate,
+        so a CO run at the shipped ``--popsize 32 --maxiter 1000`` composes tens of
+        thousands of times, and an RL run composes once per ``SubprocVecEnv`` worker.
+
+        Measured on ``myolegs22`` (best of five): composing costs 0.65-0.83 s per
+        call against 0.04-0.07 s for a cache hit, which is parity with the static
+        model files MyoAssist 0.1 shipped (0.037-0.068 s for the same three
+        devices).  Almost all of the remaining cost is the ``from_xml_string`` the
+        env performs either way; the cache read itself is ~0.2 ms.
 
     Returns
     -------
@@ -238,6 +298,63 @@ def compose_env_model(
         The merged model as an MJCF XML string (env input via
         ``MjModel.from_xml_string``).
     """
+    cache_dir = cache_dir if cache_dir is not None else os.environ.get(CACHE_DIR_ENV) or None
+    if cache_dir is not None:
+        return _compose_env_model_cached(msk_key, device_key, terrain, export_path, planar_root, Path(cache_dir))
+    return _compose_env_model(msk_key, device_key, terrain, export_path, planar_root)
+
+
+def _compose_env_model_cached(
+    msk_key: str,
+    device_key: str,
+    terrain,
+    export_path,
+    planar_root: bool,
+    cache_dir: Path,
+) -> str:
+    """Serve the merged MJCF from *cache_dir*, composing only on a miss.
+
+    An entry is a single file: the merged model references mesh paths that are already
+    absolute and inside the installed ``assist_sim``, and no supported terrain type writes
+    asset files (flat / slope / random / sinusoidal all produce geometry in the spec), so
+    there is nothing else to keep alongside it.
+
+    Writes go to a per-writer ``.partial`` name published with ``os.replace``, because the
+    case this cache exists for is N processes starting at once against a cold cache -- an RL
+    launch, or several CO runs sharing a directory.  Last writer wins and they all produce
+    the same bytes.  An unreadable entry is treated as a miss and discarded, since a cache
+    should never be the reason a run fails.
+    """
+    key = _compose_cache_key(msk_key, device_key, terrain, planar_root)
+    entry = cache_dir / f"{key}.xml"
+
+    if entry.exists():
+        try:
+            xml_str = entry.read_text(encoding="utf-8")
+        except OSError:
+            xml_str = ""
+        if xml_str.lstrip().startswith("<mujoco"):
+            if export_path is not None:
+                Path(export_path).write_text(xml_str, encoding="utf-8")
+            return xml_str
+        entry.unlink(missing_ok=True)
+
+    xml_str = _compose_env_model(msk_key, device_key, terrain, export_path, planar_root)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    staged = cache_dir / f"{key}.{os.getpid()}.{uuid4().hex[:8]}.partial"
+    staged.write_text(xml_str, encoding="utf-8")
+    os.replace(staged, entry)
+    return xml_str
+
+
+def _compose_env_model(
+    msk_key: str,
+    device_key: str,
+    terrain: Optional[Union[str, Path, dict]] = None,
+    export_path: Optional[Union[str, Path]] = None,
+    planar_root: bool = False,
+) -> str:
+    """The uncached compose.  See :func:`compose_env_model` for the parameters."""
     # 1) compose human + device -> reload-safe, model-only XML (scene stripped).
     model_dir = Path(tempfile.mkdtemp(prefix="myoassist_compose_"))
     # The immediate rmdir below only clears empty scratch dirs; register a

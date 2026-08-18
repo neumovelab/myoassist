@@ -128,12 +128,27 @@ class EnvSpec:
             raise ValueError(f"terrain config file not found: {self.terrain!r}")
 
     # -- build ----------------------------------------------------------------
-    def compose(self, export_path: Optional[Union[str, Path]] = None) -> str:
+    def compose(
+        self,
+        export_path: Optional[Union[str, Path]] = None,
+        cache_dir: Optional[Union[str, Path]] = None,
+    ) -> str:
         """Compose this spec into a loadable MJCF string.
 
         When ``export_path`` is given, the merged model is also written there as
         a standalone, ``from_xml_path``-loadable file.
+
+        ``cache_dir`` opts in to the merged-model cache; leaving it unset still picks up
+        ``MYOASSIST_CACHE_DIR`` from the environment, which is the zero-plumbing way to
+        enable it for a whole RL or CO run.  See
+        :func:`myoassist_utils.compose.compose_env_model`.
         """
         from myoassist_utils.compose import compose_env_model
 
-        return compose_env_model(self.msk, self.device, terrain=self.terrain, export_path=export_path)
+        return compose_env_model(
+            self.msk,
+            self.device,
+            terrain=self.terrain,
+            export_path=export_path,
+            cache_dir=cache_dir,
+        )
