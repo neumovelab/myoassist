@@ -101,6 +101,11 @@ class ImitationCustomLearningCallback(BaseCustomLearningCallback):
 
 
 class MyoAssistLegImitation(MyoAssistLegBase):
+    # Standing-height excess above which the reference's pelvis height is corrected for the
+    # device's under-foot thickness. Measured: devices that add nothing under the foot sit within
+    # 1 cm of the reference, STRIDE_L2's sole pads put it 5.5 cm above it.
+    REFERENCE_HEIGHT_CORRECTION_THRESHOLD = 0.02
+
     # automatically inherit from MyoAssistLegBase
     # DEFAULT_OBS_KEYS = ['qpos',
     #                     'qvel',
@@ -303,13 +308,55 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         return (next_obs, reward, terminated, truncated, info)
 
     def setup_reference_data(self, data: dict | None):
-        self._reference_data = data
-        self._imitation_index = None
-        if data is not None:
-            # self._follow_reference_motion(False)
-            self._reference_data_length = self._reference_data["metadata"]["resampled_data_length"]
-        else:
+        if data is None:
             raise ValueError("Reference data is not set")
+        self._reference_data = self._height_corrected_reference(data)
+        self._imitation_index = None
+        self._reference_data_length = self._reference_data["metadata"]["resampled_data_length"]
+
+    def _height_corrected_reference(self, data: dict) -> dict:
+        """Shift the reference's pelvis height so the composed model's feet reach the ground.
+
+        The reference is motion capture of a bare musculoskeletal model, so its `q_pelvis_ty`
+        assumes the human foot is the ground-contacting surface. A device that puts material
+        under the foot breaks that assumption: `STRIDE_L2` adds sole pads and stands 5.5 cm
+        higher, above the reference's entire range (0.859-0.945 m), so every reset placed it
+        below its own soles and the imitation term then demanded a pelvis height its geometry
+        cannot reach. It never learned to walk.
+
+        The shift is read off the composed model rather than configured or tabulated, because it
+        is a geometric consequence of the device and nobody should have to look it up when adding
+        one. The model's keyframe is authored per composition with the feet on the ground, so the
+        gap between that standing height and the reference's own mean height is exactly the
+        thickness the device introduced.
+
+        Applied to a copy of the reference array, once, so every downstream reader -- the pose
+        `_follow_reference_motion` writes, the imitation reward, the out-of-trajectory check --
+        sees the corrected target without knowing about the shift.
+        """
+        series = data["series_data"]
+        if "q_pelvis_ty" not in series or self.sim.model.nkey == 0:
+            return data
+
+        ty_adr = self.sim.model.jnt_qposadr[self.sim.model.joint("pelvis_ty").id]
+        standing_height = float(self.sim.model.key_qpos[0][ty_adr])
+        reference_height = float(np.mean(series["q_pelvis_ty"]))
+        offset = standing_height - reference_height
+
+        # Devices that add nothing under the foot land within a centimetre of the reference, and
+        # the existing configs train correctly at that residual, so leave them exactly as they
+        # were rather than perturbing every run for a rounding difference.
+        if offset < self.REFERENCE_HEIGHT_CORRECTION_THRESHOLD:
+            return data
+
+        corrected = dict(data)
+        corrected["series_data"] = dict(series)
+        corrected["series_data"]["q_pelvis_ty"] = np.asarray(series["q_pelvis_ty"], dtype=float) + offset
+        print(
+            f"Reference pelvis height shifted by {offset:+.4f} m: this device stands at "
+            f"{standing_height:.3f} m against the reference's {reference_height:.3f} m"
+        )
+        return corrected
 
     def reset(self, **kwargs):
         rng = np.random.default_rng()  # TODO: refactoring random to use seed
