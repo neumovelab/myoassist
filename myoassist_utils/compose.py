@@ -64,19 +64,32 @@ def _terrain_fingerprint(terrain) -> str:
 def _compose_cache_key(msk_key: str, device_key: str, terrain, planar_root: bool) -> str:
     """Hash everything that changes the merged model.
 
-    Folds in assist_sim's own source token, so editing the combine pipeline invalidates these
-    entries too -- otherwise this cache would serve a model built by an older assist_sim while
-    assist_sim's own cache correctly rebuilt.  This module is hashed for the same reason: the
-    terrain merge, the render defaults and the seating all live here and all change the output.
+    Three source tokens, not just the arguments, because every one of these repositories can
+    change the output while the arguments stay identical:
+
+    - **assist_sim**, which builds the human + device half.  Without this, the cache would
+      serve a model from an older combine pipeline while assist_sim's own cache correctly
+      rebuilt.
+    - **myoassist_terrains**, which builds the ground.  Editing the terrain package changes
+      the geometry for an unchanged terrain *config*, so the config fingerprint alone is not
+      enough.
+    - **this module**, where the terrain merge, the render defaults and the seating live.
+
+    ``_package_token`` is version + newest source mtime, so an editable checkout invalidates
+    on every edit rather than only on a release bump.
     """
-    from assist_sim.loading import _assist_sim_token
+    from assist_sim.loading import _package_token
+
+    import assist_sim
+    import myoassist_terrains
 
     parts = [
         msk_key,
         device_key,
         _terrain_fingerprint(terrain),
         f"planar={bool(planar_root)}",
-        _assist_sim_token(),
+        f"assist_sim@{_package_token(assist_sim)}",
+        f"terrains@{_package_token(myoassist_terrains)}",
         f"compose@{Path(__file__).resolve().stat().st_mtime_ns}",
     ]
     return hashlib.sha1("|".join(parts).encode()).hexdigest()
