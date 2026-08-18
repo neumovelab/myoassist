@@ -199,10 +199,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self.init_qpos[:] = self.sim.model.key_qpos[0]
         self.init_qvel[:] = self.sim.model.key_qvel[0]
 
-        # find geometries with ID == 1 which indicates the skins
-        geom_1_indices = np.where(self.sim.model.geom_group == 1)
-        # Change the alpha value to make it transparent
-        self.sim.model.geom_rgba[geom_1_indices, 3] = 0
+        # Hide the geom groups the config names, and nothing else. Rendering only -- alpha does
+        # not enter contact, mass or constraint computation.
+        for group in env_params.hidden_geom_groups:
+            self.sim.model.geom_rgba[np.where(self.sim.model.geom_group == group), 3] = 0
 
         # Terrain is baked into the composed model via
         # myoassist_utils.compose.compose_env_model(terrain=...); there is no

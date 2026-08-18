@@ -59,6 +59,15 @@ class TrainSessionConfigBase:
         lumbar_joint_fixed_angle: float = 0.0
         lumbar_joint_damping_value: float = 0.05
 
+        # Geom groups to hide from rendering. Which group holds clutter and which holds hardware
+        # is an authoring convention of whoever built the model, not something the environment can
+        # derive, so it belongs here rather than in code. This replaces an unconditional "hide
+        # group 1" whose comment said it removed the musculoskeletal skin; myolegs22 and myolegs26
+        # put no geom in group 1, so its only remaining effect was to hide STRIDE_L2's entire
+        # six-bar linkage -- 14 geoms -- leaving just the shoe visible. Rendering only: alpha does
+        # not enter contact, mass or constraint computation.
+        hidden_geom_groups: list[int] = field(default_factory=list)
+
         observation_joint_pos_keys: list[str] = field(default_factory=list)
         observation_joint_vel_keys: list[str] = field(default_factory=list)
         observation_joint_sensor_keys: list[str] = field(default_factory=list)
