@@ -43,6 +43,15 @@ def _parse_args():
         "speed-tracking composite.",
     )
     p.add_argument(
+        "--steps",
+        type=int,
+        default=None,
+        help="Override num_timesteps for every rollout. The configs ship 200 steps (~6.7 s, "
+        "about 5 strides), which is too few strides to put an error bar on a per-phase "
+        "quantity such as when in the cycle the exo peaks. Raising it costs only rollout "
+        "time and needs no config edit, so it also works on already-trained sessions.",
+    )
+    p.add_argument(
         "--cmap",
         choices=("rainbow", "teal", "bluered"),
         default="rainbow",
@@ -90,6 +99,11 @@ def main():
         base.setdefault("realtime_plotting_info", [])
         config.evaluate_param_list = [base]
         print("  --varying: SINUSOIDAL 0.8-1.4 m/s (period 20 s, 1200 steps)")
+
+    if args.steps is not None:
+        # Applied after --varying so an explicit --steps wins over that preset's 1200.
+        config.evaluate_param_list = [dict(p, num_timesteps=args.steps) for p in config.evaluate_param_list]
+        print(f"  --steps: {args.steps} control steps per rollout")
 
     print("=" * 60)
     print("RL Policy Evaluation")

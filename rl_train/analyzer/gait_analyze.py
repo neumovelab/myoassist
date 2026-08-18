@@ -108,7 +108,44 @@ class GaitAnalyzer:
             result_strike_to_strike.append(
                 (result_strike_to_toe_off[idx][0], result_strike_to_toe_off[idx][1], result_strike_to_toe_off[idx + 1][0])
             )
-        return result_strike_to_strike[1:]
+        result_strike_to_strike = result_strike_to_strike[1:]
+        fallback = self._hip_flexion_segments(primary_char)
+        # Trust the sensors only when they agree with the hip-flexion stride count. Both observed
+        # failure modes are count errors: no segments at all when a sole carries the load, and
+        # roughly double when device and human geoms both contact -- OpenExo_L1 reports 12 strikes
+        # for 6 strides, which cuts every cycle at the wrong phase and puts toe-off at 24 %.
+        if result_strike_to_strike and (not fallback or abs(len(result_strike_to_strike) - len(fallback)) <= 1):
+            return result_strike_to_strike
+        return fallback
+
+    def _hip_flexion_segments(self, side_char: str):
+        """Gait segments from peak hip flexion, when the foot sensors report nothing.
+
+        The `*_foot` / `*_toes` touch sensors sit in small boxes on calcn and toes. A device that
+        adds a sole under the foot lifts those boxes clear of the ground contact -- measured at
+        2.6-2.8 cm outside a 3 cm half-height for DephyExoBoot_L1 and Humotech_L1 -- so the
+        sensors read zero for the whole rollout and this returns nothing at all, which silently
+        skips the composite figure for those devices.
+
+        Peak hip flexion falls in terminal swing, a fixed fraction of a cycle before foot strike.
+        Checked against sensor-derived strikes on the devices whose sensors do work, it leads them
+        by 6.1-9.2 % of the cycle with a standard deviation of 0.0-1.3 %, so a 7 % shift recovers
+        strike to within a few percent. Toe-off is placed at the literature 60 % of the cycle
+        rather than measured, since without contact there is nothing to measure it from.
+        """
+        from scipy.signal import find_peaks
+
+        hip = np.array([v[0] for v in self.gait_data.series_data["joint_data"][f"hip_flexion_{side_char}"]["qpos"]])
+        peaks, _ = find_peaks(hip, distance=15, prominence=0.15)
+        if len(peaks) < 3:
+            return []
+        stride = float(np.mean(np.diff(peaks)))
+        strikes = np.round(peaks + 0.07 * stride).astype(int)
+        strikes = strikes[(strikes >= 0) & (strikes < len(hip))]
+        segments = []
+        for start, end in zip(strikes[:-1], strikes[1:]):
+            segments.append((int(start), int(start + round(0.60 * (end - start))), int(end)))
+        return segments
 
     def get_toe_off_average(self, *, is_right_foot_based: bool):
         gait_segment_index = self.get_gait_segment_index(is_right_foot_based=is_right_foot_based)
