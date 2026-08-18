@@ -1,0 +1,8 @@
+# setup.py reads requirements.txt at build time to fill install_requires, so the sdist has to
+# contain it. Without this, `python -m build` produces the sdist and then fails building the wheel
+# from it with FileNotFoundError: requirements.txt.
+include requirements.txt
+include requirements-dev.txt
+include pyproject.toml
+include LICENSE
+include README.md

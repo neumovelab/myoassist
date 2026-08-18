@@ -156,5 +156,10 @@ def main() -> int:
     return 0 if ok else 1
 
 
+def test_shared_side_exo_net_is_mirror_symmetric():
+    """pytest entry point. `main` prints the gaps and returns a status, which the CLI form uses."""
+    assert main() == 0
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
