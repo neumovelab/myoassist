@@ -18,6 +18,13 @@ class TrainSessionConfigBase:
         class RewardWeights:
             forward_reward: float = 0.01
             muscle_activation_penalty: float = 0.1
+            # Price of device effort, in the same units as muscle_activation_penalty: both terms
+            # are dt times a mean dimensionless effort. Because the muscle mean is taken over 22
+            # actuators and the device mean over 2, the per-actuator price is
+            # muscle_activation_penalty/22 against exo_activation_penalty/2 -- so at the shipped
+            # muscle weight of 10, an exo weight of 0.1 makes one device actuator's effort about
+            # ten times cheaper than one muscle's. Default 0 keeps existing configs unchanged.
+            exo_activation_penalty: float = 0.0
             muscle_activation_diff_penalty: float = 0.1
 
             # for reward per step

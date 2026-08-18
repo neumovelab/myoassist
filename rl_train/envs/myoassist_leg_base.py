@@ -74,6 +74,43 @@ class MyoAssistLegBase(env_base.MujocoEnv):
 
         self._prev_muscle_activations_for_reward = None
 
+        # Device (non-muscle) actuators, and the scale that turns each one's ctrl into a
+        # dimensionless effort in [0, 1]. Identified by dynamics type rather than by index so
+        # this holds for any composed model, and normalised per actuator because `ctrlrange`
+        # is not comparable across devices: the ankle exos take [-1, 0], Hippo takes [-1, 1]
+        # and STRIDE takes [0, 400] N. Penalising raw |ctrl| would therefore price STRIDE's
+        # effort a few hundred times higher than Tutorial's and make one weight meaningless
+        # across the device sweep.
+        import mujoco
+
+        device_ids = [i for i in range(self.sim.model.nu) if self.sim.model.actuator_dyntype[i] != mujoco.mjtDyn.mjDYN_MUSCLE]
+        self._device_actuator_ids = np.asarray(device_ids, dtype=int)
+
+        # Which entries of `data.act` belong to muscles. Not every device leaves `act` to the
+        # muscles alone: UTAnkleExo_L2's two actuators declare `filter` dynamics, so na is 24 for
+        # a 22-muscle model and the last two entries are the device's filter states. Slicing them
+        # out keeps the muscle activation penalty from also charging for device effort, which the
+        # device term already prices.
+        self._muscle_act_indices = np.asarray(
+            [
+                a
+                for i in range(self.sim.model.nu)
+                if self.sim.model.actuator_dyntype[i] == mujoco.mjtDyn.mjDYN_MUSCLE
+                for a in range(
+                    self.sim.model.actuator_actadr[i],
+                    self.sim.model.actuator_actadr[i] + self.sim.model.actuator_actnum[i],
+                )
+                if self.sim.model.actuator_actadr[i] >= 0
+            ],
+            dtype=int,
+        )
+        if len(device_ids):
+            ctrlrange = self.sim.model.actuator_ctrlrange[self._device_actuator_ids]
+            self._device_ctrl_scale = np.max(np.abs(ctrlrange), axis=1)
+            assert np.all(self._device_ctrl_scale > 0), (
+                f"device actuator with a zero ctrlrange cannot be normalised: {ctrlrange.tolist()}"
+            )
+
         self._enable_lumbar_joint = env_params.enable_lumbar_joint
         self._lumbar_joint_fixed_angle = env_params.lumbar_joint_fixed_angle
         self._lumbar_joint_damping_value = env_params.lumbar_joint_damping_value
@@ -196,7 +233,15 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         obs_dict["qvel"] = np.array(qvel)  # 7 + 2 elements
         if sim.model.na > 0:
             # BaseV0 Add the key like this: obs_keys.append("act")
-            obs_dict["act"] = sim.data.act[:].copy()  # 22 elements
+            # Muscle activations only, so the observation layout does not depend on the device.
+            # A device actuator with its own dynamics contributes to `data.act` -- UTAnkleExo_L2
+            # makes na 24 on a 22-muscle model -- which would lengthen this block to 24 and shift
+            # every later index. Every config addresses observations by absolute index, so that
+            # silently repoints the sub-policies: the exo net asking for sensors at [39..43) would
+            # read two device activation states and only two of the four foot contacts. The
+            # device's internal filter state is therefore not observed, which is the same choice
+            # already made for every zero-dynamics device.
+            obs_dict["act"] = sim.data.act[self._muscle_act_indices].copy()
         obs_dict["sensor"] = []
         for key in self.observation_joint_sensor_keys:
             sensor_data = sim.data.sensor(f"{key}").data.copy()
@@ -246,7 +291,24 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         )
 
         muscle_activations = self._get_muscle_activation()
-        muscle_activation_penalty = -self.dt * np.mean(muscle_activations)
+        # Squared, not linear. A linear cost prices a unit of activation the same wherever it
+        # occurs, so replacing 0.1 of activation in early stance is worth exactly as much as
+        # replacing 0.1 at push-off; squaring makes the marginal cost 2a, so reducing an
+        # already-small activation buys almost nothing. Measured on the 30M runs, the
+        # plantarflexors sit at ~0.085 per muscle in early stance against ~0.32 at push-off, so
+        # squaring values a saving at push-off about 3.7x more highly. That matters here because
+        # the exo's second burst lands in early stance, where a linear cost happily pays for it.
+        # Squared effort is also the usual form for a metabolic-like cost, since metabolic rate
+        # is supralinear in activation, and it matches this file's own per-step term
+        # (`_activation_square_sum`), which has always used squares.
+        muscle_activation_penalty = -self.dt * np.mean(np.square(muscle_activations))
+
+        # Same form as the muscle term -- dt times the mean effort, negated -- so the two
+        # weights are directly comparable. Without it the device's torque is free while muscle
+        # effort is not, and the policy has no reason to stop adding assistance wherever it
+        # helps even marginally; the measured signature of that is exo torque in early stance,
+        # outside any window where a plantarflexion assist is physiological.
+        exo_activation_penalty = -self.dt * self._get_device_effort()
 
         joint_constraint_force_penalty = -self.dt * self._get_max_joint_constraint_force() / (model_weight)
 
@@ -271,6 +333,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         base_reward = {
             "forward_reward": forward_reward,
             "muscle_activation_penalty": muscle_activation_penalty,
+            "exo_activation_penalty": exo_activation_penalty,
             "muscle_activation_diff_penalty": muscle_activation_diff_penalty,
             "foot_force_penalty": foot_force_penalty,
             "joint_constraint_force_penalty": joint_constraint_force_penalty,
@@ -401,12 +464,28 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             return True
         return False
 
+    def _get_device_effort(self):
+        """Mean squared device-actuator ctrl, each scaled by its own ctrlrange, in [0, 1].
+
+        Squared to match the muscle activation term, so the two reward weights are comparable.
+        Zero for a model with no device actuators, so the term is inert for muscle-only runs
+        whatever weight a config happens to carry.
+        """
+        if not len(self._device_actuator_ids):
+            return 0.0
+        ctrl = self.sim.data.ctrl[self._device_actuator_ids]
+        return float(np.mean(np.square(ctrl / self._device_ctrl_scale)))
+
     def _get_muscle_activation(self):
+        # Muscle entries only. `data.act` also holds the activation state of any device actuator
+        # that declares its own dynamics -- UTAnkleExo_L2 makes na 24 on a 22-muscle model -- and
+        # including those would charge device effort to the muscle penalty as well as to the
+        # device one.
         if not self._enable_lumbar_joint:
-            return self.sim.data.act[:].copy()
+            return self.sim.data.act[self._muscle_act_indices].copy()
         muscle_activations_with_lumbar = np.concatenate(
             (
-                self.sim.data.act[:].copy(),
+                self.sim.data.act[self._muscle_act_indices].copy(),
                 np.array([self.sim.data.actuator("lumbar_extension_motor").ctrl[0].copy()]).reshape(
                     1,
                 ),
