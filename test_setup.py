@@ -134,6 +134,56 @@ class SetupTester:
         except Exception as e:
             raise RuntimeError(f"Composed model pipeline failed: {e}")
 
+    def test_terrain_seating(self):
+        """Test that a composed model starts resting on its terrain, for a tiled
+        terrain as well as a uniform one.
+
+        Regression guard. Seating used to collision-probe with a 50 m contact
+        margin, where MuJoCo's mesh-versus-box narrowphase stops reporting a
+        physical separation, so every tiled terrain came out silently wrong: buried
+        1.6-2.6 m or 24 m in the air. Only plane-based terrain escaped it. Seating
+        now asks myoassist_terrains for the surface height instead, so this checks
+        both terrain families settle rather than get ejected."""
+        try:
+            import numpy as np
+            import mujoco
+
+            from myoassist_utils.compose import compose_env_model
+
+            terrains = {
+                "uniform plane": {"terrain": "flat"},
+                "uniform heightfield": {"terrain": "random", "amplitude": 0.1},
+                "tiled grid": {
+                    "terrain_name": "seating_check",
+                    "grid": {"rows": 1, "cols": 1, "tile_size": [8.0, 8.0]},
+                    "border": {"width": 0.0},
+                    "tiles": [{"row": 0, "col": 0, "type": "stairs", "params": {}}],
+                },
+            }
+            for label, terrain in terrains.items():
+                model = mujoco.MjModel.from_xml_string(compose_env_model("myolegs22", "DephyExoBoot_L1", terrain=terrain))
+                data = mujoco.MjData(model)
+                if model.nkey > 0:
+                    mujoco.mj_resetDataKeyframe(model, data, 0)
+                mujoco.mj_forward(model, data)
+                start_z = float(data.xpos[1][2])
+
+                # 20 ms is long enough for a misseated model to be pushed out, and
+                # short enough that a correctly seated one has barely moved.
+                for _ in range(max(1, int(0.020 / model.opt.timestep))):
+                    mujoco.mj_step(model, data)
+                moved = abs(float(data.xpos[1][2]) - start_z)
+
+                assert moved < 0.05, (
+                    f"{label}: root moved {moved:.3f} m in the first 20 ms, so the model "
+                    f"was not seated on the terrain (started at z={start_z:.3f})"
+                )
+                assert float(np.abs(data.qvel).max()) < 5.0, (
+                    f"{label}: velocity spike at reset, indicating the model started interpenetrating the terrain"
+                )
+        except Exception as e:
+            raise RuntimeError(f"Terrain seating check failed: {e}")
+
     def test_env_spec(self):
         """Test the shared EnvSpec front-door: build from a dict, validate against
         the assist_sim registry, and compose (flat default + an inline uniform slope
@@ -398,6 +448,7 @@ class SetupTester:
             (self.test_reflex_imports, "Reflex-Specific Imports"),
             (self.test_rl_imports, "RL-Specific Imports"),
             (self.test_data_files, "Data Files Accessibility"),
+            (self.test_terrain_seating, "Terrain Seating"),
             (self.test_config_files, "Configuration Files"),
             (self.test_gpu_availability, "GPU Availability"),
         ]

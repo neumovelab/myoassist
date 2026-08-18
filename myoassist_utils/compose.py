@@ -31,10 +31,12 @@ from typing import Optional, Union
 from uuid import uuid4
 
 import mujoco as mj
+import numpy as np
 
 from assist_sim import load_combined
 from myoassist_terrains import build_terrain
 from myoassist_terrains.config import config_from_dict, load_config
+from myoassist_terrains.surface import TerrainSurface
 
 # Seat the lowest collidable geom this far *below* the terrain surface so the
 # model opens in light contact (MuJoCo needs penetration, not just touching, to
@@ -152,41 +154,111 @@ def _seat_model(root: ET.Element, dz: float) -> None:
         body.set("pos", " ".join(f"{v:.6f}" for v in pos))
 
 
-def _seat_dz_by_collision(
+# How far below the model's lowest point the terrain is probed for a footprint,
+# so a foot resting on a stepping stone or an obstacle is seated on top of it
+# rather than inside it. Roughly a foot half-length.
+_FOOTPRINT_RADIUS = 0.12
+# Only geometry within this much of the model's lowest point can be what rests on
+# the ground; probing the whole body wastes time and lets a hand or a backpack
+# decide the seating.
+_SEATING_BAND = 0.40
+
+
+# At most this many contact candidates per geom, and only those within
+# _CONTACT_PATCH of that geom's own lowest point. A sole rests on its contact
+# patch, not on its whole mesh, and querying every vertex of every mesh made
+# seating cost seconds instead of milliseconds.
+_MAX_POINTS_PER_GEOM = 64
+_CONTACT_PATCH = 0.02
+# How many of the deepest candidates get the (more expensive) footprint query.
+_REFINE_COUNT = 24
+
+
+def _model_ground_candidates(model: mj.MjModel, data: mj.MjData, terrain_ids: set) -> np.ndarray:
+    """World points on the model that could touch the ground, as (N, 3).
+
+    Mesh geoms contribute the vertices in their own lowest `_CONTACT_PATCH`, so a
+    tilted or contoured sole is measured from its real surface rather than a
+    bounding box, without paying for the whole mesh. Primitives contribute their
+    lowest point. Only the lowest `_SEATING_BAND` of the model is considered, so a
+    hand or a backpack cannot decide the seating.
+    """
+    points: list[np.ndarray] = []
+    for i in range(model.ngeom):
+        if i in terrain_ids:
+            continue
+        if model.geom_type[i] == mj.mjtGeom.mjGEOM_MESH:
+            mesh = model.geom_dataid[i]
+            first, count = model.mesh_vertadr[mesh], model.mesh_vertnum[mesh]
+            local = model.mesh_vert[first : first + count]
+            world = data.geom_xpos[i] + local @ data.geom_xmat[i].reshape(3, 3).T
+            patch = world[world[:, 2] <= world[:, 2].min() + _CONTACT_PATCH]
+            if len(patch) > _MAX_POINTS_PER_GEOM:
+                patch = patch[np.argsort(patch[:, 2])[:_MAX_POINTS_PER_GEOM]]
+            points.append(patch)
+        else:
+            low = data.geom_xpos[i].copy()
+            low[2] -= float(np.max(model.geom_size[i]))
+            points.append(low.reshape(1, 3))
+    if not points:
+        return np.empty((0, 3))
+    stacked = np.vstack(points)
+    return stacked[stacked[:, 2] <= stacked[:, 2].min() + _SEATING_BAND]
+
+
+def _seat_dz_by_terrain(
     merged_xml: str,
+    terrain_config,
     terrain_geom_names: set,
     penetration: float = _CONTACT_SEAT_DEPTH,
 ) -> float:
     """Vertical shift (m) that seats the model on the terrain in light contact.
 
-    Compiles the merged (unseated) model, gives the terrain geoms a large contact
-    margin, and reads the smallest signed distance between any terrain geom and
-    any model geom at the opening pose (the "stand" keyframe when present).  This
-    uses MuJoCo's real collision geometry, so it is exact for mesh device geoms
-    (unlike an axis-aligned-bounding-box estimate) and it accounts for the
-    terrain surface height directly under the model.
+    Asks ``myoassist_terrains`` how high the ground is under each candidate contact
+    point and takes the tightest clearance, so after shifting the closest point
+    sits ``penetration`` below the surface.
 
-    Returns ``dz`` such that after shifting, the closest model geom sits
-    ``penetration`` below the surface.  Returns ``0.0`` if no terrain-model pair
-    comes within margin (model too far from the terrain to measure).
+    Two passes. A cheap point query over every candidate finds the region that
+    matters, then the deepest ``_REFINE_COUNT`` are re-measured with a footprint
+    query -- a foot has extent, so the point between two stepping stones is not
+    where it rests. Doing the footprint query for every candidate is 20x the cost
+    for the same answer.
+
+    This replaces a collision probe that gave every terrain geom a 50 m contact
+    margin and read ``min(contact.dist)``. At that margin MuJoCo's mesh-versus-box
+    narrowphase stops returning a physical separation -- the same query would
+    report a tibia 1.3 m clear while the thorax read 0.4 m penetrated -- so the
+    minimum landed on the wrong pair. Composed models came out buried 1.6-2.6 m,
+    or 24 m in the air, silently. Only plane-based terrain escaped it, because
+    plane-versus-mesh distance stays exact at any margin.
+
+    The terrain package knows its own surface analytically, so no margin, no
+    narrowphase and no MuJoCo version sensitivity are involved.
     """
-    m = mj.MjModel.from_xml_string(merged_xml)
-    d = mj.MjData(m)
-    terr = [i for i in range(m.ngeom) if (m.geom(i).name or "") in terrain_geom_names]
-    if not terr:
+    model = mj.MjModel.from_xml_string(merged_xml)
+    data = mj.MjData(model)
+    terrain_ids = {i for i in range(model.ngeom) if (model.geom(i).name or "") in terrain_geom_names}
+    if not terrain_ids:
         return 0.0
-    m.geom_margin[terr] = 50.0  # detect near-contacts well outside touching range
-    if m.nkey > 0:
-        mj.mj_resetDataKeyframe(m, d, 0)  # keyframe 0 == "stand"
+    if model.nkey > 0:
+        mj.mj_resetDataKeyframe(model, data, 0)  # keyframe 0 == "stand"
     else:
-        d.qpos[:] = m.qpos0
-    mj.mj_forward(m, d)
-    terrset = set(terr)
-    gaps = [d.contact[c].dist for c in range(d.ncon) if (d.contact[c].geom1 in terrset) ^ (d.contact[c].geom2 in terrset)]
-    if not gaps:
+        data.qpos[:] = model.qpos0
+    mj.mj_forward(model, data)
+
+    candidates = _model_ground_candidates(model, data, terrain_ids)
+    if candidates.size == 0:
         return 0.0
-    # new_gap = min(gaps) + dz ; want new_gap == -penetration.
-    return -penetration - min(gaps)
+
+    surface = TerrainSurface(terrain_config)
+    point_clearance = np.array([float(pz) - surface.height_at(float(px), float(py)) for px, py, pz in candidates])
+    deepest = np.argsort(point_clearance)[:_REFINE_COUNT]
+    clearance = min(
+        float(candidates[i][2]) - surface.max_height_in(float(candidates[i][0]), float(candidates[i][1]), _FOOTPRINT_RADIUS)
+        for i in deepest
+    )
+    # new_clearance = clearance + dz ; want new_clearance == -penetration.
+    return -penetration - clearance
 
 
 def _inject_render_defaults(root: ET.Element) -> None:
@@ -327,10 +399,16 @@ def _compose_env_model_cached(
 ) -> str:
     """Serve the merged MJCF from *cache_dir*, composing only on a miss.
 
-    An entry is a single file: the merged model references mesh paths that are already
-    absolute and inside the installed ``assist_sim``, and no supported terrain type writes
-    asset files (flat / slope / random / sinusoidal all produce geometry in the spec), so
-    there is nothing else to keep alongside it.
+    An entry is a single file plus, when the terrain writes assets, shared files in
+    ``cache_dir/terrain_assets``. Model mesh paths are already absolute inside the
+    installed ``assist_sim``. Uniform terrains (flat / slope / random / sinusoidal)
+    bake their geometry into the spec and write nothing; a *tiled* terrain with a
+    ``rough`` tile writes a heightmap PNG, and that file has to outlive the process
+    that composed it or a later cache hit returns a model pointing at a deleted temp
+    dir -- which failed hard with ``Error opening file``. So the assets live beside
+    the cache, not in a per-process temp dir. Their names are content-addressed by
+    the terrain package, so distinct terrains never collide there and identical
+    heightmaps are stored once.
 
     Writes go to a per-writer ``.partial`` name published with ``os.replace``, because the
     case this cache exists for is N processes starting at once against a cold cache -- an RL
@@ -352,7 +430,9 @@ def _compose_env_model_cached(
             return xml_str
         entry.unlink(missing_ok=True)
 
-    xml_str = _compose_env_model(msk_key, device_key, terrain, export_path, planar_root)
+    xml_str = _compose_env_model(
+        msk_key, device_key, terrain, export_path, planar_root, assets_dir=cache_dir / "terrain_assets"
+    )
     cache_dir.mkdir(parents=True, exist_ok=True)
     staged = cache_dir / f"{key}.{os.getpid()}.{uuid4().hex[:8]}.partial"
     staged.write_text(xml_str, encoding="utf-8")
@@ -366,8 +446,14 @@ def _compose_env_model(
     terrain: Optional[Union[str, Path, dict]] = None,
     export_path: Optional[Union[str, Path]] = None,
     planar_root: bool = False,
+    assets_dir: Optional[Path] = None,
 ) -> str:
-    """The uncached compose.  See :func:`compose_env_model` for the parameters."""
+    """The uncached compose.  See :func:`compose_env_model` for the parameters.
+
+    ``assets_dir`` overrides where terrain assets are written and, when given,
+    marks that directory as persistent (no exit-time cleanup). The cache passes
+    its own so entries stay loadable in later processes.
+    """
     # 1) compose human + device -> reload-safe, model-only XML (scene stripped).
     model_dir = Path(tempfile.mkdtemp(prefix="myoassist_compose_"))
     # The immediate rmdir below only clears empty scratch dirs; register a
@@ -391,7 +477,12 @@ def _compose_env_model(
     # Terrain assets (hfield PNGs / textures) must outlive this call.  When
     # exporting, keep them beside the export; otherwise use a persistent temp
     # dir (the flat default writes no assets, so this is a no-op for RL runs).
-    if export_path is not None:
+    if assets_dir is not None:
+        # Caller-owned and persistent (the compose cache): the files have to
+        # survive this process for a later cache hit to load.
+        assets_dir = Path(assets_dir)
+        assets_dir.mkdir(parents=True, exist_ok=True)
+    elif export_path is not None:
         export_path = Path(export_path)
         assets_dir = export_path.resolve().parent / f"{export_path.stem}_assets"
         assets_dir.mkdir(parents=True, exist_ok=True)
@@ -413,7 +504,7 @@ def _compose_env_model(
 
     # 4) seat the model so its feet rest on the terrain surface (light contact),
     #    measured from the real collision geometry at the opening pose.
-    dz = _seat_dz_by_collision(ET.tostring(model_root, encoding="unicode"), terrain_geom_names)
+    dz = _seat_dz_by_terrain(ET.tostring(model_root, encoding="unicode"), cfg, terrain_geom_names)
     _seat_model(model_root, dz)
 
     # 5) serialize.  Model meshes are now absolute install paths, so the temp
