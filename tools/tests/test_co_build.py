@@ -14,10 +14,10 @@ exercises the bilateral + prosthetic K-Foot layout; ``+stiffness`` and
 ``len(params) == layout.total`` on construction, so each case also checks the
 param contract for its mode.
 
-Known failure: 80-muscle 3D (``myolegs``) composes ~7 cm too high, so no foot
-contacts the ground (all GRF 0) and the initial pose is invalid. Marked
-``xfail(strict=True)`` and tracked as a compose-seating fix for the gait2392
-foot; remove the marker when that is fixed (a strict xpass will flag it).
+The 80-muscle ``myolegs`` 3D case also guards the runtime seat
+(``adjust_model_height``): the reflex env is always planar-root, so its vertical DOF
+is ``pelvis_ty``, not ``qpos[2]`` (the freejoint z on the RL build). Seating the wrong
+axis in 3D used to leave the 80-muscle feet ~7 cm off the ground with all foot GRF 0.
 """
 
 from __future__ import annotations
@@ -61,14 +61,7 @@ CASES = [
         dict(mode="2D", msk="myolegs22", device="Anatomics_L1", leg="22", n=77, ankle_range=[-0.1745, 0.2618]),
         id="ROM-Anatomics",
     ),
-    pytest.param(
-        dict(mode="3D", msk="myolegs", device="Tutorial_L1", leg="80", n=97),
-        id="80-3D",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="80-muscle 3D composes ~7cm high; feet off ground -> pose invalid. Compose seating fix tracked separately.",
-        ),
-    ),
+    pytest.param(dict(mode="3D", msk="myolegs", device="Tutorial_L1", leg="80", n=97), id="80-3D"),
 ]
 
 
