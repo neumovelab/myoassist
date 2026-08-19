@@ -1056,11 +1056,12 @@ class myoLeg_reflex(object):
             )
         temp_sens_height = min(site_zs)
 
-        diff_height = self.height_offset - temp_sens_height  # Small offset -0.0105
-        if self.mode == "2D":
-            self.env.sim.data.joint("pelvis_ty").qpos[0] = self.env.sim.data.joint("pelvis_ty").qpos[0] + diff_height
-        else:
-            self.env.sim.data.qpos[2] = self.env.sim.data.qpos[2] + diff_height
+        diff_height = self.height_offset - temp_sens_height
+        # The reflex env is always composed with a planar root (named pelvis DOFs), so the
+        # vertical DOF is pelvis_ty in both 2D and 3D. qpos[2] is the freejoint z only on the
+        # RL build; writing it here shifted the 3D CO model sideways instead of seating it,
+        # which left the 80-muscle myolegs feet ~7 cm off the ground (all foot GRF zero).
+        self.env.sim.data.joint("pelvis_ty").qpos[0] += diff_height
 
         self.env.sim.forward()
 

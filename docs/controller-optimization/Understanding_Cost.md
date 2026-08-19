@@ -1,10 +1,18 @@
 # Understanding Cost Functions
 
-The heart of any optimization is its objective function—the "cost" that the optimizer tries to minimize. In this framework, there is a multi-stage cost function progression designed to guide the CMA-ES optimizer from a random set of parameters to a controller that produces stable and realistic locomotion.
+The objective function of an optimization is its "cost". The optimizer tries to minimize it. This framework uses a multi-stage cost. The stages guide the CMA-ES optimizer from random parameters to a controller that walks in a stable and realistic way.
 
 ## A Brief Introduction to CMA-ES
 
 The **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)** is a stochastic optimization algorithm well-suited for complex, non-linear problems where the gradient is unavailable. At its core, CMA-ES works by iteratively sampling a "population" of candidate solutions (in our case, sets of controller parameters) from a multivariate normal distribution.
+
+<div style="text-align: center; display: flex; justify-content: center; gap: 20px;">
+  <div style="flex: 1; max-width: 800px;">
+    <img src="https://myoassist.neumove.org/assets/cmaes.png" alt="CMAES Overview" style="width: 100%; height: 400px; object-fit: contain;">
+    <br>
+    <i>CMA-ES cost landscape example</i>
+  </div>
+</div>
 
 For each generation, it performs three key steps:
 1.  **Sampling**: It generates a new population of solutions from a Gaussian distribution defined by its mean (the current best guess), its step-size (sigma), and its covariance matrix (the shape and orientation of the distribution).
@@ -114,3 +122,4 @@ Similar to the kinematics cost, this measures the difference between the model's
 
 Computed at detected left/right stance events using Euclidean differences of knee and ankle positions relative to the pelvis, averaged over the requested number of strides.
 
+An amputee gait is asymmetric by nature, because the prosthetic leg does not move like the intact leg. The symmetry cost and the Stage 2 symmetry constraint still apply, so read their values with that in mind. Raise `--tgt_sym_th` if the constraint is too strict for an amputee run. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md).

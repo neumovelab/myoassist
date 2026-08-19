@@ -22,14 +22,24 @@ This example overrides two configuration parameters via the command line:
 - Sets the total training timesteps to 1000
 - Sets the number of parallel training environments to 16
 
+### Environment Variables
+
+Some settings come from environment variables, not the JSON config:
+
+- `MYOASSIST_CACHE_DIR` - Directory for the model cache. Turn it on before full training (see [Caching](https://myoassist.neumove.org/modeling/devices/exporting-and-loading/#caching)).
+- `MYOASSIST_NUM_THREADS` - Caps the threads each worker uses. The default is 8.
+
 ## Configuration Structure
 
 ### Default Configuration Files
 
 Configuration files are located in `rl_train/train/train_configs/`:
 
-- `imitation_tutorial_22_separated_net_partial_obs.json` - Imitation learning using the "TUTORIAL" model, which provides only ankle angle and velocity to the exo
-- `imitation_tutorial_22_separated_net_full_obs.json` - Full Exo observation imitation
+- `imitation_tutorial_22_separated_net_partial_obs.json` - Imitation learning with the `myolegs22` MSK and the Tutorial device. Partial observation gives the exo only ankle angle and velocity.
+- `imitation_tutorial_22_separated_net_full_obs.json` - Same setup with full exo observation.
+- `imitation_tutorial_22_separated_net_exo_off*.json` - Same setup with the exo held at a constant command (exo off).
+- `test.json` - Minimal config for the quick training test (see [Reinforcement Learning](index.md#2-quick-training-test)).
+- `device_sweep/` - Eight configs, one per device, for the per-device sweep.
 
 ### Configuration Hierarchy
 
@@ -49,7 +59,7 @@ TrainSessionConfigBase
 - [General Parameters](#general-parameters)
 - [Logger Parameters](#logger-parameters)
 - [Environment Parameters](#environment-parameters)
-- [PPO Parameters](#PPO-Parameters)
+- [PPO Parameters](#ppo-parameters)
 - [Policy Parameters](#policy-parameters)
 - [Evaluate Parameters](#evaluate-parameters)
 
@@ -65,7 +75,8 @@ TrainSessionConfigBase
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `logging_frequency` | Logging frequency | 8 |
+| `logging_frequency` | Rollouts between a checkpoint plus a `train_log.json` write | 8 |
+| `evaluate_frequency` | Rollouts between analyzer runs, which write `analyze_results_*` and the replay video | 64 |
 
 ### Environment Parameters
 
@@ -91,12 +102,14 @@ TrainSessionConfigBase
 | `observation_joint_sensor_keys` | Joint sensor observation keys | ["r_foot", "l_foot"] |
 | `msk_key` | Human MSK model key, composed with `device_key` (see [Defining an Environment](../getting-started/defining-an-environment.md)) | "myolegs22" |
 | `device_key` | Assistive device key | "Humotech_L1" |
-| `terrain` | A `myoassist_terrains` JSON path or inline config (e.g. `{"terrain":"slope","deg":8}`); `null` = flat ground | null |
+| `terrain` | Terrain spec (path or inline config); defined by [Terrains](https://myoassist.neumove.org/modeling/terrains/) | null |
 | `custom_max_episode_steps` | Maximum episode steps | 1000 |
-| `model_path` | Optional literal MJCF path (escape hatch); leave `null` to compose from `msk_key`/`device_key` | null |
-| `reference_data_path` | Path to reference motion data | "rl_train/reference_data/short_reference_gait.npz" |
+| `model_path` | Optional literal MJCF path (escape hatch); leave null to compose from `msk_key`/`device_key` | null |
+| `reference_data_path` | Path to reference motion data (accepts `.npz` or `.json`) | "rl_train/reference_data/short_reference_gait.npz" |
 | `reference_data_keys` | Joint keys for reference data | ["ankle_angle_l", "hip_flexion_l"] |
 | `prev_trained_policy_path` | Path to previous trained policy | null |
+| `hidden_geom_groups` | Geom groups hidden from rendering. Which group holds clutter is an authoring convention of the model, so it is set here. Rendering only. | [] |
+| `joint_limit_sensor_keys` | Joint-limit sensor names feeding `joint_constraint_force_penalty`; empty uses `MyoAssistLegBase.JOINT_LIMIT_SENSOR_NAMES` | [] |
 
 ### Environment Parameters - Reward Keys and Weights
 
@@ -106,8 +119,9 @@ TrainSessionConfigBase
 | `qvel_imitation_rewards` | Joint velocity imitation rewards | {"pelvis_ty": 0.1, "hip_flexion_l": 0.2} |
 | `end_effector_imitation_reward` | End effector imitation reward | 0.0 |
 | `forward_reward` | Forward movement reward | 1.0 |
-| `muscle_activation_penalty` | Muscle activation penalty | 0.1 |
-| `muscle_activation_diff_penalty` | Muscle activation difference penalty | 0.1 |
+| `muscle_activation_penalty` | Muscle activation penalty, squared | 0.1 |
+| `exo_activation_penalty` | Device effort penalty, in the same units as `muscle_activation_penalty`. The muscle mean is over 22 actuators and the device mean over 2, so the per-actuator price is `muscle_activation_penalty`/22 against `exo_activation_penalty`/2. | 0.0 |
+| `muscle_activation_diff_penalty` | Smoothness reward, not a penalty despite the name. It adds `dt*mean(exp(-4*(prev-curr)^2))`, which is largest when activations change little between steps. | 0.1 |
 | `footstep_delta_time` | Footstep delta time | 0.0 |
 | `average_velocity_per_step` | Average velocity per step | 0.0 |
 | `muscle_activation_penalty_per_step` | Muscle activation penalty per step | 0.0 |
@@ -136,6 +150,10 @@ TrainSessionConfigBase
 | `sde_sample_freq` | SDE sample frequency | -1 |
 | `target_kl` | Target KL divergence | 0.01 |
 | `device` | Device for training | "cpu" |
+| `mirror_coef` | Weight on the left/right mirror-symmetry penalty (`rl_train/train/mirror_ppo.py`). 0 disables it and PPO behaves as plain PPO. | 0.0 |
+
+`MirrorPPO` is selected only when training starts from scratch. A run that loads
+`prev_trained_policy_path` uses `stable_baselines3.PPO`.
 
 ### Policy Parameters
 
@@ -147,9 +165,12 @@ TrainSessionConfigBase
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `net_arch` | Network architecture for human actor, exo actor, and common critic | {"human_actor": [64, 64], "exo_actor": [8, 8], "common_critic": [64, 64]} |
+| `net_arch` | Network architecture per network. Use `exo_actor` for one exo network, or `exo_actor_r` plus `exo_actor_l` for one weight-shared per-side network (see [Network Index Handler](04_network-index-handler.md)). | {"human_actor": [64, 64], "exo_actor": [8, 8], "common_critic": [64, 64]} |
 | `net_indexing_info` | Network indexing information for observation and action ranges | See [Network Index Handler](04_network-index-handler.md) |
 | `log_std_init` | Initial log standard deviation | 0.0 |
+| `reset_shared_net_after_load` | No-op. The custom policies have no shared feature-extractor trunk, so `reset_network` ignores this flag. | false |
+| `reset_policy_net_after_load` | Reinitialize the policy network after loading `prev_trained_policy_path` | false |
+| `reset_value_net_after_load` | Reinitialize the value network after loading `prev_trained_policy_path` | false |
 
 ### Evaluate Parameters
 
@@ -165,6 +186,7 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 | `cam_type` | Camera type | "follow" |
 | `cam_distance` | Camera distance | 2.5 |
 | `visualize_activation` | Visualize muscle activation | true |
+| `realtime_plotting_info` | Optional list of signals to plot alongside the replay video, one subplot per entry | [] |
 
 **Example Configuration:**
 <details>
@@ -199,7 +221,7 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 
 ## Related Documentation
 
-- [Terrain Types](03_terrain-types.md) - Detailed explanation of terrain types and parameters
+- [Terrains](https://myoassist.neumove.org/modeling/terrains/) - Terrain generation and configuration
 - [Network Index Handler](04_network-index-handler.md) - Network indexing information and structure
 
 ## Example Configuration
