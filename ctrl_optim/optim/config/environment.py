@@ -42,7 +42,7 @@ def resolve_env_spec(args: argparse.Namespace) -> EnvSpec:
     spec.validate()
 
     # Derive the muscle model from the MSK key.  An explicit --musc_model must agree.
-    msk_to_musc = {"myolegs22": "22", "myolegs26": "26"}
+    msk_to_musc = {"myolegs22": "22", "myolegs26": "26", "myolegs": "80"}
     musc_model = msk_to_musc.get(spec.msk)
     if musc_model is None:
         raise ValueError(f"MSK {spec.msk!r} has no muscle-model mapping; expected one of {sorted(msk_to_musc)}.")
@@ -95,6 +95,9 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "msk_key": spec.msk,
         "device_key": spec.device,
         "terrain": spec.terrain,
+        "reflex_mode": args.reflex_mode,
+        "optimize_stiffness": args.optimize_stiffness,
+        "ankle_range": args.ankle_range,
     }
 
     return env_dict

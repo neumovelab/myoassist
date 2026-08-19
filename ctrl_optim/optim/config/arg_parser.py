@@ -72,7 +72,23 @@ def initParser() -> argparse.Namespace:
         help="(String) Optimization to be done. Currently supports only [evaluate, single, multispeed, multislope]",
     )
     optim_group.add_argument(
-        "--reflex_mode", required=False, help="(String) Unified or Individual [uni, ind]. Used only for 80 mus reflex model"
+        "--reflex_mode",
+        required=False,
+        choices=["uni", "ind", "bilat", "amp"],
+        help="(String) [uni, ind] legacy 80-mus; bilat = independent per-leg blocks; amp = bilat + prosthetic tolerance",
+    )
+    optim_group.add_argument(
+        "--optimize_stiffness",
+        action="store_true",
+        help="Append 2 normalized pf/df prosthetic-ankle stiffness params to the CMA-ES vector (prosthetic feet)",
+    )
+    optim_group.add_argument(
+        "--ankle_range",
+        type=float,
+        nargs=2,
+        default=None,
+        metavar=("MIN", "MAX"),
+        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step (both ankles)",
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(

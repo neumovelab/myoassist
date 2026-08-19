@@ -6,7 +6,7 @@ bounds, and tracking.
 """
 
 from .tracker import OptimizationTracker
-from .bounds import get_bounds, getBounds_22_26_mus, getBounds_80mus, getBounds_expanded_80mus
+from .bounds import get_bounds
 from .plotting import create_combined_plot
 from .resolve_path import (
     resolve_reference_data_path,
@@ -17,9 +17,6 @@ from .resolve_path import (
 __all__ = [
     "OptimizationTracker",
     "get_bounds",
-    "getBounds_22_26_mus",
-    "getBounds_80mus",
-    "getBounds_expanded_80mus",
     "create_combined_plot",
     "resolve_reference_data_path",
     "resolve_results_path",

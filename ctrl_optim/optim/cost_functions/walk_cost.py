@@ -51,20 +51,7 @@ def func_Walk_FitCost(
         Union[float, Dict[str, Any]]: Cost value or dictionary of cost components
     """
     # Initialize environment based on model type
-    if env_dict["leg_model"] in ["80"]:
-        from optim.reflex import ReflexInterface_11mus_80mus  # NOT CURRENTLY CONFIGURED FOR MYOASSIST
-
-        Myo_env = ReflexInterface_11mus_80mus.MyoLegReflex(
-            init_pose=env_dict["init_pose"],
-            mode=env_dict["mode"],
-            sim_time=env_dict["sim_time"],
-            seed=env_dict["seed"],
-            unified=env_dict["unified"],
-            control_params=params,
-            slope_deg=env_dict["slope_deg"],
-            delayed=env_dict["delayed"],
-        )
-    elif env_dict["leg_model"] in ["22", "26"]:
+    if env_dict["leg_model"] in ["22", "26", "80"]:
         Myo_env = myoLeg_reflex(
             init_pose=env_dict["init_pose"],
             mode=env_dict["mode"],
@@ -82,6 +69,9 @@ def func_Walk_FitCost(
             msk_key=env_dict.get("msk_key"),
             device_key=env_dict.get("device_key"),
             terrain=env_dict.get("terrain"),
+            reflex_mode=env_dict.get("reflex_mode"),
+            optimize_stiffness=env_dict.get("optimize_stiffness", False),
+            ankle_range=env_dict.get("ankle_range"),
         )
     else:
         raise ValueError(f"Unsupported leg model: {env_dict['leg_model']}")
@@ -114,8 +104,6 @@ def func_Walk_FitCost(
         if done_flag:
             break
 
-    muslen_param = params[-1 * len(Myo_env.mus_len_key) :]
-
     final_cost = evaluateCost(
         data_store,
         Myo_env.dt,
@@ -131,7 +119,6 @@ def func_Walk_FitCost(
         stride_num,
         tgt_sym,
         tgt_grf,
-        muslen_param,
         eval_mode=cost_print,
     )
 
