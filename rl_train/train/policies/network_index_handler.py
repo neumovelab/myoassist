@@ -12,6 +12,15 @@ class NetworkIndexHandler:
         self.net_indexing_info = net_indexing_info
         self.observation_space = observation_space
         self.action_space = action_space
+        # Constant action overrides are fixed by the config, so resolve them once here
+        # rather than rescanning net_indexing_info on every forward pass. Entries with no
+        # "action" list (the critic) contribute nothing.
+        self._constant_action_overrides = [
+            (mapping["range_action"][0], mapping["range_action"][1], mapping["default_value"])
+            for net in net_indexing_info.values()
+            for mapping in net.get("action", [])
+            if mapping["type"] == "constant"
+        ]
 
     def get_observation_num(self, net_name: str):
         human_observation_num = 0
@@ -51,19 +60,27 @@ class NetworkIndexHandler:
                 ]
                 current_index += end_exclusive - start_inclusive
             elif net_indexing_info["type"] == "index":  # specifying index of observation
-                result[:, current_index] = observation[:, current_index]
-                current_index += 1
+                # Read the listed observation indices, in the listed order, which is what
+                # makes this type useful: a "range" can only take a contiguous block in its
+                # existing order, so reordering (e.g. feeding a sub-policy the right leg
+                # before the left, to match its action slots) needs this.
+                indices = net_indexing_info["index"]
+                result[:, current_index : current_index + len(indices)] = observation[:, indices]
+                current_index += len(indices)
         # do not check observation length since it could be different if there is void
         # if observation.shape[1] != observation_num:
         #     raise ValueError(f"Observation length {observation.shape[1]} does not match expected length {observation_num}")
         return result
 
-    def mask_default_value(self, network_output_dict: dict[str, th.Tensor], action: th.Tensor):
-        for network_name, network_output in network_output_dict.items():
-            for net_indexing_info in self.net_indexing_info[network_name]["action"]:
-                if net_indexing_info["type"] == "constant":
-                    start_inclusive_action, end_exclusive_action = net_indexing_info["range_action"]
-                    action[:, start_inclusive_action:end_exclusive_action] = net_indexing_info["default_value"]
+    def mask_default_value(self, action: th.Tensor):
+        """Overwrite the action slots the config pins to a constant.
+
+        Takes only the action tensor: the overrides depend on the config, never on what the
+        networks produced. This used to take a ``{net_name: output}`` dict and read only its
+        keys, which made callers compute network outputs that were then discarded.
+        """
+        for start_inclusive_action, end_exclusive_action, default_value in self._constant_action_overrides:
+            action[:, start_inclusive_action:end_exclusive_action] = default_value
         return action
 
     def map_network_to_action(self, network_output_dict: dict[str, th.Tensor]):

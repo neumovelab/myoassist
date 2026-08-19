@@ -18,6 +18,13 @@ class TrainSessionConfigBase:
         class RewardWeights:
             forward_reward: float = 0.01
             muscle_activation_penalty: float = 0.1
+            # Price of device effort, in the same units as muscle_activation_penalty: both terms
+            # are dt times a mean dimensionless effort. Because the muscle mean is taken over 22
+            # actuators and the device mean over 2, the per-actuator price is
+            # muscle_activation_penalty/22 against exo_activation_penalty/2 -- so at the shipped
+            # muscle weight of 10, an exo weight of 0.1 makes one device actuator's effort about
+            # ten times cheaper than one muscle's. Default 0 keeps existing configs unchanged.
+            exo_activation_penalty: float = 0.0
             muscle_activation_diff_penalty: float = 0.1
 
             # for reward per step
@@ -51,6 +58,15 @@ class TrainSessionConfigBase:
         enable_lumbar_joint: bool = False
         lumbar_joint_fixed_angle: float = 0.0
         lumbar_joint_damping_value: float = 0.05
+
+        # Geom groups to hide from rendering. Which group holds clutter and which holds hardware
+        # is an authoring convention of whoever built the model, not something the environment can
+        # derive, so it belongs here rather than in code. This replaces an unconditional "hide
+        # group 1" whose comment said it removed the musculoskeletal skin; myolegs22 and myolegs26
+        # put no geom in group 1, so its only remaining effect was to hide STRIDE_L2's entire
+        # six-bar linkage -- 14 geoms -- leaving just the shoe visible. Rendering only: alpha does
+        # not enter contact, mass or constraint computation.
+        hidden_geom_groups: list[int] = field(default_factory=list)
 
         observation_joint_pos_keys: list[str] = field(default_factory=list)
         observation_joint_vel_keys: list[str] = field(default_factory=list)
@@ -147,5 +163,8 @@ class TrainSessionConfigBase:
         sde_sample_freq: int = -1
         target_kl: float = None
         device: str = "cpu"
+        # Weight on the left/right mirror-symmetry penalty (see rl_train/train/mirror_ppo.py).
+        # 0 disables it, and PPO then behaves exactly as before.
+        mirror_coef: float = 0.0
 
     ppo_params: PPOParams = field(default_factory=PPOParams)

@@ -17,3 +17,10 @@ build-backend = "setuptools.build_meta"
 # `B_colind`, which mujoco 3.4 moved to MjModel, so MyoSuite's dm-control physics backend
 # crashes on env creation with 1.0.31. 1.0.37+ requires mujoco>=3.5, above our ceiling.
 override-dependencies = ["mujoco>=3.4,<3.5", "dm-control==1.0.36"]
+
+[tool.pytest.ini_options]
+# The RL smoke tests import their shared fixtures as `from tools.tests.conftest import ...`,
+# which needs the repo root on sys.path so `tools` resolves as a top-level package. The `pytest`
+# console script does not add the working directory (only `python -m pytest` does), and there are
+# no __init__.py files under tools/, so add the repo root here to fix both CI and local runs.
+pythonpath = ["."]

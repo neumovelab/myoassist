@@ -134,3 +134,7 @@ cma_dump/
 
 train_bash_script.md
 MUJOCO_LOG.TXT
+
+# uv creates this when tooling runs via `uv run`; the project pins deps in
+# requirements.txt, so the lock is an artifact rather than a source of truth.
+uv.lock

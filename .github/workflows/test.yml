@@ -2,11 +2,13 @@ name: tests
 
 on:
   push:
-    branches: [main, refactor]
+    branches: [main, refactor, dev]
   pull_request:
     # `refactor` is included because the 1.0 refactor lands there as topic-branch PRs
     # and only reaches main once, so gating on main alone leaves that work unchecked.
-    branches: [main, refactor]
+    # `dev` is where day-to-day work lands, and feature branches reach these checks through
+    # their PR into it; gating on main alone let a branch accumulate weeks of unchecked work.
+    branches: [main, refactor, dev]
 
 jobs:
   # Lint runs standalone (ruff only, no heavy deps) so the style/lint gate is enforced
@@ -53,3 +55,29 @@ jobs:
         run: uv pip install --system -e . -r requirements-dev.txt
       - name: Run setup checks
         run: python test_setup.py
+
+  # Smoke tests for the RL path: every shipped config builds an env with the expected observation
+  # and action layout and reaches a PPO update, the activation penalties keep their quadratic form,
+  # and training starts on each terrain form. Seconds per case, deterministic, and no assertion here
+  # depends on how well a policy learns -- PPO carries no seed, so run-to-run variance on any
+  # learning-quality metric is as large as the differences between configs and would make a gate
+  # flaky. Learning quality stays a measurement, not a check.
+  rl-smoke:
+    name: rl smoke (configs, rewards, terrains)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          enable-cache: true
+      - name: Install myoassist + dev deps
+        run: uv pip install --system -e . -r requirements-dev.txt
+      - name: Run RL smoke tests
+        env:
+          # The runner has 4 cores and the cases are parametrised, so leave torch a small pool
+          # rather than letting it fan every op across all of them.
+          OMP_NUM_THREADS: "2"
+        run: pytest tools/tests -q
