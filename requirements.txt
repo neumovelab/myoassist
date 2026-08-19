@@ -27,8 +27,8 @@ gitpython
 
 myosuite==2.8.4
 myo-sim>=0.2.1
-assist-sim>=0.7.0
-myoassist-terrains>=0.1.0
+assist-sim>=1.0.0
+myoassist-terrains>=1.0.0
 
 # RL
 stable-baselines3
