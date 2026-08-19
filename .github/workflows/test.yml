@@ -2,13 +2,11 @@ name: tests
 
 on:
   push:
-    branches: [main, refactor, dev]
+    branches: [main, dev]
   pull_request:
-    # `refactor` is included because the 1.0 refactor lands there as topic-branch PRs
-    # and only reaches main once, so gating on main alone leaves that work unchecked.
     # `dev` is where day-to-day work lands, and feature branches reach these checks through
     # their PR into it; gating on main alone let a branch accumulate weeks of unchecked work.
-    branches: [main, refactor, dev]
+    branches: [main, dev]
 
 jobs:
   # Lint runs standalone (ruff only, no heavy deps) so the style/lint gate is enforced
