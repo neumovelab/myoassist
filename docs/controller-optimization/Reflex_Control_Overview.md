@@ -1,6 +1,6 @@
 # Reflex Control Overview
 
-This document describes the neuromuscular reflex control system implemented in MyoAssist, based on the neural circuitry proposed by Song and Geyer (2015) for human locomotion.
+This page describes the neuromuscular reflex control system implemented in MyoAssist, based on the neural circuitry proposed by Song and Geyer (2015) for human locomotion.
 
 ## Implementation Notes
 
@@ -130,12 +130,40 @@ The supraspinal layer provides:
 
 ## Implementation Details
 
+### Muscle models
+
+One reflex controller drives every leg model. It acts on 13 muscle groups, not on single muscles, so the same controller runs on the 22-muscle model (`myolegs22`), the 26-muscle model (`myolegs26`), and the 80-muscle model (`myolegs`). The muscle model sets which real muscles map into each group. It also sets whether 3D control is possible. The 22-muscle model has no hip ab/adductors, so it runs in 2D only.
+
+### Control modes
+
+`--reflex_mode` selects how the controller maps parameters to the two legs (see [Running Optimizations](Running_Optimizations.md)):
+
+- **Symmetric** (the default): one reflex block drives both legs.
+- **Bilateral** (`bilat`): each leg has its own reflex block. The two legs are independent, so the reflex block doubles.
+- **Amputee** (`amp`): the bilateral layout plus prosthetic tolerance. The controller skips the reflex terms for the muscles that the amputation removed. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md).
+
 ### Control Parameters
 
-- **2D control**: 51 parameters (reflex control gains and targets)
-- **3D control**: 63 parameters (includes frontal plane hip abductor/adductor control)
-- **Additional pose parameters**: 26 parameters (8 joint angles + 18 initial muscle activations for starting pose)
-- **Total without exoskeleton**: 77 parameters (2D) or 97 parameters (3D)
+The vector holds a reflex block, then a pose block, then any device tails.
+
+Reflex block, per leg:
+- **2D**: 51 parameters (sagittal reflex gains and targets).
+- **3D**: 63 parameters (adds frontal-plane hip abductor and adductor control).
+
+Bilateral and amputee modes give each leg its own reflex block, so the reflex block doubles: 102 in 2D, 126 in 3D.
+
+Pose block (the starting pose):
+- **2D**: 26 parameters (8 joint and velocity terms, 18 initial muscle activations).
+- **3D**: 34 parameters (12 joint and velocity terms, 22 initial muscle activations).
+
+Totals without a device tail:
+
+| Mode | 2D | 3D |
+|------|----|----|
+| Symmetric | 77 | 97 |
+| Bilateral or amputee | 128 | 160 |
+
+Device tails add to the total. An exoskeleton spline adds 4 parameters (4-parameter spline) or 2n (n-point spline). Prosthetic ankle stiffness (`--optimize_stiffness`) adds 2.
 
 Parameter categories:
 - **Target angles**: <code>theta_tgt</code>, <code>knee_tgt</code>, <code>ankle_tgt</code>, <code>mtp_tgt</code>
@@ -176,8 +204,8 @@ Automatic phase detection based on:
 
 The reflex controller is integrated into the MyoAssist environment:
 
-- **2D control**: 51 parameters, sagittal plane only
-- **3D control**: 63 parameters, includes frontal plane  
-- **Delayed mode**: Includes biological delays (default, requires 1ms timestep)
+- **2D control**: 51 reflex parameters per leg, sagittal plane only
+- **3D control**: 63 reflex parameters per leg, includes frontal plane
+- **Delayed mode**: Includes biological delays (requires 1ms timestep)
 - **Non-delayed mode**: Simplified for faster computation
 - **Debug mode**: Provides module-level output monitoring

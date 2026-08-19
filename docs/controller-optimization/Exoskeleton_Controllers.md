@@ -8,13 +8,16 @@ Each exoskeleton's torque profile is governed by one of two spline-based control
 
 ## 1. Actuator Definition
 
-The exoskeleton is contributed by the **device** in your environment spec — an
-assist_sim device (e.g. `Tutorial_L1`) that is composed into the MuJoCo model
-together with the human MSK and terrain (see
+The **device** in your environment spec supplies the exoskeleton. It is an
+assist_sim device, for example `Tutorial_L1`. The framework composes it into the
+MuJoCo model with the human MSK and the terrain (see
 **[Defining an Environment](../getting-started/defining-an-environment.md)**). The
-device supplies the exoskeleton actuators; you do not hand-edit a bundled `.xml`.
+device supplies the exoskeleton actuators. You do not hand-edit a bundled `.xml`.
 
-Each exoskeleton is an actuator in that composed MuJoCo model. There are multiple actuator types available within MuJoCo (see the [MuJoCo actuator reference](https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator)). This actuator is what allows the framework to apply torque to the model.
+For prosthetic and amputee devices, and for the amputee reflex mode, see
+**[Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md)**.
+
+Each exoskeleton is an actuator in that composed MuJoCo model. There are multiple actuator types available within MuJoCo (**[Simulation Environments](https://myoassist.neumove.org/modeling/)**). This actuator is what allows the framework to apply torque to the model.
 
 The actuators look like this:
 ```xml
@@ -35,8 +38,6 @@ Both provided controllers share a common architecture:
 - **Torque Spline**: The torque profile is defined by a PCHIP (Piecewise Cubic Hermite Interpolating Polynomial) spline. The input to the spline is the current percentage of the stance phase (0-100%), and the output is the torque to be applied.
 - **Stance Duration Averaging**: To normalize the stance phase percentage, the controller maintains a running average of the duration of the last three stances.
 
-NOTE: Both controllers operate on the basis of normalized *stance* percentage (heel strike to toe off) rather than full normalized gait cycle, while the figures shown represent the full normalized gait cycle.
-
 ### Controller A: 4-Parameter Spline (`fourparam_spline_ctrl.py`)
 
 This is a version of a widely used controller defined by four parameters that describe the shape of a single torque pulse.
@@ -47,8 +48,13 @@ This is a version of a widely used controller defined by four parameters that de
     3.  `peak_time`: The point in the stance phase where the peak torque occurs (as a % of stance).
     4.  `fall_time`: The time it takes to ramp down to zero torque after the peak (as a % of stance).
 
-- **Fixed Controller (`--fixed_exo`)**: This command-line option allows the 4-parameter controller to be used with a fixed, predefined set of initial parameters instead of being optimized. This is useful for evaluating a known, static assistance profile.
+- **Fixed Controller (`--fixed_exo`)**: This command-line option holds the 4-parameter controller at a fixed, predefined set of initial parameters instead of optimizing them. This is useful for evaluating a known, static assistance profile. It applies to the 4-parameter controller only. With the n-point spline it does nothing.
 
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/4param.png" alt="4-Parameter Controller Diagram" width="350"/>
+  <br>
+  <i>4 parameter phase-based spline control</i>
+</p>
 
 ### Controller B: N-Point Spline (`npoint_spline_ctrl.py`)
 
@@ -58,6 +64,11 @@ This is a more flexible controller that defines the torque profile using a varia
     - `n torque` parameters: The torque value at each control point (normalized 0-1).
     - `n timing` parameters: The temporal position of each control point (normalized 0-1).
 
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/npoint.png" alt="NPoint Controller Diagram" width="350"/>
+  <br>
+  <i>n-parameter spline control</i>
+</p>
 
 ## 3. Integration and Optimization
 
@@ -76,7 +87,7 @@ This is a more flexible controller that defines the torque profile using a varia
 ### Simulation Interfacing
 - **Interface (`reflex_interface.py`)**: The `myoLeg_reflex` class is the core integrator. It instantiates the chosen exoskeleton controller (`FourParamSplineController` or `NPointSplineController`) based on the command-line arguments.
 - **Torque Application**: During each step of the simulation, the interface calls the controller's `.update()` method to get the current torque value and applies it to the correct ankle joint actuator.
-- **Spline Validity Check**: The interface includes a crucial safety check, `check_spline_validity()`. This function is called before evaluating the cost. It ensures that the timing parameters for the spline are monotonically increasing (i.e., `time_1 < time_2 < ... < time_n`). If the order is invalid, the simulation is assigned a high penalty cost, preventing the optimizer from exploring unstable regions.
+- **Spline Validity Check**: The interface includes a safety check, `check_spline_validity()`. It runs before the cost evaluation. For the n-point controller, it checks that each torque value is within `[0.01, 1]` and each timing value is within `[0, 1]`; the binning and sort keep the timing in order. For the 4-parameter controller, it checks the peak, rise, and fall bounds. If a check fails, the simulation gets a high penalty cost. This keeps the optimizer out of unstable regions.
 
 ## 4. Continued Optimization and Bootstrapping
 
@@ -97,6 +108,11 @@ A more complex option within the framework is the **bootstrapping** capability f
     6. **Crucially**, it replaces the new time/torque point closest to the old peak with the *exact* time and torque of that peak. This ensures (arguably) the most important feature of the curve is preserved.
     7. The new, "bootstrapped" set of `2 * n` exo parameters are combined with the human parameters, and the optimization begins.
 
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/bootstrap.png" alt="Bootstrap Diagram" width="600"/>
+  <br>
+  <i>n-parameter spline bootstrapping logic</i>
+</p>
 
 
 This method of bootstrapping provides a clean way to increase or decrease the complexity of the exoskeleton controller while transferring knowledge from previous optimization runs.

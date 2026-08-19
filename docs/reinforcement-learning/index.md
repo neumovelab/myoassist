@@ -1,9 +1,12 @@
 # Reinforcement Learning
 
-MyoAssist’s reinforcement learning (RL) pipeline is built on top of **[Stable-Baselines3 (SB3) PPO](https://stable-baselines3.readthedocs.io/en/master/index.html)** and a set of custom **[MuJoCo](https://mujoco.org/)** environments that simulate human–exoskeleton interaction. This page gives you a bird’s-eye view of how everything fits together and where to find more information.
+MyoAssist’s reinforcement learning (RL) pipeline uses **[Stable-Baselines3 (SB3) PPO](https://stable-baselines3.readthedocs.io/en/master/index.html)** and custom **[MuJoCo](https://mujoco.org/)** environments. These environments simulate human–exoskeleton interaction. This page gives an overview of how the parts fit together and where to find more information.
 
-Reinforcement learning (RL) is a machine learning paradigm where an agent learns to make decisions by interacting with an environment and receiving feedback in the form of rewards. In the context of MyoAssist, RL is used to train control policies for human–exoskeleton systems within MuJoCo simulation environments.
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/rl_framework.png" alt="MyoAssist reinforcement learning framework" style="width: 34rem; max-width: 100%; height: auto;">
+</p>
 
+Reinforcement learning (RL) is a machine learning method. An agent learns to make decisions. It interacts with an environment and receives rewards as feedback. In MyoAssist, RL trains control policies for human–exoskeleton systems in MuJoCo simulation environments.
 
 **Observation Space:**  
 In our environments, the agent receives observations that include:
@@ -11,7 +14,7 @@ In our environments, the agent receives observations that include:
 - Joint velocities
 - Muscle activations
 - Sensory data (such as ground contact, force sensors, etc.)
-- etc
+- Target velocity (the last observation component)
 
 **Action Space:**  
 The agent outputs actions that control:
@@ -19,36 +22,42 @@ The agent outputs actions that control:
 - Exoskeleton control values (for the exoskeleton actor network)
 
 
-
-
----
-
 ## Training Workflow
 
-1. **Define a config** – start from an existing JSON preset or create one from scratch.
+1. **Define a config**: start from an existing JSON preset, or create one from scratch.
 2. **Launch training**
    ```bash
    python rl_train/run_train.py --config_file_path rl_train/train/train_configs/my_config.json
    ```
-3. **Monitor progress** – logs & results in `results/train_session_*`.
-4. **Evaluate policy** –
+3. **Monitor progress**: logs and results go to `rl_train/results/train_session_*`.
+4. **Evaluate policy**:
    ```bash
-   python rl_train/run_policy_eval.py results/train_session_<timestamp>
+   python rl_train/run_policy_eval.py rl_train/results/train_session_<timestamp>
    ```
-5. **Analyze results** – automatic plots + gait metrics saved under `analyze_results/`.
+5. **Analyze results**: see [Evaluation](https://myoassist.neumove.org/evaluation/) for the shared eval outputs.
 
 ---
 
 ## Key Features
 
-- **Multi-Actor Support** – Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](04_network-index-handler.md)).
-- **Terrain Curriculum** – Train on a progression of terrains from flat to rough ([Terrain Types](03_terrain-types.md)).
-- **Reference Motion Imitation** – Optional imitation reward using ground-truth gait trajectories.
-- **Realtime Evaluation** – Run policies in realtime with `--flag_realtime_evaluate`.
+- **Multi-Actor Support**: Separate networks for human muscles and exoskeleton actuators (see [Network Index Handler](04_network-index-handler.md)).
+- **Variable Terrain**: Train on flat, sloped, rough, or tiled terrain, defined by [Terrains](https://myoassist.neumove.org/modeling/terrains/).
+- **Reference Motion Imitation**: Optional imitation reward using ground-truth gait trajectories.
+- **Realtime Evaluation**: Run policies in realtime with `--flag_realtime_evaluate`.
+
+<div style="display: flex; justify-content: center; align-items: center; gap: 24px;">
+  <div style="flex: 1; text-align: center;">
+    <img src="https://myoassist.neumove.org/assets/partial_flat_short.gif" alt="Flat replay" style="max-width: 100%; height: auto;">
+  </div>
+  <div style="flex: 1; text-align: center;">
+    <img src="https://myoassist.neumove.org/assets/rough_short.gif" alt="Rough replay" style="max-width: 100%; height: auto;">
+  </div>
+  <div style="flex: 1; text-align: center;">
+    <img src="https://myoassist.neumove.org/assets/speed_control_shortest.gif" alt="Speed control replay" style="max-width: 100%; height: auto;">
+  </div>
+</div>
 
 ---
-
-
 
 # Getting Started
 
@@ -81,15 +90,17 @@ mjpython rl_train/run_sim_minimal.py
 ```
 > **Note:**
 If you need MuJoCo visualizer in mac os, simply use `mjpython` instead of `python` to run your script.  
-You do not need to install anything extra—just change the command:
+You do not need to install anything extra. Just change the command:
 
 > **Note:**  
 If you see the error message `ModuleNotFoundError: No module named 'flatten_dict'`, simply run the command again. This will usually resolve the problem automatically.
 
 
+<!-- ![result of run_sim_minimal.py](https://myoassist.neumove.org/assets/rl_random_action_tutorial_env.png)-->
 
-
-
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/rl_random_action_tutorial_env.png" alt="result of run_sim_minimal.py" width="50%">
+</p>
 
 **What this does:**
 - Shows an example of creating a Gym wrapped MuJoCo simulation environment
@@ -113,7 +124,7 @@ python rl_train/run_train.py --config_file_path rl_train/train/train_configs/imi
 - Training for only a few short timesteps
 - Uses 1 environment (minimal resource usage)
 - Enables rendering to see the simulation
-- Logs results after every rollout (4 steps) for immediate feedback
+- Logs results after every rollout (256 steps, `test.json`) for immediate feedback
 
 ### 3. Check Results
 
@@ -123,14 +134,31 @@ After training, check the results folder:
 # Results location
 rl_train/results/train_session_[date-time]/
 ```
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/train_session_result.png" alt="Training session result example" width="50%">
+</p>
+
+Concurrent runs never share a directory. Training claims `train_session_[date-time]`, and steps to `train_session_[date-time]_1`, `_2`, and so on when the second-resolution timestamp is already taken.
 
 **What you'll find:**
-- `analyze_results_[timesteps]_[evaluate_number]`: Training analysis results
+- `analyze_results_[timesteps]_[evaluate_number]`: analysis written during training, by the analyzer that the learning callback runs every `logger_params.evaluate_frequency` rollouts
 - `session_config.json`: Configuration used for this training
 - `train_log.json`: Training log data
 - `trained_models/`: Trained models(`.zip`) saved at each log interval - can be used for evaluation or transfer learning
 
+`run_policy_eval.py` writes `analyze_results_[NN]` instead, without the timestep prefix.
+
 ## Full Training (When Ready)
+
+Turn the model cache on first. Each of the `num_envs` workers composes its own model, so
+training without the cache is much slower:
+
+```bash
+export MYOASSIST_CACHE_DIR=~/.cache/myoassist
+```
+
+The variable covers RL and controller optimization. See
+[Caching](https://myoassist.neumove.org/modeling/devices/exporting-and-loading/#caching).
 
 Once you've verified everything works, run full training:
 
@@ -156,29 +184,37 @@ Test a trained model:
 python rl_train/run_policy_eval.py [path/to/trainsession/folder]
 ```
 
-> Pretrained tutorial models are hosted on the [MyoAssist website](https://myoassist.neumove.org); point `run_policy_eval.py` at any `train_session_*` directory you produce.
+> Point `run_policy_eval.py` at any `train_session_*` directory that you produced.
+
+| Flag | Meaning |
+|------|---------|
+| `--steps N` | Override `num_timesteps` for every rollout. The configs ship 200 steps, about 5 strides. Works on already-trained sessions. |
+| `--regen` | Regenerate the evaluated gait data even if it already exists. |
+| `--no-show` | Skip the pop-out composite window. |
+| `--varying` | Replace `evaluate_param_list` with a single SINUSOIDAL 0.8-1.4 m/s rollout and emit the speed-tracking composite. |
+| `--cmap {rainbow,teal,bluered}` | Speed color map for varying-speed composites. |
+| `--legacy-plots` | Also write the legacy per-panel PNGs. |
 
 
-`run_policy_eval.py` creates one `analyze_results_NN/` folder per entry in your
-`evaluate_param_list`, inside the `train_session` directory.
+After training, an `analyze_results` folder will be created inside your `train_session` directory.  
+This folder contains various plots and videos that visualize your agent's performance.
 
 - **Where to find:**  
   ```
   rl_train/results/train_session_[date-time]/analyze_results_[NN]/
   ```
 - **What's inside:**  
-  - `composite.png` (and `.svg`) — a single summary figure (snapshot, return curve, kinematics vs reference, activations, timeseries)
-  - `replay.mp4` — a rollout replay video
-  - `gait_evaluated_data.json` — the rollout in the `GaitData` schema
-  - legacy per-panel plots are opt-in via `--legacy-plots`
+  - `composite.png` (and `.svg`), `replay.mp4`, and `gait_evaluated_data.json`
+  - See [Evaluation](https://myoassist.neumove.org/evaluation/) for the full description of these outputs.
 
 
-The rollouts that are evaluated (velocity mode, timesteps, camera, etc.) are controlled by the `evaluate_param_list` in your `session_config.json` file.
+The parameters used for evaluation and analysis (such as which plots/videos are generated) are controlled by the `evaluate_param_list` in your `session_config.json` file.
 
 For more details on how to customize these parameters, see the [RL Configuration](02_configuration.md) section.
 
 
 ## Transfer Learning
+<img src="https://myoassist.neumove.org/assets/transfer_learning_explanation.png" alt="Transfer Learning" style="max-width: 100%; height: auto;">
 
 ```bash
 python rl_train/run_train.py --config_file_path [path/to/transfer_learning/config.json] --config.env_params.prev_trained_policy_path [path/to/pretrained_model]
@@ -191,6 +227,9 @@ or you can specify the `env_params.prev_trained_policy_path` in config(.json) fi
 
 ## Realtime Policy Running
 You can run a trained policy in realtime simulation:
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/realtime_eval_flat_tutorial.gif" alt="result of run_sim_minimal.py" width="50%">
+</p>
 
 - windows:
 ```bash
@@ -206,5 +245,8 @@ mjpython rl_train/run_train.py --config_file_path [path/to/config.json] --config
 **Parameters:**
 - `[path/to/config.json]`: Path to the JSON file in the train_session folder
 - `[path/to/model_file]`: Path to the model file (.zip) without extension. It is located in the train_models folder
+<p align="center">
+  <img src="https://myoassist.neumove.org/assets/train_models.png" alt="trained model" width="50%">
+</p>
 
-> Pretrained tutorial models are hosted on the [MyoAssist website](https://myoassist.neumove.org). Use the placeholder command above with a `train_session_*` directory you produced.
+> Use a `session_config.json` and a `model_<steps>` file from a `train_session_*` directory that you produced.
