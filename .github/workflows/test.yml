@@ -56,14 +56,17 @@ jobs:
       - name: Run setup checks
         run: python test_setup.py
 
-  # Smoke tests for the RL path: every shipped config builds an env with the expected observation
-  # and action layout and reaches a PPO update, the activation penalties keep their quadratic form,
-  # and training starts on each terrain form. Seconds per case, deterministic, and no assertion here
-  # depends on how well a policy learns -- PPO carries no seed, so run-to-run variance on any
-  # learning-quality metric is as large as the differences between configs and would make a gate
-  # flaky. Learning quality stays a measurement, not a check.
-  rl-smoke:
-    name: rl smoke (configs, rewards, terrains)
+  # Smoke tests for both the RL and CO paths (tools/tests). RL: every shipped config builds an
+  # env with the expected observation and action layout and reaches a PPO update, the activation
+  # penalties keep their quadratic form, and training starts on each terrain form. CO: the
+  # ParamLayout counts and the bounds generator agree across every control mode and device tail,
+  # and the reflex env composes, seats with foot contact, and steps for 22/26/amp/stiffness/ROM.
+  # Seconds per case, deterministic, and no assertion depends on how well a policy learns -- PPO
+  # carries no seed, so run-to-run variance on any learning-quality metric is as large as the
+  # differences between configs and would make a gate flaky. Learning quality stays a measurement,
+  # not a check.
+  smoke:
+    name: smoke (rl + co)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +78,7 @@ jobs:
           enable-cache: true
       - name: Install myoassist + dev deps
         run: uv pip install --system -e . -r requirements-dev.txt
-      - name: Run RL smoke tests
+      - name: Run smoke tests
         env:
           # The runner has 4 cores and the cases are parametrised, so leave torch a small pool
           # rather than letting it fan every op across all of them.
