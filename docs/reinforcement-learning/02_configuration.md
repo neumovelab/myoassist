@@ -39,7 +39,8 @@ Configuration files are located in `rl_train/train/train_configs/`:
 - `imitation_tutorial_22_separated_net_full_obs.json` - Same setup with full exo observation.
 - `imitation_tutorial_22_separated_net_exo_off*.json` - Same setup with the exo held at a constant command (exo off).
 - `test.json` - Minimal config for the quick training test (see [Reinforcement Learning](index.md#2-quick-training-test)).
-- `device_sweep/` - Eight configs, one per device, for the per-device sweep.
+- `device_sweep/` - Eight configs, one per bilateral exo, for the per-device sweep.
+- `prosthesis/` - Four configs, one per prosthetic device, on amputee models. See the [directory README](https://github.com/neumovelab/myoassist/blob/main/rl_train/train/train_configs/prosthesis/README.md).
 
 ### Configuration Hierarchy
 
@@ -107,6 +108,7 @@ TrainSessionConfigBase
 | `model_path` | Optional literal MJCF path (escape hatch); leave null to compose from `msk_key`/`device_key` | null |
 | `reference_data_path` | Path to reference motion data (accepts `.npz` or `.json`) | "rl_train/reference_data/short_reference_gait.npz" |
 | `reference_data_keys` | Joint keys for reference data | ["ankle_angle_l", "hip_flexion_l"] |
+| `reset_keyframe_joint_keys` | Joints restored to the composed model's standing keyframe at every reset. `reset` seeds the next episode from the current `qpos`, so a DOF the reference does not write carries over from the previous episode -- including the value it held while the model was falling. Amputee configs name their prosthetic joints here; empty restores nothing, which is what the intact configs do. | [] |
 | `prev_trained_policy_path` | Path to previous trained policy | null |
 | `hidden_geom_groups` | Geom groups hidden from rendering. Which group holds clutter is an authoring convention of the model, so it is set here. Rendering only. | [] |
 | `joint_limit_sensor_keys` | Joint-limit sensor names feeding `joint_constraint_force_penalty`; empty uses `MyoAssistLegBase.JOINT_LIMIT_SENSOR_NAMES` | [] |

@@ -49,9 +49,10 @@ options.
 | `HMEDI_L1` | tendon | **hip** | `[2,4]` / `[10,12]` |
 
 `python -m assist_sim list` offers 13 devices for `myolegs22`. The other five are a different
-class: `Anatomics_L1` and `KFoot_L1` have no device actuator, and `NEUankle_L1`,
-`OpenSourceLeg_A_L1` and `OpenSourceLeg_KA_L1` are unilateral prostheses with a truncated muscle
-set, so they need their own action layout and cannot use the mirror penalty or the per-side network.
+class: `Anatomics_L1` has no device actuator on an intact model, and `KFoot_L1`, `NEUankle_L1`,
+`OpenSourceLeg_A_L1` and `OpenSourceLeg_KA_L1` are prostheses — the device performs an amputation,
+so the muscle set is truncated, the action layout differs per device, and there is no mirror map.
+Those four have their own configs and generator: see [`prosthesis/`](../prosthesis/README.md).
 
 ## The config
 

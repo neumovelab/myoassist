@@ -27,4 +27,10 @@ class ImitationTrainSessionConfig(TrainSessionConfigBase):
 
         reference_data_keys: list[str] = field(default_factory=list[str])
 
+        # Joints restored to the composed model's standing keyframe at every reset, for DOFs
+        # the reference cannot supply. Empty -> nothing is restored, which is what every intact
+        # config does. See MyoAssistLegImitation._reset_keyframe_joints for why an amputee
+        # config has to name its prosthetic joints here.
+        reset_keyframe_joint_keys: list[str] = field(default_factory=list[str])
+
     env_params: EnvParams = field(default_factory=EnvParams)

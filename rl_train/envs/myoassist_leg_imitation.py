@@ -124,6 +124,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         self._flag_random_ref_index = env_params.flag_random_ref_index
         self._out_of_trajectory_threshold = env_params.out_of_trajectory_threshold
         self.reference_data_keys = env_params.reference_data_keys
+        self._reset_keyframe_joint_keys = env_params.reset_keyframe_joint_keys
         self._loop_reference_data = loop_reference_data
         self._reward_keys_and_weights: ImitationTrainSessionConfig.EnvParams.RewardWeights = env_params.reward_keys_and_weights
 
@@ -250,6 +251,30 @@ class MyoAssistLegImitation(MyoAssistLegBase):
 
         return rwd_dict
 
+    def _reset_keyframe_joints(self):
+        """Restore the joints the reference cannot supply to the model's standing keyframe.
+
+        `reset` seeds the next episode from `sim.data.qpos`, so a DOF the reference does not
+        write keeps whatever value it held when the last episode ended -- which is normally the
+        value it held while the model was falling. On an intact model the only such DOFs are the
+        passive toe joints, and the configs have always run that way.
+
+        An amputee model makes the same carry-over a real problem: the prosthesis' own joint is
+        the one the device actuator drives, and the reference is a healthy walker with no
+        trajectory for it. Left alone it starts each episode wherever the previous fall left it,
+        routinely outside its own limit -- the OSL ankle is limited to +-0.52 rad and was
+        measured starting successive episodes at +1.43 and +1.94 rad, so every step after the
+        first fall ran against a large limit-constraint force that has nothing to do with gait.
+
+        Opt-in through `reset_keyframe_joint_keys` rather than applied to every joint the
+        reference omits, so the intact configs -- and the results already trained from them --
+        keep the reset behaviour they were trained under.
+        """
+        for key in self._reset_keyframe_joint_keys:
+            joint_id = self.sim.model.joint(key).id
+            self.sim.data.joint(key).qpos = self.sim.model.key_qpos[0][self.sim.model.jnt_qposadr[joint_id]]
+            self.sim.data.joint(key).qvel = self.sim.model.key_qvel[0][self.sim.model.jnt_dofadr[joint_id]]
+
     def _follow_reference_motion(self, is_x_follow: bool):
         for key in self.reference_data_keys:
             self.sim.data.joint(f"{key}").qpos = self._reference_data["series_data"][f"q_{key}"][self._imitation_index]
@@ -368,6 +393,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         # generate random targets
         # new_qpos = self.generate_qpos()# TODO: should set qvel too.
         # self.sim.data.qpos = new_qpos
+        self._reset_keyframe_joints()
         self._follow_reference_motion(False)
 
         obs = super().reset(reset_qpos=self.sim.data.qpos, reset_qvel=self.sim.data.qvel, **kwargs)
