@@ -27,6 +27,13 @@ class ImitationTrainSessionConfig(TrainSessionConfigBase):
 
         reference_data_keys: list[str] = field(default_factory=list[str])
 
+        # Joints the out-of-trajectory termination watches. Empty -> every key in
+        # qpos_imitation_rewards, which is what the intact configs have always done. Set it to
+        # decouple "guide this joint" from "end the episode when this joint drifts": an amputee
+        # config wants the residual limb shaped by the reward without a healthy-gait deviation
+        # there killing the episode. See MyoAssistLegImitation._get_out_of_trajectory_diff.
+        out_of_trajectory_joint_keys: list[str] = field(default_factory=list[str])
+
         # Joints restored to the composed model's standing keyframe at every reset, for DOFs
         # the reference cannot supply. Empty -> nothing is restored, which is what every intact
         # config does. See MyoAssistLegImitation._reset_keyframe_joints for why an amputee

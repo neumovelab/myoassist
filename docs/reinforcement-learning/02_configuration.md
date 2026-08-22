@@ -108,6 +108,7 @@ TrainSessionConfigBase
 | `model_path` | Optional literal MJCF path (escape hatch); leave null to compose from `msk_key`/`device_key` | null |
 | `reference_data_path` | Path to reference motion data (accepts `.npz` or `.json`) | "rl_train/reference_data/short_reference_gait.npz" |
 | `reference_data_keys` | Joint keys for reference data | ["ankle_angle_l", "hip_flexion_l"] |
+| `out_of_trajectory_joint_keys` | Joints the episode-ending tracking check watches. Empty -> every key in `qpos_imitation_rewards`, which is what the intact configs do. Set it to decouple "guide this joint" from "end the episode when this joint drifts": an amputee config gives the residual limb a weak posture term without a healthy-gait deviation there killing the episode. | [] |
 | `reset_keyframe_joint_keys` | Joints restored to the composed model's standing keyframe at every reset. `reset` seeds the next episode from the current `qpos`, so a DOF the reference does not write carries over from the previous episode -- including the value it held while the model was falling. Amputee configs name their prosthetic joints here; empty restores nothing, which is what the intact configs do. | [] |
 | `prev_trained_policy_path` | Path to previous trained policy | null |
 | `hidden_geom_groups` | Geom groups hidden from rendering. Which group holds clutter is an authoring convention of the model, so it is set here. Rendering only. | [] |

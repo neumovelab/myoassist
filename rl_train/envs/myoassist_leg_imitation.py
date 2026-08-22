@@ -123,6 +123,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     ):
         self._flag_random_ref_index = env_params.flag_random_ref_index
         self._out_of_trajectory_threshold = env_params.out_of_trajectory_threshold
+        self._out_of_trajectory_joint_keys = env_params.out_of_trajectory_joint_keys
         self.reference_data_keys = env_params.reference_data_keys
         self._reset_keyframe_joint_keys = env_params.reset_keyframe_joint_keys
         self._loop_reference_data = loop_reference_data
@@ -176,6 +177,29 @@ class MyoAssistLegImitation(MyoAssistLegBase):
 
     def _get_qpos_diff_nparray(self):
         return np.array([diff for diff in self._get_qpos_diff().values()])
+
+    def _get_out_of_trajectory_diff(self) -> np.ndarray:
+        """Tracking errors the episode-ending check looks at.
+
+        By default every joint the imitation reward names, which is what the intact configs
+        rely on. `out_of_trajectory_joint_keys` narrows it, which is what lets a reward term
+        exist without also being a hard terminator.
+
+        An amputee needs that split. The residual limb wants a weak posture term -- without one
+        the knee simply folds, since nothing else in the reward cares about it -- but it cannot
+        also be a terminator: it is the joint that deviates most from a healthy walker, and on
+        the first 30M runs `knee_angle_r` was the single most frequent cause of episode
+        termination.
+        """
+        if not self._out_of_trajectory_joint_keys:
+            return self._get_qpos_diff_nparray()
+        diffs = self._get_qpos_diff()
+        missing = [k for k in self._out_of_trajectory_joint_keys if k not in diffs]
+        assert not missing, (
+            f"out_of_trajectory_joint_keys names {missing}, which the imitation reward does not "
+            f"track, so there is no reference to compare against. Tracked: {sorted(diffs)}"
+        )
+        return np.array([diffs[k] for k in self._out_of_trajectory_joint_keys])
 
     def _get_end_effector_diff(self):
         # body_pos = self.sim.data.body('pelvis').xpos.copy()
@@ -326,7 +350,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             reward = 0
             truncated = True
         else:
-            q_diff_nparray: np.ndarray = self._get_qpos_diff_nparray()
+            q_diff_nparray: np.ndarray = self._get_out_of_trajectory_diff()
             is_out_of_trajectory = np.any(np.abs(q_diff_nparray) > self._out_of_trajectory_threshold)
             terminated = terminated or is_out_of_trajectory
 

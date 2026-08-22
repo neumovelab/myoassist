@@ -159,6 +159,21 @@ def _amputated_side(prosthetic_joints: list[str]) -> str:
     return sides.pop()
 
 
+def _residual_and_replaced(keys: list[str], joints: set[str], side: str) -> tuple[list[str], list[str]]:
+    """Split the amputated side's human joint keys into what survives and what the device took.
+
+    A transtibial device replaces only the ankle: `knee_angle_r` and `hip_flexion_r` are still
+    the person's own joints, driven by their own muscles. A transfemoral device takes the knee
+    too. The distinction matters because the two want opposite treatment -- a joint the person
+    still has should be shaped by the reward (without one, nothing in the reward cares about it
+    and the knee simply folds), while a joint the device replaced has no healthy counterpart to
+    be shaped towards at all.
+    """
+    residual = [k for k in keys if k.endswith(f"_{side}") and k in joints]
+    replaced = [k for k in keys if k.endswith(f"_{side}") and k not in joints]
+    return residual, replaced
+
+
 def _drop_amputated_side(weights: dict, side: str) -> dict:
     """Remove the amputated limb's joints from an imitation weight dict.
 
@@ -217,6 +232,26 @@ def main() -> None:
         "push-off and does not follow a healthy walker as closely. Filenames gain an _oot<value> "
         "suffix when this differs from the default.",
     )
+    ap.add_argument(
+        "--forward-reward",
+        type=float,
+        default=20.0,
+        help="Weight on the forward-velocity term (template: 1.0). On an intact model tracking "
+        "the reference is walking, so an imitation-dominant reward produces gait; on an amputee "
+        "the imitation term covers only the pelvis and the intact leg, and its optimum is "
+        "reachable while the prosthetic leg drags. Measured on the 30M runs: imitation 77.4%% of "
+        "the weighted total against forward's 5.7%%. Filenames gain a _fwd<value> suffix when "
+        "this differs from the default.",
+    )
+    ap.add_argument(
+        "--residual-imitation-weight",
+        type=float,
+        default=0.2,
+        help="qpos/qvel imitation weight for the amputated side's *surviving* joints -- the "
+        "residual limb's own hip, and its knee for a transtibial device. A weak posture term: "
+        "without one nothing in the reward refers to those joints and the knee folds. They are "
+        "excluded from the out-of-trajectory check regardless. 0 removes the term entirely.",
+    )
     args = ap.parse_args()
 
     template = json.loads(TEMPLATE.read_text())
@@ -235,6 +270,8 @@ def main() -> None:
         suffix += f"_devpen{f'{args.device_activation_penalty:g}'.replace('.', 'p')}"
     if args.out_of_trajectory_threshold != 0.4:
         suffix += f"_oot{f'{args.out_of_trajectory_threshold:g}'.replace('.', 'p')}"
+    if args.forward_reward != 20.0:
+        suffix += f"_fwd{f'{args.forward_reward:g}'.replace('.', 'p')}"
     if args.muscle_activation_penalty is not None:
         suffix += f"_actpen{f'{args.muscle_activation_penalty:g}'.replace('.', 'p')}"
 
@@ -277,14 +314,28 @@ def main() -> None:
         side = _amputated_side(prosthetic_pos)
         for block in ("qpos_imitation_rewards", "qvel_imitation_rewards"):
             present = {k: v for k, v in rewards[block].items() if k in facts["joints"]}
-            rewards[block] = _drop_amputated_side(present, side)
+            intact = _drop_amputated_side(present, side)
+            residual, _ = _residual_and_replaced(list(rewards[block]), facts["joints"], side)
+            # The residual limb gets a weak posture term, not the template's tracking weight: the
+            # point is to stop the knee folding, not to demand healthy swing-phase kinematics the
+            # missing push-off cannot produce.
+            rewards[block] = {**intact, **{k: args.residual_imitation_weight for k in residual}}
 
-        # The same dict is the episode's out-of-trajectory check, so this threshold now applies
-        # only to the pelvis and the intact leg. It is still relaxed relative to the intact
-        # configs' 0.2: the intact side of an amputee gait compensates for the missing push-off
-        # and does not track a healthy walker as tightly either -- `ankle_angle_l` was the third
-        # most frequent termination cause on the 30M run.
+        # Termination watches the pelvis and the intact leg only. The residual limb is in the
+        # reward above but deliberately not here: it is the joint that deviates most from a
+        # healthy walker, and on the first 30M runs `knee_angle_r` was the most frequent cause of
+        # termination. The joints the device replaced appear in neither.
+        env["out_of_trajectory_joint_keys"] = sorted(rewards["qpos_imitation_rewards"].keys() - set(residual))
         env["out_of_trajectory_threshold"] = args.out_of_trajectory_threshold
+
+        # Forward progress has to be the dominant objective here, which it is not on an intact
+        # model. There, tracking the reference *is* walking, so an imitation-dominant reward
+        # (measured 84% of the intact control's total against forward's 3.7%) produces gait. On an
+        # amputee the imitation term covers only the pelvis and the intact leg, so its optimum is
+        # reachable while the prosthetic leg drags: measured on the 30M run, imitation was 77.4%
+        # of the total and forward 5.7%, and the learned policies dragged the foot or folded the
+        # residual knee.
+        rewards["forward_reward"] = args.forward_reward
         if args.muscle_activation_penalty is not None:
             rewards["muscle_activation_penalty"] = args.muscle_activation_penalty
         # Always written, even when zero, so a generated config states every weight it runs under.

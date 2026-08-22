@@ -67,17 +67,19 @@
                 "pelvis_tilt": 1.0,
                 "hip_flexion_l": 0.2,
                 "knee_angle_l": 1.0,
-                "ankle_angle_l": 0.2
+                "ankle_angle_l": 0.2,
+                "hip_flexion_r": 0.2
             },
             "qvel_imitation_rewards": {
                 "pelvis_ty": 0.1,
                 "pelvis_tilt": 0.1,
                 "hip_flexion_l": 0.2,
                 "knee_angle_l": 0.1,
-                "ankle_angle_l": 0.1
+                "ankle_angle_l": 0.1,
+                "hip_flexion_r": 0.2
             },
             "end_effector_imitation_reward": 0.0,
-            "forward_reward": 1.0,
+            "forward_reward": 20.0,
             "muscle_activation_penalty": 10.0,
             "muscle_activation_diff_penalty": 0.1,
             "footstep_delta_time": 0.0,
@@ -112,6 +114,13 @@
         "reset_keyframe_joint_keys": [
             "OSL_KA_L1_osl_ankle_angle_r",
             "OSL_KA_L1_osl_knee_angle_r"
+        ],
+        "out_of_trajectory_joint_keys": [
+            "ankle_angle_l",
+            "hip_flexion_l",
+            "knee_angle_l",
+            "pelvis_tilt",
+            "pelvis_ty"
         ]
     },
     "ppo_params": {

@@ -118,40 +118,52 @@ def test_reference_and_imitation_keys_exist_in_model(config_path):
 
 
 @pytest.mark.parametrize("config_path", shipped_prosthesis_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
-def test_imitation_excludes_the_amputated_side(config_path):
-    """No imitation weight names a joint on the amputated side, and the wall is relaxed.
+def test_amputated_side_guides_but_does_not_terminate(config_path):
+    """The residual limb is in the reward, the amputated side is out of the termination check.
 
-    The reference is a healthy, near-symmetric walker and the amputated side cannot reach it:
-    without an ankle push-off the residual limb's knee does not produce the healthy swing-phase
-    flexion. Because `MyoAssistLegImitation.step` reads the same dict for the
-    `out_of_trajectory_threshold` check, an entry there is also a hard episode terminator. On the
-    first 30M runs `knee_angle_r` was both the largest tracking error and the most frequent
-    termination cause, and both prosthesis runs stopped improving at ~15M while the intact
-    `Tutorial_L1` control kept going -- so a `_r` key reappearing here is a real regression.
+    Three separate rules, and the first 30M runs broke each of them in a way that showed up in
+    the learned gait:
+
+    * A joint the *device* replaced has no healthy counterpart, so it appears in neither the
+      reward nor the check -- covered by `test_reference_and_imitation_keys_exist_in_model`,
+      since those joint names are absent from the composed model entirely.
+    * A joint the person still has (the residual hip, and the knee for a transtibial device) does
+      belong in the reward. With the whole side dropped, nothing in the reward referred to it and
+      the policies folded the residual knee or dragged the foot.
+    * Neither belongs in the termination check. `knee_angle_r` was the single most frequent cause
+      of episode termination, because a residual limb without an ankle push-off cannot produce
+      healthy swing-phase kinematics.
     """
     env_params = json.loads(config_path.read_text())["env_params"]
     rewards = env_params["reward_keys_and_weights"]
+    oot = env_params["out_of_trajectory_joint_keys"]
     side = "r"  # every shipped prosthesis amputates the right leg
-    for block in ("qpos_imitation_rewards", "qvel_imitation_rewards"):
-        offending = [k for k in rewards[block] if k.endswith(f"_{side}")]
-        assert not offending, (
-            f"{config_path.name}: {block} still tracks the amputated side: {offending}. "
-            "That both rewards an unreachable trajectory and terminates the episode on it."
-        )
-        assert rewards[block], f"{config_path.name}: {block} is empty; nothing would be imitated"
 
-    assert env_params["out_of_trajectory_threshold"] > 0.2, (
-        f"{config_path.name}: out_of_trajectory_threshold is "
-        f"{env_params['out_of_trajectory_threshold']}, the intact-config value. The intact leg of "
-        "an amputee compensates for the missing push-off and does not track a healthy walker as "
-        "tightly, so the wall has to be looser here."
+    assert oot, f"{config_path.name}: empty out_of_trajectory_joint_keys falls back to the whole imitation dict"
+    offending = [k for k in oot if k.endswith(f"_{side}")]
+    assert not offending, f"{config_path.name}: the termination check still watches the amputated side: {offending}"
+    assert set(oot) <= set(rewards["qpos_imitation_rewards"]), (
+        f"{config_path.name}: out_of_trajectory_joint_keys names joints the imitation reward does "
+        f"not track, so there is no reference to compare them against: "
+        f"{sorted(set(oot) - set(rewards['qpos_imitation_rewards']))}"
     )
 
-    # The residual limb is still placed from the reference at reset -- dropping it from the
-    # imitation reward is not the same as starting it from an arbitrary pose.
-    assert any(k.endswith(f"_{side}") for k in env_params["reference_data_keys"]) or "KA" in config_path.name, (
-        f"{config_path.name}: reference_data_keys no longer initialises any joint on the "
-        "amputated side, so the residual limb would start each episode away from the gait pose"
+    residual = [k for k in rewards["qpos_imitation_rewards"] if k.endswith(f"_{side}")]
+    assert residual, (
+        f"{config_path.name}: no residual-limb joint is in the imitation reward. The amputation "
+        "leaves the person their own hip (and knee, transtibially); with nothing in the reward "
+        "referring to those joints the policy has no reason not to fold them."
+    )
+
+    assert env_params["out_of_trajectory_threshold"] > 0.2, (
+        f"{config_path.name}: threshold is the intact-config value; the intact leg of an amputee "
+        "compensates for the missing push-off and does not track a healthy walker as tightly."
+    )
+    assert rewards["forward_reward"] > sum(rewards["qpos_imitation_rewards"].values()), (
+        f"{config_path.name}: forward_reward ({rewards['forward_reward']}) does not outweigh the "
+        f"imitation block ({sum(rewards['qpos_imitation_rewards'].values())}). On an amputee the "
+        "imitation optimum is reachable with the prosthetic leg dragging, so forward progress has "
+        "to be the dominant objective."
     )
 
 
