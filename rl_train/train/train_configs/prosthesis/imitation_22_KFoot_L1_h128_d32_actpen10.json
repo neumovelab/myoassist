@@ -91,7 +91,7 @@
             "muscle_activation_penalty_per_step": 0.0,
             "joint_constraint_force_penalty": 1.0,
             "foot_force_penalty": 0.5,
-            "exo_activation_penalty": 0.0
+            "exo_activation_penalty": 1.0
         },
         "custom_max_episode_steps": 1000,
         "reference_data_path": "rl_train/reference_data/short_reference_gait.npz",
@@ -126,7 +126,8 @@
             "knee_angle_l",
             "pelvis_tilt",
             "pelvis_ty"
-        ]
+        ],
+        "device_ctrl_scale": 0.15
     },
     "ppo_params": {
         "learning_rate": 0.0001,

@@ -241,9 +241,20 @@ def main() -> None:
         "Filenames gain an _actpen<value> suffix.",
     )
     ap.add_argument(
+        "--device-ctrl-scale",
+        type=float,
+        default=0.15,
+        help="Fraction of its own ctrlrange the policy may command on the device actuators. "
+        "1.0 is the model's full authority, which for OpenSourceLeg_A_L1 is 168 N*m into an ankle "
+        "with zero damping and zero armature -- enough to drive the joint 4.3 rad past its "
+        "+-0.52 rad limit and hold it there. Measured across a cap sweep, 0.15 (25 N*m) brings "
+        "the overshoot to 0.47 rad, the same regime as the intact model's passive toe joint. "
+        "Filenames gain a _cap<value> suffix when this differs from the default.",
+    )
+    ap.add_argument(
         "--device-activation-penalty",
         type=float,
-        default=None,
+        default=1.0,
         help="Price of prosthesis effort, same units as --muscle-activation-penalty (both are dt "
         "times a mean dimensionless effort; device ctrl is normalised by its own ctrlrange). "
         "Filenames gain a _devpen<value> suffix.",
@@ -303,8 +314,10 @@ def main() -> None:
         suffix += f"_h{args.human_net}"
     if args.device_net:
         suffix += f"_d{args.device_net}"
-    if args.device_activation_penalty is not None:
+    if args.device_activation_penalty != 1.0:
         suffix += f"_devpen{f'{args.device_activation_penalty:g}'.replace('.', 'p')}"
+    if args.device_ctrl_scale != 0.15:
+        suffix += f"_cap{f'{args.device_ctrl_scale:g}'.replace('.', 'p')}"
     if args.out_of_trajectory_threshold != 0.4:
         suffix += f"_oot{f'{args.out_of_trajectory_threshold:g}'.replace('.', 'p')}"
     if args.forward_reward != 20.0:
@@ -380,10 +393,17 @@ def main() -> None:
         # of the total and forward 5.7%, and the learned policies dragged the foot or folded the
         # residual knee.
         rewards["forward_reward"] = args.forward_reward
+
+        # Device effort is priced, not free. At zero the policy saturates the actuator, which on
+        # OpenSourceLeg_A_L1 means 168 N*m into an ankle with no damping and no armature: measured
+        # on the 30M run the command sat at saturation and the joint ran 4.3 rad past its +-0.52
+        # rad limit. The muscle term averages over `n_muscle` actuators and this one over
+        # `n_motor`, so the per-actuator price here is deliberately above a muscle's
+        # (10/18 = 0.56 for the transtibial models).
+        rewards["exo_activation_penalty"] = args.device_activation_penalty
+        env["device_ctrl_scale"] = args.device_ctrl_scale
         if args.muscle_activation_penalty is not None:
             rewards["muscle_activation_penalty"] = args.muscle_activation_penalty
-        # Always written, even when zero, so a generated config states every weight it runs under.
-        rewards["exo_activation_penalty"] = args.device_activation_penalty or 0.0
 
         if args.total_timesteps is not None:
             cfg["total_timesteps"] = args.total_timesteps

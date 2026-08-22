@@ -86,6 +86,24 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         device_ids = [i for i in range(self.sim.model.nu) if self.sim.model.actuator_dyntype[i] != mujoco.mjtDyn.mjDYN_MUSCLE]
         self._device_actuator_ids = np.asarray(device_ids, dtype=int)
 
+        # Narrow what the policy may command on the device, before anything else reads
+        # `ctrlrange`: myosuite maps the [-1, 1] action onto it, and the effort normaliser below
+        # derives from it, so both follow from this one edit.
+        #
+        # Needed because a device actuator can overpower its own joint limit. `OpenSourceLeg_A_L1`
+        # drives its ankle with 168 N*m into a joint with zero damping and zero armature: a limit
+        # is a soft constraint whose stiffness scales with the DOF's effective inertia, and with
+        # none the joint runs 4.3 rad past its own +-0.52 rad range and stays there. Measured on a
+        # trained policy, the ankle sat outside its limits 92% of the time with the device on
+        # against 31% with it off, and 31% is the same regime as the intact model's passive toe
+        # joint. Capping the command is a workaround, not a fix -- the joint needs inertia, or the
+        # device needs a control rate above this env's 30 Hz -- but it is the part that is ours.
+        if device_ids and env_params.device_ctrl_scale != 1.0:
+            assert 0.0 < env_params.device_ctrl_scale <= 1.0, (
+                f"device_ctrl_scale must be in (0, 1]; got {env_params.device_ctrl_scale}"
+            )
+            self.sim.model.actuator_ctrlrange[self._device_actuator_ids] *= env_params.device_ctrl_scale
+
         # Which entries of `data.act` belong to muscles. Not every device leaves `act` to the
         # muscles alone: UTAnkleExo_L2's two actuators declare `filter` dynamics, so na is 24 for
         # a 22-muscle model and the last two entries are the device's filter states. Slicing them

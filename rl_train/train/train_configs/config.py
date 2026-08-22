@@ -85,6 +85,12 @@ class TrainSessionConfigBase:
         device_key: str = None
         terrain: str = None
 
+        # Fraction of its own ctrlrange the policy may command on the device actuators, applied
+        # by narrowing `actuator_ctrlrange` at setup. 1.0 is the model's full authority and is
+        # what every intact config uses. Below 1.0 for a device whose joint cannot absorb its own
+        # actuator: see MyoAssistLegBase._setup.
+        device_ctrl_scale: float = 1.0
+
     env_params: EnvParams = field(default_factory=EnvParams)
 
     """
