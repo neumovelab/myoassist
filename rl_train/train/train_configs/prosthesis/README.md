@@ -117,7 +117,7 @@ it is the reward and the terminator together, which is why both are changed.
 
 **Both OpenSourceLeg compositions used to open 9 cm in the air.** Fixed at the source, in
 `myoassist_utils/compose.py`; recorded here because it invalidates anything trained on those two
-models before commit `1e01e37`.
+models before commit `1bd41a6`.
 
 `_seat_dz_by_terrain` seats a composed model on the ground by finding its lowest point, and
 `_model_ground_candidates` estimated a primitive's underside as `centre_z − max(geom_size)`. For a
