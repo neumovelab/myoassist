@@ -369,15 +369,20 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         Normally the keyframe. assist_sim authors it per composition with the feet on the ground,
         and reading it there keeps every device that satisfies that assumption exactly as it was.
 
-        The fallback is a guard, and every shipped composition currently takes the fast path. It
-        exists because two did not: `myolegs22 + OpenSourceLeg_A_L1` and `+ OpenSourceLeg_KA_L1`
-        opened 9 cm above the floor with no ground contact at all, because
-        `compose._model_ground_candidates` read a horizontal capsule's half-length as its
-        downward extent and seated the model on a point that was not there. That is fixed at the
-        source, but the failure was invisible from the RL side -- a config that trains, on a model
-        that never touches the ground -- so the check stays: no contact at the keyframe pose means
-        the keyframe is not a standing pose, and the height is then measured by lowering the
-        pelvis until the feet touch.
+        Two compositions do not satisfy it. `myolegs22 + OpenSourceLeg_A_L1` and
+        `+ OpenSourceLeg_KA_L1` open 9 cm above the floor with no ground contact at all, so their
+        keyframe `pelvis_ty` is a height they cannot stand at. The cause is upstream, in the
+        shared compose pipeline: `compose._model_ground_candidates` estimates a primitive's
+        underside as `centre_z - max(geom_size)`, which reads a horizontal capsule's half-length
+        as its downward extent. The OpenSourceLeg foot contacts are capsules of radius 0.012 m and
+        half-length 0.11 m laid flat, so the seater lifts the model onto a point 9.8 cm below
+        where the geometry actually is. That pipeline is shared with the CO framework and is not
+        ours to change, so this compensates on the RL side instead.
+
+        Detected rather than tabulated: no contact at the keyframe pose means the keyframe is not
+        a standing pose, and the height is then measured by lowering the pelvis until the feet
+        touch. If the upstream estimate is ever corrected this goes inert on its own, because the
+        keyframe will then report contact.
 
         Returns None when the model has no keyframe to start from.
         """

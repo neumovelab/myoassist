@@ -174,46 +174,14 @@ _CONTACT_PATCH = 0.02
 _REFINE_COUNT = 24
 
 
-def _primitive_drop(geom_type: int, size: np.ndarray, rot: np.ndarray) -> float:
-    """How far a primitive's surface reaches below its own centre, in world z.
-
-    `size` means something different per geom type, so the extent has to be resolved
-    against the geom's orientation rather than read off the largest entry. A capsule's
-    `size` is (radius, half-length) about its *local z axis*: lying flat, it reaches only
-    its radius below centre, but taking the largest entry claims the half-length. The
-    OpenSourceLeg foot contacts are exactly that -- capsules of radius 0.012 m and
-    half-length 0.11 m, laid horizontally -- so the old estimate placed their underside
-    9.8 cm too low and `_seat_dz_by_terrain` lifted the whole model to rest on a point
-    that is not there. Both OpenSourceLeg compositions opened 9 cm in the air with no
-    ground contact at all, which is invisible on a flat floor until something checks.
-
-    `rot` is the geom's world rotation; `rot[2]` is therefore the world-z component of
-    each local axis, which is what the extent along z is built from.
-    """
-    if geom_type == mj.mjtGeom.mjGEOM_SPHERE:
-        return float(size[0])
-    if geom_type == mj.mjtGeom.mjGEOM_CAPSULE:
-        return float(abs(rot[2, 2]) * size[1] + size[0])
-    if geom_type == mj.mjtGeom.mjGEOM_CYLINDER:
-        # Flat cap: the rim contributes the radius scaled by how edge-on the disc is.
-        return float(abs(rot[2, 2]) * size[1] + size[0] * np.sqrt(max(0.0, 1.0 - rot[2, 2] ** 2)))
-    if geom_type == mj.mjtGeom.mjGEOM_BOX:
-        return float(np.abs(rot[2, :3]) @ size[:3])
-    if geom_type == mj.mjtGeom.mjGEOM_ELLIPSOID:
-        return float(np.linalg.norm(rot[2, :3] * size[:3]))
-    # Planes and anything unrecognised cannot sensibly seat the model.
-    return float(np.max(size))
-
-
 def _model_ground_candidates(model: mj.MjModel, data: mj.MjData, terrain_ids: set) -> np.ndarray:
     """World points on the model that could touch the ground, as (N, 3).
 
     Mesh geoms contribute the vertices in their own lowest `_CONTACT_PATCH`, so a
     tilted or contoured sole is measured from its real surface rather than a
     bounding box, without paying for the whole mesh. Primitives contribute their
-    lowest point, resolved against their orientation by `_primitive_drop`. Only the
-    lowest `_SEATING_BAND` of the model is considered, so a hand or a backpack cannot
-    decide the seating.
+    lowest point. Only the lowest `_SEATING_BAND` of the model is considered, so a
+    hand or a backpack cannot decide the seating.
     """
     points: list[np.ndarray] = []
     for i in range(model.ngeom):
@@ -228,11 +196,9 @@ def _model_ground_candidates(model: mj.MjModel, data: mj.MjData, terrain_ids: se
             if len(patch) > _MAX_POINTS_PER_GEOM:
                 patch = patch[np.argsort(patch[:, 2])[:_MAX_POINTS_PER_GEOM]]
             points.append(patch)
-        elif model.geom_type[i] == mj.mjtGeom.mjGEOM_PLANE:
-            continue
         else:
             low = data.geom_xpos[i].copy()
-            low[2] -= _primitive_drop(model.geom_type[i], model.geom_size[i], data.geom_xmat[i].reshape(3, 3))
+            low[2] -= float(np.max(model.geom_size[i]))
             points.append(low.reshape(1, 3))
     if not points:
         return np.empty((0, 3))

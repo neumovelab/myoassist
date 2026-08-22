@@ -115,30 +115,33 @@ improving (4.25 → 7.51). Removing the trajectory wall at evaluation time did *
 trained policy — 12/12 episodes then fell instead — so the wall is not the whole story on its own;
 it is the reward and the terminator together, which is why both are changed.
 
-**Both OpenSourceLeg compositions used to open 9 cm in the air.** Fixed at the source, in
-`myoassist_utils/compose.py`; recorded here because it invalidates anything trained on those two
-models before commit `1bd41a6`.
+**Both OpenSourceLeg compositions open 9 cm in the air, and this compensates for it.**
 
-`_seat_dz_by_terrain` seats a composed model on the ground by finding its lowest point, and
-`_model_ground_candidates` estimated a primitive's underside as `centre_z − max(geom_size)`. For a
+`myoassist_utils/compose.py` seats a composed model on the ground by finding its lowest point, and
+`_model_ground_candidates` estimates a primitive's underside as `centre_z − max(geom_size)`. For a
 capsule `size` is `(radius, half-length)` about its *local z axis*, so a horizontal capsule reaches
-only its radius below centre — the OpenSourceLeg foot contacts are capsules of radius 0.012 m and
-half-length 0.11 m laid flat, and the estimate put their underside 9.8 cm too low. The seater then
-lifted the whole model to rest on a point that is not there: no ground contact at the keyframe at
-all, the real capsules floating at +0.093 m, the intact foot at +0.088 m. On a flat floor nothing
-reports this — the model simply falls at the start of every episode, and because `reset` takes its
-pose from the reference, the imitation term spent the whole run rewarding a pelvis height the
-geometry could not reach.
+only its radius below centre. The OpenSourceLeg foot contacts are capsules of radius 0.012 m and
+half-length 0.11 m laid flat, so the estimate puts their underside 9.8 cm too low and the seater
+lifts the whole model onto a point that is not there: no ground contact at the keyframe at all, the
+real capsules floating at +0.093 m, the intact foot at +0.088 m. Every other device's foot contact
+is a mesh, which is measured from its transformed vertices and is unaffected.
 
-Only these two devices were affected: every other foot contact is a mesh, and meshes were already
-measured from their transformed vertices. After the fix all 13 compositions are unchanged to five
-decimals except these two, which move from 1.006 m to 0.913 m — the same standing height as the
-intact `Tutorial_L1`.
+That pipeline is shared with the CO framework, so the fix belongs there and not here. On the RL
+side this is compensated instead, in two places:
 
-`MyoAssistLegImitation._standing_pelvis_height` keeps a guard for the same class of failure: if a
-composition reports no ground contact at its keyframe, the standing height is measured by lowering
-the pelvis instead of trusting the keyframe. Every shipped composition now takes the fast path, so
-the guard is inert; it exists because this was invisible from the RL side.
+* `MyoAssistLegImitation._standing_pelvis_height` measures the standing height by lowering the
+  pelvis when the keyframe reports no ground contact, and `_height_corrected_reference` then
+  shifts the reference down by 8.3 cm. Without it every episode began with the pelvis above the
+  height at which the feet reach the floor — `reset` takes its pose from the reference — so the
+  model free-fell into each episode and the imitation term rewarded holding it up there.
+* `safe_height` is derived per composition as `standing height − 0.21`, giving 0.613 for the two
+  OpenSourceLeg models against 0.7 elsewhere. It is an absolute `pelvis_ty`, so the shipped 0.7
+  would leave a model standing at 0.823 only 0.12 m of fall margin against the intact configs'
+  0.21 m.
+
+Both are keyed off the measured geometry, so if the compose estimate is ever corrected upstream
+they go inert on their own: the keyframe will report contact, no shift will be applied, and the
+derived `safe_height` returns to 0.7.
 
 **`reset_keyframe_joint_keys` names the prosthetic joints.** `reset` seeds the next episode from
 `sim.data.qpos`, so a DOF the reference does not write carries its value across the episode
