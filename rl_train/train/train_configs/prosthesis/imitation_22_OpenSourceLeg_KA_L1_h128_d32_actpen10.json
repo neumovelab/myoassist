@@ -20,7 +20,7 @@
         "num_envs": 32,
         "seed": 1234,
         "safe_height": 0.7,
-        "out_of_trajectory_threshold": 0.2,
+        "out_of_trajectory_threshold": 0.4,
         "flag_random_ref_index": true,
         "control_framerate": 30,
         "physics_sim_framerate": 1200,
@@ -66,7 +66,6 @@
                 "pelvis_ty": 0.1,
                 "pelvis_tilt": 1.0,
                 "hip_flexion_l": 0.2,
-                "hip_flexion_r": 0.2,
                 "knee_angle_l": 1.0,
                 "ankle_angle_l": 0.2
             },
@@ -74,7 +73,6 @@
                 "pelvis_ty": 0.1,
                 "pelvis_tilt": 0.1,
                 "hip_flexion_l": 0.2,
-                "hip_flexion_r": 0.2,
                 "knee_angle_l": 0.1,
                 "ankle_angle_l": 0.1
             },

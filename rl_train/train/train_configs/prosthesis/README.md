@@ -62,18 +62,34 @@ OpenSourceLeg_A_L1` has no `ankle_angle_r` and no `mtp_angle_r` at all.
 device's own joint (and by *two* joints for the K-Foot, which carries a separate dorsiflexion and
 plantarflexion spring), so the policy still sees the ankle it has.
 
-**The healthy reference is filtered, not remapped.** `short_reference_gait.npz` is motion capture of
-an intact walker and still carries `q_ankle_angle_r`. Those keys are dropped from
-`reference_data_keys` and from the qpos/qvel imitation weights rather than written onto the
-prosthetic joint, because the device joint is not the human joint it replaces: the OSL ankle is
-limited to ±0.52 rad against the human's −1.13…0.35, and the transfemoral knee runs [0, 2.09]
-against the human's [−2.53, 0] — the opposite sign convention. The intact side, the pelvis and the
-residual limb's own joints are tracked as before.
+**The imitation reward covers the pelvis and the intact leg only.** `short_reference_gait.npz` is
+motion capture of an intact walker. The device joint is not the human joint it replaces — the OSL
+ankle is limited to ±0.52 rad against the human's −1.13…0.35, and the transfemoral knee runs
+[0, 2.09] against the human's [−2.53, 0], the opposite sign convention — so those keys are dropped
+rather than remapped. The whole amputated side goes with them: without an ankle push-off the
+residual limb's hip and knee cannot produce healthy kinematics either.
 
-Dropping them also fixes the termination. `MyoAssistLegImitation.step` ends an episode when *any*
-imitation key exceeds `out_of_trajectory_threshold` (0.2 rad), and it reads the same dict as the
-reward, so a prosthetic joint in the imitation weights would end nearly every episode on a tracking
-error the prosthesis cannot avoid.
+`MyoAssistLegImitation.step` reads that same dict for its `out_of_trajectory_threshold` check, so
+an entry there is also a hard episode terminator. `out_of_trajectory_threshold` is 0.4 here against
+the intact configs' 0.2, because the intact leg compensates for the missing push-off and does not
+track a healthy walker as tightly.
+
+`reference_data_keys` still *places* the residual limb from the reference at reset. Dropping a
+joint from the reward is not the same as starting it from an arbitrary pose.
+
+This is measured. The first 30M runs kept the affected side in the imitation dict at threshold 0.2:
+
+| run | eval survival | distance | prosthetic-foot strikes |
+|---|---|---|---|
+| `OpenSourceLeg_A_L1` | 23 steps (0.8 s) | 1.1 m | 0 |
+| `NEUankle_L1` | 22 steps (0.7 s) | 0.4 m | 0 |
+| `Tutorial_L1` (intact control) | 1000 steps (33 s, capped) | 39.4 m | 62 |
+
+`knee_angle_r` was the largest tracking error and the most frequent termination cause, and both
+prosthesis runs flattened at ~15M steps (episode length 4.1 → 4.7) while the intact control kept
+improving (4.25 → 7.51). Removing the trajectory wall at evaluation time did *not* rescue the
+trained policy — 12/12 episodes then fell instead — so the wall is not the whole story on its own;
+it is the reward and the terminator together, which is why both are changed.
 
 **`reset_keyframe_joint_keys` names the prosthetic joints.** `reset` seeds the next episode from
 `sim.data.qpos`, so a DOF the reference does not write carries its value across the episode

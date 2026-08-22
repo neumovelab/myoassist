@@ -15,12 +15,23 @@ rests on is false here:
     pinned to 0 and the per-side shared exo network (`exo_actor_r`/`exo_actor_l`) is not
     used -- a single `exo_actor` drives the one-sided device.
   * **The reference is a healthy walker.** `short_reference_gait.npz` has `q_ankle_angle_r`,
-    but the model it would be written to has no such joint. Reference and imitation keys are
-    filtered to the joints the composed model actually has, which drops the prosthetic side
-    from `_follow_reference_motion`, from the qpos/qvel imitation reward, and -- because the
-    two share one dict -- from the out-of-trajectory termination that would otherwise end
-    every episode on a tracking error the prosthesis cannot avoid. The intact side, the
-    pelvis and the residual limb's own joints are still tracked.
+    but the model it would be written to has no such joint, and more fundamentally the whole
+    amputated side cannot reach a healthy, near-symmetric trajectory: without an ankle
+    push-off the residual limb's knee does not produce the healthy swing-phase flexion. The
+    qpos/qvel imitation weights therefore keep only the pelvis and the intact leg. Because
+    `MyoAssistLegImitation.step` reads that same dict for its `out_of_trajectory_threshold`
+    check, this also stops the affected side from terminating episodes; the threshold itself
+    is relaxed from the intact configs' 0.2 because the intact leg compensates and does not
+    track a healthy walker as tightly either. `reference_data_keys` still *places* the
+    residual limb from the reference at reset -- dropping a joint from the reward is not the
+    same as starting it from an arbitrary pose.
+
+    This is measured, not assumed. On the first 30M runs (imitation on the affected side,
+    threshold 0.2) `knee_angle_r` was both the largest tracking error and the most frequent
+    cause of termination, and both prosthesis runs stopped improving at ~15M steps -- episode
+    length 4.1 -> 4.7 for `OpenSourceLeg_A_L1` -- while the intact `Tutorial_L1` control,
+    sharing all of this infrastructure, kept improving to the end (4.25 -> 7.51) and walked
+    39 m in evaluation against the prostheses' 1 m.
 
 Devices, all right-sided (`python -m assist_sim list` for the registry):
 
@@ -134,6 +145,40 @@ def _indices(keys: list[str], names: list[str], offset: int) -> list[int]:
     return [index[n] for n in names]
 
 
+def _amputated_side(prosthetic_joints: list[str]) -> str:
+    """The body side the device amputates, read off the joints it substituted in.
+
+    Every shipped prosthesis is right-sided, but reading it from the composed model rather than
+    assuming keeps a future left-sided device from silently getting the wrong side dropped.
+    """
+    sides = {j[-1] for j in prosthetic_joints}
+    assert sides <= {"l", "r"} and len(sides) == 1, (
+        f"cannot tell which side the amputation is on from {prosthetic_joints}; expected every "
+        f"substituted joint to end in the same '_l'/'_r' suffix"
+    )
+    return sides.pop()
+
+
+def _drop_amputated_side(weights: dict, side: str) -> dict:
+    """Remove the amputated limb's joints from an imitation weight dict.
+
+    The reference is a healthy, near-symmetric walker, and on the amputated side that target is
+    not reachable: without an ankle push-off the residual limb's knee cannot produce the healthy
+    swing-phase flexion, so the term asks for a trajectory no policy can deliver. Measured on the
+    30M `OpenSourceLeg_A_L1` run, `knee_angle_r` was the single largest tracking error and the
+    most frequent cause of episode termination -- the same dict drives the reward and the
+    `out_of_trajectory_threshold` check in `MyoAssistLegImitation.step`.
+
+    Both prosthesis runs flattened out after ~15M steps (episode length 4.1 -> 4.7 for
+    `OpenSourceLeg_A_L1`) while the intact `Tutorial_L1` control, sharing all of this
+    infrastructure, kept improving to the end (4.25 -> 7.51). Dropping the affected side leaves
+    the pelvis and the intact leg -- the parts of an amputee gait a healthy reference can still
+    speak to -- and lets the residual limb be shaped by the forward, foot-force and effort terms
+    instead.
+    """
+    return {k: v for k, v in weights.items() if not k.endswith(f"_{side}")}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--devices", nargs="*", default=None, help="Subset of device keys (default: all four).")
@@ -162,6 +207,16 @@ def main() -> None:
     ap.add_argument("--human-net", type=int, default=None, help="Width of both human_actor hidden layers (template: 64).")
     ap.add_argument("--device-net", type=int, default=None, help="Width of both prosthesis-actor hidden layers (template: 8).")
     ap.add_argument("--total-timesteps", type=float, default=None, help="Override total_timesteps (template: 3e7).")
+    ap.add_argument(
+        "--out-of-trajectory-threshold",
+        type=float,
+        default=0.4,
+        help="Radians of imitation tracking error, on any joint the imitation dict still names, "
+        "that ends the episode (`MyoAssistLegImitation.step`). The intact configs use 0.2; the "
+        "default here is 0.4 because an amputee's intact leg compensates for the missing "
+        "push-off and does not follow a healthy walker as closely. Filenames gain an _oot<value> "
+        "suffix when this differs from the default.",
+    )
     args = ap.parse_args()
 
     template = json.loads(TEMPLATE.read_text())
@@ -178,6 +233,8 @@ def main() -> None:
         suffix += f"_d{args.device_net}"
     if args.device_activation_penalty is not None:
         suffix += f"_devpen{f'{args.device_activation_penalty:g}'.replace('.', 'p')}"
+    if args.out_of_trajectory_threshold != 0.4:
+        suffix += f"_oot{f'{args.out_of_trajectory_threshold:g}'.replace('.', 'p')}"
     if args.muscle_activation_penalty is not None:
         suffix += f"_actpen{f'{args.muscle_activation_penalty:g}'.replace('.', 'p')}"
 
@@ -217,8 +274,17 @@ def main() -> None:
         # MyoAssistLegImitation._reset_keyframe_joints.
         env["reset_keyframe_joint_keys"] = sorted(set(prosthetic_pos) | set(prosthetic_vel))
         rewards = env["reward_keys_and_weights"]
+        side = _amputated_side(prosthetic_pos)
         for block in ("qpos_imitation_rewards", "qvel_imitation_rewards"):
-            rewards[block] = {k: v for k, v in rewards[block].items() if k in facts["joints"]}
+            present = {k: v for k, v in rewards[block].items() if k in facts["joints"]}
+            rewards[block] = _drop_amputated_side(present, side)
+
+        # The same dict is the episode's out-of-trajectory check, so this threshold now applies
+        # only to the pelvis and the intact leg. It is still relaxed relative to the intact
+        # configs' 0.2: the intact side of an amputee gait compensates for the missing push-off
+        # and does not track a healthy walker as tightly either -- `ankle_angle_l` was the third
+        # most frequent termination cause on the 30M run.
+        env["out_of_trajectory_threshold"] = args.out_of_trajectory_threshold
         if args.muscle_activation_penalty is not None:
             rewards["muscle_activation_penalty"] = args.muscle_activation_penalty
         # Always written, even when zero, so a generated config states every weight it runs under.
@@ -310,12 +376,15 @@ def main() -> None:
 
         out = out_dir / f"imitation_22_{device}{suffix}.json"
         out.write_text(json.dumps(cfg, indent=4) + "\n")
-        dropped = sorted(set(template_env["reference_data_keys"]) - set(env["reference_data_keys"]))
+        dropped = sorted(
+            set(template_env["reward_keys_and_weights"]["qpos_imitation_rewards"]) - set(rewards["qpos_imitation_rewards"])
+        )
         print(
             f"  {out.name:52} obs={obs_len:3} act={facts['nu']:3} "
-            f"({facts['n_muscle']} muscle + {facts['n_motor']} motor)  "
-            f"prosthetic_dof={prosthetic_pos}  imitation_dropped={dropped}"
+            f"({facts['n_muscle']} muscle + {facts['n_motor']} motor)  oot={args.out_of_trajectory_threshold}"
         )
+        print(f"       prosthetic_dof={prosthetic_pos}")
+        print(f"       imitation drops the '{side}' side: {dropped}  -> tracks {sorted(rewards['qpos_imitation_rewards'])}")
 
 
 if __name__ == "__main__":
