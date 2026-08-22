@@ -19,7 +19,7 @@
         "env_id": "myoAssistLegImitationExo-v0",
         "num_envs": 32,
         "seed": 1234,
-        "safe_height": 0.7,
+        "safe_height": 0.6128,
         "out_of_trajectory_threshold": 0.4,
         "flag_random_ref_index": true,
         "control_framerate": 30,

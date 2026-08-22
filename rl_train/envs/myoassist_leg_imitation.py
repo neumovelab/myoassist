@@ -363,6 +363,57 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         self._imitation_index = None
         self._reference_data_length = self._reference_data["metadata"]["resampled_data_length"]
 
+    def _standing_pelvis_height(self) -> float | None:
+        """The `pelvis_ty` qpos at which this composed model's feet reach the ground.
+
+        Normally the keyframe. assist_sim authors it per composition with the feet on the ground,
+        and reading it there keeps every device that satisfies that assumption exactly as it was.
+
+        Two do not. `myolegs22 + OpenSourceLeg_A_L1` and `+ OpenSourceLeg_KA_L1` place the body
+        8.6 cm above the floor at their own keyframe -- `mj_forward` reports no contacts at all --
+        so the keyframe's `pelvis_ty` is a height those models cannot stand at. That is detected
+        rather than tabulated: no contact at the keyframe pose means the keyframe is not a
+        standing pose, and the height is then found by lowering the pelvis until the feet touch.
+
+        Returns None when the model has no keyframe to start from.
+        """
+        model, data = self.sim.model, self.sim.data
+        if model.nkey == 0:
+            return None
+
+        ty_adr = model.jnt_qposadr[model.joint("pelvis_ty").id]
+        keyframe_height = float(model.key_qpos[0][ty_adr])
+
+        saved_qpos, saved_qvel = data.qpos.copy(), data.qvel.copy()
+        try:
+            data.qpos[:] = model.key_qpos[0]
+            data.qvel[:] = 0
+            self.sim.forward()
+            if data.ncon > 0:
+                return keyframe_height
+
+            # Bisect on "is anything touching": above the answer nothing is, below it something
+            # is. 0.4 m is more than the largest gap any shipped composition produces.
+            low, high = keyframe_height - 0.4, keyframe_height
+            for _ in range(40):
+                mid = 0.5 * (low + high)
+                data.qpos[ty_adr] = mid
+                self.sim.forward()
+                if data.ncon > 0:
+                    low = mid
+                else:
+                    high = mid
+            standing = 0.5 * (low + high)
+            print(
+                f"Keyframe pose has no ground contact, so its pelvis height {keyframe_height:.3f} m "
+                f"is not a standing height; measured {standing:.3f} m by lowering onto the floor."
+            )
+            return standing
+        finally:
+            data.qpos[:] = saved_qpos
+            data.qvel[:] = saved_qvel
+            self.sim.forward()
+
     def _height_corrected_reference(self, data: dict) -> dict:
         """Shift the reference's pelvis height so the composed model's feet reach the ground.
 
@@ -387,22 +438,28 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         if "q_pelvis_ty" not in series or self.sim.model.nkey == 0:
             return data
 
-        ty_adr = self.sim.model.jnt_qposadr[self.sim.model.joint("pelvis_ty").id]
-        standing_height = float(self.sim.model.key_qpos[0][ty_adr])
+        standing_height = self._standing_pelvis_height()
+        if standing_height is None:
+            return data
         reference_height = float(np.mean(series["q_pelvis_ty"]))
         offset = standing_height - reference_height
 
+        # Compared on magnitude, not sign. A device that adds material under the foot needs the
+        # reference raised; a composition that stands *below* the reference needs it lowered, and
+        # the two OpenSourceLeg models do -- their standing height is 0.823 m against the
+        # reference's 0.906 m mean, so every reset placed the pelvis 8.3 cm above the height at
+        # which their feet reach the floor, and the imitation term then rewarded holding it there.
         # Devices that add nothing under the foot land within a centimetre of the reference, and
         # the existing configs train correctly at that residual, so leave them exactly as they
         # were rather than perturbing every run for a rounding difference.
-        if offset < self.REFERENCE_HEIGHT_CORRECTION_THRESHOLD:
+        if abs(offset) < self.REFERENCE_HEIGHT_CORRECTION_THRESHOLD:
             return data
 
         corrected = dict(data)
         corrected["series_data"] = dict(series)
         corrected["series_data"]["q_pelvis_ty"] = np.asarray(series["q_pelvis_ty"], dtype=float) + offset
         print(
-            f"Reference pelvis height shifted by {offset:+.4f} m: this device stands at "
+            f"Reference pelvis height shifted by {offset:+.4f} m: this composition stands at "
             f"{standing_height:.3f} m against the reference's {reference_height:.3f} m"
         )
         return corrected

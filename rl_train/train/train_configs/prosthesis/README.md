@@ -115,6 +115,24 @@ improving (4.25 → 7.51). Removing the trajectory wall at evaluation time did *
 trained policy — 12/12 episodes then fell instead — so the wall is not the whole story on its own;
 it is the reward and the terminator together, which is why both are changed.
 
+**The reference pelvis height is corrected downwards, and `safe_height` is derived.** Both
+OpenSourceLeg compositions stand at 0.823 m while the reference's `q_pelvis_ty` averages 0.906 m.
+`reset` takes its pose from the reference, so every episode used to begin with the pelvis 8.3 cm
+above the height at which the feet reach the floor: the model free-fell into each episode and the
+imitation term then rewarded holding it up there, a target its geometry cannot reach.
+
+`_height_corrected_reference` existed for the opposite case (STRIDE_L2's sole pads raise it 5.5 cm)
+but could not see this one. It read the standing height from the keyframe, and those two
+compositions report **no ground contact at all** at their own keyframe -- the keyframe's pelvis
+height is not a height they can stand at. `_standing_pelvis_height` now checks for that and falls
+back to lowering the pelvis until the feet touch, and the shift is applied on magnitude rather than
+sign. Every other device keeps its previous value exactly (STRIDE_L2 +0.0548, DephyExoBoot_L1
++0.0540, the rest unshifted).
+
+`safe_height` is an absolute `pelvis_ty`, so the shipped 0.7 gives 0.21 m of fall margin on an
+intact model but only 0.12 m on a composition standing at 0.823 -- half the room to recover. It is
+derived per composition as `standing height − 0.21`.
+
 **`reset_keyframe_joint_keys` names the prosthetic joints.** `reset` seeds the next episode from
 `sim.data.qpos`, so a DOF the reference does not write carries its value across the episode
 boundary — normally the value it held while the model was falling. On an intact model that is only

@@ -168,6 +168,61 @@ def test_amputated_side_guides_but_does_not_terminate(config_path):
 
 
 @pytest.mark.parametrize("config_path", shipped_prosthesis_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
+def test_reset_places_the_model_on_the_ground(config_path):
+    """A reset pose sits at the height the composition can actually stand at.
+
+    `reset` takes the initial pose from the reference, whose `q_pelvis_ty` describes a bare
+    musculoskeletal model. `myolegs22 + OpenSourceLeg_A_L1` stands at 0.823 m against the
+    reference's 0.906 m mean, so before `_standing_pelvis_height` learned to detect it, every
+    episode began with the pelvis 8.3 cm above the height at which the feet reach the floor --
+    the model free-fell into each episode and the imitation term rewarded holding it up there.
+    The keyframe could not reveal this: those two compositions report no ground contact at their
+    own keyframe, which is exactly the signal the fix keys off.
+
+    Checked as a fall distance rather than a contact count, because the reference is a walking
+    trajectory and a mid-swing pose legitimately has both feet off the ground.
+    """
+    import numpy as np
+
+    _, env = build_prosthesis_env(config_path)
+    try:
+        standing = env._standing_pelvis_height()
+        drops = []
+        for _ in range(12):
+            env.reset()
+            drops.append(float(env.sim.data.joint("pelvis_ty").qpos[0]) - standing)
+        worst = max(drops)
+        assert worst < 0.06, (
+            f"{config_path.name}: a reset starts up to {worst * 100:.1f} cm above the height this "
+            f"composition stands at ({standing:.3f} m). The reference pelvis height is not being "
+            "corrected for this model."
+        )
+        assert np.mean(drops) < 0.04, f"{config_path.name}: resets average {np.mean(drops) * 100:.1f} cm above standing height"
+    finally:
+        env.close()
+
+
+@pytest.mark.parametrize("config_path", shipped_prosthesis_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
+def test_fall_margin_matches_the_intact_configs(config_path):
+    """`safe_height` leaves the same room to recover whatever height the device stands at.
+
+    It is an absolute `pelvis_ty`, so the shipped 0.7 means 0.21 m of drop on an intact model
+    (standing 0.915) but only 0.12 m on the OpenSourceLeg compositions (standing 0.823) -- they
+    would be called fallen after roughly half the descent.
+    """
+    env_params = json.loads(config_path.read_text())["env_params"]
+    _, env = build_prosthesis_env(config_path)
+    try:
+        margin = env._standing_pelvis_height() - env_params["safe_height"]
+    finally:
+        env.close()
+    assert 0.18 < margin < 0.24, (
+        f"{config_path.name}: safe_height {env_params['safe_height']} leaves {margin:.3f} m of "
+        "fall margin; the intact configs allow ~0.21 m."
+    )
+
+
+@pytest.mark.parametrize("config_path", shipped_prosthesis_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
 def test_prosthetic_joints_reset_to_keyframe(config_path):
     """The prosthesis' own DOFs start each episode at the keyframe, not where the last fall left them.
 

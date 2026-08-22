@@ -145,6 +145,35 @@ def _indices(keys: list[str], names: list[str], offset: int) -> list[int]:
     return [index[n] for n in names]
 
 
+def _standing_height(device: str) -> float:
+    """The `pelvis_ty` qpos at which the composed model's feet reach the ground.
+
+    Same rule as `MyoAssistLegImitation._standing_pelvis_height`: the keyframe when it is a
+    standing pose, otherwise measured by lowering the pelvis until something touches. The two
+    OpenSourceLeg compositions need the second branch -- they hang 8.6 cm above the floor at
+    their own keyframe.
+    """
+    import mujoco
+
+    from myoassist_utils.compose import compose_env_model
+
+    model = mujoco.MjModel.from_xml_string(compose_env_model(MSK, device))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, 0)
+    ty_adr = model.jnt_qposadr[model.joint("pelvis_ty").id]
+    keyframe = float(data.qpos[ty_adr])
+    mujoco.mj_forward(model, data)
+    if data.ncon > 0:
+        return keyframe
+    low, high = keyframe - 0.4, keyframe
+    for _ in range(40):
+        mid = 0.5 * (low + high)
+        data.qpos[ty_adr] = mid
+        mujoco.mj_forward(model, data)
+        low, high = (mid, high) if data.ncon > 0 else (low, mid)
+    return 0.5 * (low + high)
+
+
 def _amputated_side(prosthetic_joints: list[str]) -> str:
     """The body side the device amputates, read off the joints it substituted in.
 
@@ -252,6 +281,14 @@ def main() -> None:
         "without one nothing in the reward refers to those joints and the knee folds. They are "
         "excluded from the out-of-trajectory check regardless. 0 removes the term entirely.",
     )
+    ap.add_argument(
+        "--fall-margin",
+        type=float,
+        default=0.21,
+        help="Metres the pelvis may drop below the composition's standing height before "
+        "safe_height ends the episode. The intact configs work out to ~0.21 (0.915 standing "
+        "against safe_height 0.7); this keeps that margin whatever height the device stands at.",
+    )
     args = ap.parse_args()
 
     template = json.loads(TEMPLATE.read_text())
@@ -282,6 +319,13 @@ def main() -> None:
         facts = _model_facts(device)
         cfg = json.loads(TEMPLATE.read_text())
         env = cfg["env_params"]
+
+        # `safe_height` is an absolute pelvis_ty, so a composition that stands lower gets a
+        # smaller fall margin from the same number. The intact configs allow ~0.21 m of drop
+        # (0.915 standing against 0.7); left at 0.7 the OpenSourceLeg models, which stand at
+        # 0.823, would be declared fallen after 0.12 m -- roughly half the room to recover.
+        # Derived so every composition gets the same margin.
+        env["safe_height"] = round(_standing_height(device) - args.fall_margin, 4)
 
         env["msk_key"] = MSK
         env["device_key"] = device
