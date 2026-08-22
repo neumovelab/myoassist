@@ -369,11 +369,15 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         Normally the keyframe. assist_sim authors it per composition with the feet on the ground,
         and reading it there keeps every device that satisfies that assumption exactly as it was.
 
-        Two do not. `myolegs22 + OpenSourceLeg_A_L1` and `+ OpenSourceLeg_KA_L1` place the body
-        8.6 cm above the floor at their own keyframe -- `mj_forward` reports no contacts at all --
-        so the keyframe's `pelvis_ty` is a height those models cannot stand at. That is detected
-        rather than tabulated: no contact at the keyframe pose means the keyframe is not a
-        standing pose, and the height is then found by lowering the pelvis until the feet touch.
+        The fallback is a guard, and every shipped composition currently takes the fast path. It
+        exists because two did not: `myolegs22 + OpenSourceLeg_A_L1` and `+ OpenSourceLeg_KA_L1`
+        opened 9 cm above the floor with no ground contact at all, because
+        `compose._model_ground_candidates` read a horizontal capsule's half-length as its
+        downward extent and seated the model on a point that was not there. That is fixed at the
+        source, but the failure was invisible from the RL side -- a config that trains, on a model
+        that never touches the ground -- so the check stays: no contact at the keyframe pose means
+        the keyframe is not a standing pose, and the height is then measured by lowering the
+        pelvis until the feet touch.
 
         Returns None when the model has no keyframe to start from.
         """
