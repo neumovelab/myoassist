@@ -127,7 +127,10 @@
             "pelvis_tilt",
             "pelvis_ty"
         ],
-        "device_ctrl_scale": 0.15
+        "device_ctrl_scale": 0.15,
+        "curriculum_start_velocity": 0.3,
+        "curriculum_fraction": 0.5,
+        "scale_reference_playback": true
     },
     "ppo_params": {
         "learning_rate": 0.0001,

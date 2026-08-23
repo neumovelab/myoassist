@@ -47,6 +47,13 @@ class TrainSessionConfigBase:
 
         min_target_velocity: float = 0.5
         max_target_velocity: float = 3.0
+
+        # Speed curriculum. 0 disables it, which is what every existing config does. Set it and
+        # the target velocity ramps linearly from this value up to min/max_target_velocity over
+        # `curriculum_fraction` of the run, then holds. The amputee models only ever produced
+        # sustained stepping at 0.2-0.35 m/s while being asked for 1.25 from the first step.
+        curriculum_start_velocity: float = 0.0
+        curriculum_fraction: float = 0.5
         min_target_velocity_period: float = 3
         max_target_velocity_period: float = 5
 

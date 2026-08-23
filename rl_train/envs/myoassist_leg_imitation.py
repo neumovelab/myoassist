@@ -19,10 +19,15 @@ class ImitationCustomLearningCallback(BaseCustomLearningCallback):
         log_handler: train_log_handler.TrainLogHandler,
         original_reward_weights: ImitationTrainSessionConfig.EnvParams.RewardWeights,
         auto_reward_adjust_params: ImitationTrainSessionConfig.AutoRewardAdjustParams,
+        env_params=None,
         verbose=1,
     ):
         super().__init__(
-            log_rollout_freq=log_rollout_freq, evaluate_freq=evaluate_freq, log_handler=log_handler, verbose=verbose
+            log_rollout_freq=log_rollout_freq,
+            evaluate_freq=evaluate_freq,
+            log_handler=log_handler,
+            env_params=env_params,
+            verbose=verbose,
         )
         self._reward_weights = original_reward_weights
         self._auto_reward_adjust_params = auto_reward_adjust_params
@@ -126,6 +131,8 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         self._out_of_trajectory_joint_keys = env_params.out_of_trajectory_joint_keys
         self.reference_data_keys = env_params.reference_data_keys
         self._reset_keyframe_joint_keys = env_params.reset_keyframe_joint_keys
+        self._scale_reference_playback = env_params.scale_reference_playback
+        self._imitation_index_exact = None
         self._loop_reference_data = loop_reference_data
         self._reward_keys_and_weights: ImitationTrainSessionConfig.EnvParams.RewardWeights = env_params.reward_keys_and_weights
 
@@ -329,19 +336,41 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         return self._imitation_index
         # pass
 
+    def _advance_imitation_index(self) -> None:
+        """Step the reference forward by one control step, at the target velocity if asked.
+
+        Default is one frame per control step, which plays the reference at the 1.281 m/s it was
+        recorded at. `scale_reference_playback` instead advances by `target / reference` frames,
+        keeping a float accumulator so a rate below 1 does not round to a standstill. The stride
+        is unchanged and the cadence follows the target, which is what makes a slow target
+        reachable at all: at 0.3 m/s the unscaled reference still demands full-stride angles at
+        full cadence, and no gait satisfies that while travelling 0.3 m/s.
+        """
+        if not self._scale_reference_playback:
+            self._imitation_index += 1
+            return
+        reference_speed = float(self._reference_data["series_data"]["dq_pelvis_tx"][self._imitation_index])
+        rate = abs(self._target_velocity / reference_speed) if reference_speed else 1.0
+        if self._imitation_index_exact is None:
+            self._imitation_index_exact = float(self._imitation_index)
+        self._imitation_index_exact += rate
+        self._imitation_index = int(self._imitation_index_exact)
+
     # override
     def step(self, a, **kwargs):
         if self._imitation_index is not None:
-            self._imitation_index += 1
+            self._advance_imitation_index()
             if self._imitation_index < self._reference_data_length:
                 is_out_of_index = False
             else:
                 if self._loop_reference_data:
                     self._imitation_index = 0
+                    self._imitation_index_exact = 0.0
                     is_out_of_index = False
                 else:
                     is_out_of_index = True
                     self._imitation_index = self._reference_data_length - 1
+                    self._imitation_index_exact = float(self._imitation_index)
         else:
             is_out_of_index = True
 
@@ -480,6 +509,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             self._imitation_index = rng.integers(0, int(self._reference_data_length * 0.8))
         else:
             self._imitation_index = 0
+        self._imitation_index_exact = float(self._imitation_index)
         # generate random targets
         # new_qpos = self.generate_qpos()# TODO: should set qvel too.
         # self.sim.data.qpos = new_qpos

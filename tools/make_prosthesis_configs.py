@@ -300,6 +300,22 @@ def main() -> None:
         "safe_height ends the episode. The intact configs work out to ~0.21 (0.915 standing "
         "against safe_height 0.7); this keeps that margin whatever height the device stands at.",
     )
+    ap.add_argument(
+        "--curriculum-start-velocity",
+        type=float,
+        default=0.3,
+        help="Target velocity the run starts at, ramping to the config's min/max over "
+        "--curriculum-fraction of training. 0 disables the curriculum. Default 0.3 because that "
+        "is the speed at which the amputee models actually produced sustained stepping. Setting "
+        "it also turns on scale_reference_playback, without which a slow target contradicts the "
+        "imitation term. Filenames gain a _curr<value> suffix when this differs from the default.",
+    )
+    ap.add_argument(
+        "--curriculum-fraction",
+        type=float,
+        default=0.5,
+        help="Fraction of total_timesteps over which the target velocity ramps to full; held there afterwards.",
+    )
     args = ap.parse_args()
 
     template = json.loads(TEMPLATE.read_text())
@@ -318,6 +334,8 @@ def main() -> None:
         suffix += f"_devpen{f'{args.device_activation_penalty:g}'.replace('.', 'p')}"
     if args.device_ctrl_scale != 0.15:
         suffix += f"_cap{f'{args.device_ctrl_scale:g}'.replace('.', 'p')}"
+    if args.curriculum_start_velocity != 0.3:
+        suffix += f"_curr{f'{args.curriculum_start_velocity:g}'.replace('.', 'p')}"
     if args.out_of_trajectory_threshold != 0.4:
         suffix += f"_oot{f'{args.out_of_trajectory_threshold:g}'.replace('.', 'p')}"
     if args.forward_reward != 20.0:
@@ -402,6 +420,18 @@ def main() -> None:
         # (10/18 = 0.56 for the transtibial models).
         rewards["exo_activation_penalty"] = args.device_activation_penalty
         env["device_ctrl_scale"] = args.device_ctrl_scale
+
+        # Speed curriculum. The amputee models only ever produced sustained stepping at
+        # 0.2-0.35 m/s while the reward demanded 1.25 from the first step; measured on the 30M
+        # NEUankle_L1 run, the four episodes that lasted past 5 s all travelled at 0.21-0.29 m/s.
+        # Ramping the demand lets that regime be reached before it is asked to be fast.
+        env["curriculum_start_velocity"] = args.curriculum_start_velocity
+        env["curriculum_fraction"] = args.curriculum_fraction
+        # Required for the curriculum to mean anything: the reference walks at 1.281 m/s and its
+        # index advances one frame per control step, so at a 0.3 m/s target the qpos terms would
+        # still demand full-stride angles at full cadence while forward_reward asks for 0.3 m/s.
+        # No gait satisfies both.
+        env["scale_reference_playback"] = args.curriculum_start_velocity > 0
         if args.muscle_activation_penalty is not None:
             rewards["muscle_activation_penalty"] = args.muscle_activation_penalty
 
