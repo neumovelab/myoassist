@@ -1,5 +1,5 @@
 {
-    "total_timesteps": 30000000.0,
+    "total_timesteps": 100000000.0,
     "evaluate_param_list": [
         {
             "num_timesteps": 200,
@@ -19,7 +19,7 @@
         "env_id": "myoAssistLegImitationExo-v0",
         "num_envs": 32,
         "seed": 1234,
-        "safe_height": 0.614,
+        "safe_height": 0.7,
         "out_of_trajectory_threshold": 0.4,
         "flag_random_ref_index": true,
         "control_framerate": 30,
@@ -33,21 +33,21 @@
         "lumbar_joint_damping_value": 0.05,
         "observation_joint_pos_keys": [
             "ankle_angle_l",
-            "OSL_KA_L1_osl_ankle_angle_r",
+            "NEUankle_L1_neuankle_ankle_angle_r",
             "hip_flexion_l",
             "hip_flexion_r",
             "knee_angle_l",
-            "OSL_KA_L1_osl_knee_angle_r",
+            "knee_angle_r",
             "pelvis_tilt",
             "pelvis_ty"
         ],
         "observation_joint_vel_keys": [
             "ankle_angle_l",
-            "OSL_KA_L1_osl_ankle_angle_r",
+            "NEUankle_L1_neuankle_ankle_angle_r",
             "hip_flexion_l",
             "hip_flexion_r",
             "knee_angle_l",
-            "OSL_KA_L1_osl_knee_angle_r",
+            "knee_angle_r",
             "pelvis_tilt",
             "pelvis_tx",
             "pelvis_ty"
@@ -59,7 +59,7 @@
             "l_toes"
         ],
         "msk_key": "myolegs22",
-        "device_key": "OpenSourceLeg_KA_L1",
+        "device_key": "NEUankle_L1",
         "terrain": null,
         "reward_keys_and_weights": {
             "qpos_imitation_rewards": {
@@ -68,7 +68,8 @@
                 "hip_flexion_l": 0.2,
                 "knee_angle_l": 1.0,
                 "ankle_angle_l": 0.2,
-                "hip_flexion_r": 0.2
+                "hip_flexion_r": 0.2,
+                "knee_angle_r": 0.2
             },
             "qvel_imitation_rewards": {
                 "pelvis_ty": 0.1,
@@ -76,10 +77,11 @@
                 "hip_flexion_l": 0.2,
                 "knee_angle_l": 0.1,
                 "ankle_angle_l": 0.1,
-                "hip_flexion_r": 0.2
+                "hip_flexion_r": 0.2,
+                "knee_angle_r": 0.2
             },
             "end_effector_imitation_reward": 0.0,
-            "forward_reward": 20.0,
+            "forward_reward": 5.0,
             "muscle_activation_penalty": 10.0,
             "muscle_activation_diff_penalty": 0.1,
             "footstep_delta_time": 0.0,
@@ -96,12 +98,13 @@
             "hip_flexion_l",
             "hip_flexion_r",
             "knee_angle_l",
+            "knee_angle_r",
             "pelvis_tilt",
             "pelvis_tx",
             "pelvis_ty"
         ],
         "prev_trained_policy_path": null,
-        "comment": "amputee model: myolegs22 + OpenSourceLeg_KA_L1, transfemoral (above knee), right",
+        "comment": "amputee model: myolegs22 + NEUankle_L1, transtibial (below knee), right",
         "joint_limit_sensor_keys": [
             "r_knee_sensor",
             "l_knee_sensor",
@@ -112,8 +115,7 @@
             "l_mtp_sensor"
         ],
         "reset_keyframe_joint_keys": [
-            "OSL_KA_L1_osl_ankle_angle_r",
-            "OSL_KA_L1_osl_knee_angle_r"
+            "NEUankle_L1_neuankle_ankle_angle_r"
         ],
         "out_of_trajectory_joint_keys": [
             "ankle_angle_l",
@@ -123,9 +125,29 @@
             "pelvis_ty"
         ],
         "device_ctrl_scale": 0.15,
-        "curriculum_start_velocity": 0.3,
+        "reward_curriculum": {
+            "qpos_imitation_rewards": [
+                1.0,
+                0.0
+            ],
+            "qvel_imitation_rewards": [
+                1.0,
+                0.0
+            ],
+            "forward_reward": [
+                0.2,
+                1.0
+            ],
+            "muscle_activation_penalty": [
+                0.2,
+                1.0
+            ]
+        },
+        "reward_curriculum_start": 0.2,
+        "reward_curriculum_end": 0.6,
+        "curriculum_start_velocity": 0.0,
         "curriculum_fraction": 0.5,
-        "scale_reference_playback": true
+        "scale_reference_playback": false
     },
     "ppo_params": {
         "learning_rate": 0.0001,
@@ -184,23 +206,23 @@
                             "type": "range",
                             "range": [
                                 17,
-                                32
+                                35
                             ],
-                            "comment": "15 muscle activation"
+                            "comment": "18 muscle activation"
                         },
                         {
                             "type": "range",
                             "range": [
-                                32,
-                                36
+                                35,
+                                39
                             ],
                             "comment": "4 foot force"
                         },
                         {
                             "type": "range",
                             "range": [
-                                36,
-                                37
+                                39,
+                                40
                             ],
                             "comment": "target velocity"
                         }
@@ -210,13 +232,13 @@
                             "type": "range_mapping",
                             "range_net": [
                                 0,
-                                15
+                                18
                             ],
                             "range_action": [
                                 0,
-                                15
+                                18
                             ],
-                            "comment": "15 muscle activation (amputee: the prosthetic side has fewer muscles than the intact side)"
+                            "comment": "18 muscle activation (amputee: the prosthetic side has fewer muscles than the intact side)"
                         }
                     ]
                 },
@@ -226,17 +248,15 @@
                             "type": "index",
                             "index": [
                                 1,
-                                5,
-                                9,
-                                13
+                                9
                             ],
-                            "comment": "prosthetic joint angle and angular velocity (OSL_KA_L1_osl_ankle_angle_r, OSL_KA_L1_osl_knee_angle_r)"
+                            "comment": "prosthetic joint angle and angular velocity (NEUankle_L1_neuankle_ankle_angle_r)"
                         },
                         {
                             "type": "range",
                             "range": [
-                                32,
-                                36
+                                35,
+                                39
                             ],
                             "comment": "4 foot contact (r_foot, l_foot, r_toes, l_toes)"
                         }
@@ -246,13 +266,13 @@
                             "type": "range_mapping",
                             "range_net": [
                                 0,
-                                2
+                                1
                             ],
                             "range_action": [
-                                15,
-                                17
+                                18,
+                                19
                             ],
-                            "comment": "2 command(s) for osl_knee_torque_actuator, osl_ankle_torque_actuator"
+                            "comment": "1 command(s) for neuankle_ankle_torque_actuator"
                         }
                     ]
                 },
@@ -278,23 +298,23 @@
                             "type": "range",
                             "range": [
                                 17,
-                                32
+                                35
                             ],
-                            "comment": "15 muscle activation"
+                            "comment": "18 muscle activation"
                         },
                         {
                             "type": "range",
                             "range": [
-                                32,
-                                36
+                                35,
+                                39
                             ],
                             "comment": "4 foot force"
                         },
                         {
                             "type": "range",
                             "range": [
-                                36,
-                                37
+                                39,
+                                40
                             ],
                             "comment": "target velocity"
                         }

@@ -316,6 +316,15 @@ def main() -> None:
         default=0.5,
         help="Fraction of total_timesteps over which the target velocity ramps to full; held there afterwards.",
     )
+    ap.add_argument(
+        "--anneal-imitation",
+        action="store_true",
+        help="Ramp the imitation weights to zero and the forward/effort weights up, so imitation "
+        "bootstraps and then leaves. Needs a much longer run than 30M, since the annealed "
+        "objective has to rediscover gait once the scaffold is gone. Filenames gain _anneal.",
+    )
+    ap.add_argument("--anneal-start", type=float, default=0.2, help="Fraction of the run where the ramp begins.")
+    ap.add_argument("--anneal-end", type=float, default=0.6, help="Fraction of the run where the ramp completes.")
     args = ap.parse_args()
 
     template = json.loads(TEMPLATE.read_text())
@@ -336,6 +345,8 @@ def main() -> None:
         suffix += f"_cap{f'{args.device_ctrl_scale:g}'.replace('.', 'p')}"
     if args.curriculum_start_velocity != 0.3:
         suffix += f"_curr{f'{args.curriculum_start_velocity:g}'.replace('.', 'p')}"
+    if args.anneal_imitation:
+        suffix += "_anneal"
     if args.out_of_trajectory_threshold != 0.4:
         suffix += f"_oot{f'{args.out_of_trajectory_threshold:g}'.replace('.', 'p')}"
     if args.forward_reward != 20.0:
@@ -425,6 +436,23 @@ def main() -> None:
         # 0.2-0.35 m/s while the reward demanded 1.25 from the first step; measured on the 30M
         # NEUankle_L1 run, the four episodes that lasted past 5 s all travelled at 0.21-0.29 m/s.
         # Ramping the demand lets that regime be reached before it is asked to be fast.
+        if args.anneal_imitation:
+            # Imitation as a scaffold, not the objective. On an amputee the reference cannot
+            # describe the affected side, so what it can teach is a posture to bootstrap from;
+            # annealing it away leaves forward progress against effort, which the measured
+            # effort cost can distinguish (one-legged hopping ran 0.237 per metre against
+            # 0.110-0.131 for the policies that used the prosthesis).
+            rewards["forward_reward"] = args.forward_reward
+            rewards["muscle_activation_penalty"] = args.muscle_activation_penalty or 10.0
+            env["reward_curriculum"] = {
+                "qpos_imitation_rewards": [1.0, 0.0],
+                "qvel_imitation_rewards": [1.0, 0.0],
+                "forward_reward": [0.2, 1.0],
+                "muscle_activation_penalty": [0.2, 1.0],
+            }
+            env["reward_curriculum_start"] = args.anneal_start
+            env["reward_curriculum_end"] = args.anneal_end
+
         env["curriculum_start_velocity"] = args.curriculum_start_velocity
         env["curriculum_fraction"] = args.curriculum_fraction
         # Required for the curriculum to mean anything: the reference walks at 1.281 m/s and its

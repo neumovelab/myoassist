@@ -1,5 +1,5 @@
 {
-    "total_timesteps": 30000000.0,
+    "total_timesteps": 100000000.0,
     "evaluate_param_list": [
         {
             "num_timesteps": 200,
@@ -83,7 +83,7 @@
                 "knee_angle_r": 0.2
             },
             "end_effector_imitation_reward": 0.0,
-            "forward_reward": 20.0,
+            "forward_reward": 5.0,
             "muscle_activation_penalty": 10.0,
             "muscle_activation_diff_penalty": 0.1,
             "footstep_delta_time": 0.0,
@@ -128,9 +128,29 @@
             "pelvis_ty"
         ],
         "device_ctrl_scale": 0.15,
-        "curriculum_start_velocity": 0.3,
+        "reward_curriculum": {
+            "qpos_imitation_rewards": [
+                1.0,
+                0.0
+            ],
+            "qvel_imitation_rewards": [
+                1.0,
+                0.0
+            ],
+            "forward_reward": [
+                0.2,
+                1.0
+            ],
+            "muscle_activation_penalty": [
+                0.2,
+                1.0
+            ]
+        },
+        "reward_curriculum_start": 0.2,
+        "reward_curriculum_end": 0.6,
+        "curriculum_start_velocity": 0.0,
         "curriculum_fraction": 0.5,
-        "scale_reference_playback": true
+        "scale_reference_playback": false
     },
     "ppo_params": {
         "learning_rate": 0.0001,

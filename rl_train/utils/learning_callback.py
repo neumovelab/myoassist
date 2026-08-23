@@ -32,6 +32,7 @@ class BaseCustomLearningCallback(BaseCallback):
         self.log_count = 0
         self._env_params = env_params
         self._curriculum_last = None
+        self._reward_curriculum_last = None
 
         # Move the analyze_process function to class level
         # self.analyze_process = functools.partial(_analyze_process)
@@ -116,8 +117,40 @@ class BaseCustomLearningCallback(BaseCallback):
         if self.verbose:
             print(f"velocity curriculum: target now [{lo:.2f}, {hi:.2f}] m/s at {self.num_timesteps}/{total} steps")
 
+    def _update_reward_curriculum(self) -> None:
+        """Move the reward weights along their scheduled scales.
+
+        Each key ramps linearly between `reward_curriculum_start` and `reward_curriculum_end` of
+        the run and is held flat outside that window. Pushed to the workers at a rollout
+        boundary, so a rollout is never collected under two different reward functions -- which
+        would put trajectories scored by one objective into an update for another.
+
+        Inert unless a config populates `reward_curriculum`.
+        """
+        p = self._env_params
+        schedule = getattr(p, "reward_curriculum", None) if p is not None else None
+        if not schedule:
+            return
+        total = self.locals.get("total_timesteps") or 0
+        if total <= 0:
+            return
+        lo, hi = p.reward_curriculum_start, p.reward_curriculum_end
+        progress = self.num_timesteps / total
+        frac = 0.0 if progress <= lo else 1.0 if progress >= hi else (progress - lo) / max(1e-9, hi - lo)
+        scales = {k: v[0] + frac * (v[1] - v[0]) for k, v in schedule.items()}
+        if self._reward_curriculum_last is not None and all(
+            abs(scales[k] - self._reward_curriculum_last[k]) < 1e-3 for k in scales
+        ):
+            return
+        self._reward_curriculum_last = scales
+        self.training_env.env_method("set_reward_weight_scales", scales)
+        if self.verbose:
+            pretty = "  ".join(f"{k.replace('_rewards', '').replace('_reward', '')}x{v:.2f}" for k, v in scales.items())
+            print(f"reward curriculum @ {self.num_timesteps}/{total}: {pretty}")
+
     def _on_rollout_start(self) -> None:
         self._update_velocity_curriculum()
+        self._update_reward_curriculum()
         super()._on_rollout_start()
 
     def _on_rollout_end(self, write_log: bool = True) -> TrainCheckpointData | None:

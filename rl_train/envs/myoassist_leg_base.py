@@ -180,6 +180,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             else:
                 self.rwd_keys_wt[key] = value
 
+        # The weights as configured, so a curriculum can scale from them repeatedly rather than
+        # compounding its own output.
+        self._rwd_keys_wt_configured = dict(self.rwd_keys_wt)
+
         self._initialize_pose()
 
         # reward per step
@@ -415,6 +419,21 @@ class MyoAssistLegBase(env_base.MujocoEnv):
 
         self._min_target_velocity = min_target_velocity
         self._max_target_velocity = max_target_velocity
+
+    def set_reward_weight_scales(self, scales: dict):
+        """Scale reward weights mid-run, relative to what the config declared.
+
+        `rwd_keys_wt` is what `get_reward_dict` multiplies each term by to form `dense`, so this
+        is the structure a reward curriculum has to move. Scales are applied to the configured
+        values rather than to the current ones, so repeated calls do not compound.
+
+        Note this deliberately leaves `_reward_keys_and_weights` alone: the per-joint imitation
+        weights still shape which joint matters relative to which, and the out-of-trajectory
+        check still reads its key list from there. What changes is how much of the imitation
+        term reaches the total.
+        """
+        for key, base in self._rwd_keys_wt_configured.items():
+            self.rwd_keys_wt[key] = base * float(scales.get(key, 1.0))
 
     def set_target_velocity_range(self, min_velocity: float, max_velocity: float):
         """Move the band episodes draw their target velocity from, mid-run.

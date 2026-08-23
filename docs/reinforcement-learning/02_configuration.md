@@ -108,6 +108,8 @@ TrainSessionConfigBase
 | `model_path` | Optional literal MJCF path (escape hatch); leave null to compose from `msk_key`/`device_key` | null |
 | `reference_data_path` | Path to reference motion data (accepts `.npz` or `.json`) | "rl_train/reference_data/short_reference_gait.npz" |
 | `reference_data_keys` | Joint keys for reference data | ["ankle_angle_l", "hip_flexion_l"] |
+| `reward_curriculum` | Maps a reward key to `[start_scale, end_scale]`; its configured weight is multiplied by a scale moving linearly between them across `[reward_curriculum_start, reward_curriculum_end]` of the run. Empty disables it. Used to let imitation bootstrap and then leave, which only makes sense where the reference cannot describe the model. | {} |
+| `reward_curriculum_start` / `_end` | Fractions of `total_timesteps` the ramp spans. | 0.2 / 0.6 |
 | `curriculum_start_velocity` | Target velocity the run starts at, ramping linearly to `min`/`max_target_velocity` over `curriculum_fraction` of the run and held there. 0 disables it, which is what the intact configs do. | 0.0 |
 | `curriculum_fraction` | Fraction of `total_timesteps` the ramp takes. | 0.5 |
 | `scale_reference_playback` | Advance the imitation reference at the target velocity rather than one frame per control step. Off by default. The reference walks at 1.281 m/s, so under a slow target the qpos terms would otherwise demand full-stride angles at full cadence while the forward term asks for a slow walk; no gait satisfies both. | false |

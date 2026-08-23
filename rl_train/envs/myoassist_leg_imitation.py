@@ -379,9 +379,14 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             reward = 0
             truncated = True
         else:
-            q_diff_nparray: np.ndarray = self._get_out_of_trajectory_diff()
-            is_out_of_trajectory = np.any(np.abs(q_diff_nparray) > self._out_of_trajectory_threshold)
-            terminated = terminated or is_out_of_trajectory
+            # Once a reward curriculum has annealed the imitation term to nothing, the
+            # reference is no longer part of the objective, and ending an episode for drifting
+            # from it would keep enforcing a target the policy is no longer paid to hit. The
+            # fall check carries termination from there.
+            if self.rwd_keys_wt.get("qpos_imitation_rewards", 0.0) > 0.0:
+                q_diff_nparray: np.ndarray = self._get_out_of_trajectory_diff()
+                is_out_of_trajectory = np.any(np.abs(q_diff_nparray) > self._out_of_trajectory_threshold)
+                terminated = terminated or is_out_of_trajectory
 
         return (next_obs, reward, terminated, truncated, info)
 

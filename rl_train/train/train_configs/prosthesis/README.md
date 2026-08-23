@@ -186,6 +186,40 @@ the same reason; a single `exo_actor` drives the one-sided device.
 amputated forefoot, and the constraint-force penalty reads each name unguarded, so the class default
 would raise on the first step.
 
+## Imitation as a scaffold
+
+The shipped configs anneal the imitation weights to zero between 20% and 60% of the run, ramping
+`forward_reward` and `muscle_activation_penalty` up over the same window, and train for 100M steps
+rather than 30M.
+
+The reason is that imitation cannot be the objective here. The reference is a healthy walker and
+says nothing about the affected side, so what survives the filtering is a term that describes the
+pelvis and the intact leg. Its optimum is reachable without walking: on the 30M runs
+`OpenSourceLeg_KA_L1` reached 34 m by hopping on the intact leg, with the prosthetic foot recording
+0.00 N of ground force in 20 of 20 episodes.
+
+What remains once imitation is gone is forward progress against effort, and that pair can tell the
+two apart. Measured on the 30M policies, muscle effort per metre travelled:
+
+| policy | effort per metre |
+|---|---|
+| `OpenSourceLeg_KA_L1` hopping on one leg | 0.237 |
+| `KFoot_L1` using the prosthesis | 0.117 |
+| `NEUankle_L1` using the prosthesis | 0.110 |
+| `Tutorial_L1` intact, walking | 0.131 |
+
+Hopping is about twice as expensive per metre, so the effort term already disfavours it. It won
+anyway at `forward_reward` 20 against `muscle_activation_penalty` 10, which is why the annealed
+target is 5 against 10.
+
+Once `qpos_imitation_rewards` reaches zero the out-of-trajectory check goes inert
+(`MyoAssistLegImitation.step`): enforcing a reference the policy is no longer paid to follow would
+keep the constraint that annealing exists to remove. `safe_height` carries termination from there.
+
+This is opt-in per config. The intact configs declare no `reward_curriculum`, and a test asserts
+they do not — the argument for annealing rests on the reference being unable to describe the model,
+which is not true of them.
+
 ## Reading the results
 
 An amputee gait is asymmetric by nature, so a symmetry-based score is not the right instrument. The

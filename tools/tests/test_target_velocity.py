@@ -21,18 +21,32 @@ import numpy as np
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def _prosthesis_config(device: str) -> pathlib.Path:
+    """A shipped prosthesis config for `device`, found by glob.
+
+    The generator encodes its flags in the filename, so the name moves whenever the shipped
+    settings change; matching on the device alone keeps these tests pinned to the behaviour
+    rather than to a particular experiment's suffix.
+    """
+    matches = sorted((REPO_ROOT / "rl_train/train/train_configs/prosthesis").glob(f"imitation_22_{device}_*.json"))
+    assert matches, f"no shipped config for {device}"
+    return matches[0]
+
+
 CONFIGS = [
-    "rl_train/train/train_configs/device_sweep/imitation_22_Tutorial_L1_h128_e32_sidenet_mirror0p1_actpen10.json",
-    "rl_train/train/train_configs/prosthesis/imitation_22_KFoot_L1_h128_d32_actpen10.json",
+    REPO_ROOT / "rl_train/train/train_configs/device_sweep/imitation_22_Tutorial_L1_h128_e32_sidenet_mirror0p1_actpen10.json",
+    _prosthesis_config("KFoot_L1"),
 ]
 
 
-@pytest.mark.parametrize("rel", CONFIGS, ids=lambda r: pathlib.Path(r).stem[:36])
-def test_reset_draws_the_configured_target_velocity(rel):
+@pytest.mark.parametrize("path", CONFIGS, ids=lambda p: p.stem[:40])
+def test_reset_draws_the_configured_target_velocity(path):
     from rl_train.envs.environment_handler import EnvironmentHandler
     from rl_train.utils.data_types import DictionableDataclass
 
-    raw = json.loads((REPO_ROOT / rel).read_text())
+    raw = json.loads(path.read_text())
     env_params = raw["env_params"]
     lo, hi = env_params["min_target_velocity"], env_params["max_target_velocity"]
 
@@ -50,7 +64,7 @@ def test_reset_draws_the_configured_target_velocity(rel):
         # A sinusoidal or step episode is sampled somewhere inside the band, so bound rather than
         # equate -- with a small tolerance for the band being a single point.
         assert drawn.min() >= lo - 1e-6 and drawn.max() <= hi + 1e-6, (
-            f"{pathlib.Path(rel).name}: config asks for [{lo}, {hi}] m/s but resets drew "
+            f"{path.name}: config asks for [{lo}, {hi}] m/s but resets drew "
             f"[{drawn.min():.2f}, {drawn.max():.2f}] (mean {drawn.mean():.2f})"
         )
     finally:
@@ -66,8 +80,7 @@ def test_velocity_curriculum_survives_the_reset_randomiser():
     from rl_train.envs.environment_handler import EnvironmentHandler
     from rl_train.utils.data_types import DictionableDataclass
 
-    rel = "rl_train/train/train_configs/prosthesis/imitation_22_KFoot_L1_h128_d32_actpen10.json"
-    raw = json.loads((REPO_ROOT / rel).read_text())
+    raw = json.loads(_prosthesis_config("KFoot_L1").read_text())
     config = DictionableDataclass.create(EnvironmentHandler.get_config_type_from_session_id(raw["env_params"]["env_id"]), raw)
     config.env_params.num_envs = 1
     env = EnvironmentHandler.create_environment(config, is_rendering_on=False)
