@@ -17,8 +17,10 @@ from cma.optimization_tools import EvalParallel2
 from scipy.interpolate import PchipInterpolator  # For npoint spline bootstrapped optimization
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+parent_dir = os.path.dirname(current_dir)  # ctrl_optim/
+repo_root = os.path.dirname(parent_dir)  # repo root, for `import ctrl_optim.*`
+sys.path.insert(0, repo_root)
+sys.path.insert(0, current_dir)  # optim/, for optim_utils / config / cost_functions
 
 # Imports
 from optim_utils.tracker import OptimizationTracker
@@ -44,20 +46,25 @@ def main():
 
     optim_type = get_optimization_type(input_args)
 
+    # Anchor outputs and reference data to the script location so train.py works
+    # regardless of the current working directory (e.g. `python -m ctrl_optim.optim.train`
+    # from the repo root, not only via run_optim.py which chdirs into optim/).
+    results_base = os.path.join(parent_dir, "results", "optim_results")
+
     if input_args.cluster:
         save_path = os.path.join("your_path")
         home_path = os.path.join("your_path")
     else:
-        save_path = os.path.join("..", "results", "optim_results")
-        home_path = os.getcwd()
+        save_path = results_base
+        home_path = current_dir
 
     if input_args.save_path is not None:
         date_time_str = datetime.now().strftime("%m%d_%H%M")
         save_name = os.path.basename(input_args.save_path)
-        save_path = os.path.join("..", "results", "optim_results", save_name + f"_{date_time_str}")
+        save_path = os.path.join(results_base, save_name + f"_{date_time_str}")
     else:
         date_time_str = datetime.now().strftime("%m%d_%H%M")
-        save_path = os.path.join("..", "results", "optim_results", f"debug_{date_time_str}")
+        save_path = os.path.join(results_base, f"debug_{date_time_str}")
 
     if not os.path.exists(save_path):
         print(f"Creating directory: {save_path}")
@@ -66,7 +73,7 @@ def main():
     # Save a copy of the configuration file
     import shutil
 
-    config_name = os.path.basename(input_args.save_path)
+    config_name = os.path.basename(input_args.save_path) if input_args.save_path is not None else f"debug_{date_time_str}"
 
     cwd = os.getcwd()
     potential_configs = [

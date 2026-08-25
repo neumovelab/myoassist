@@ -17,7 +17,7 @@ full field reference.
 
 ```bash
 # Controller Optimization (reflex)
-python -m ctrl_optim.optim.train --env-spec docs/examples/env_exo_slope.json --sim_time 20 -eff --ExoOn 1 ...
+python -m ctrl_optim.optim.train --env-spec docs/examples/env_exo_slope.json --sim_time 20 -eff --ExoOn 1
 ```
 
 ```python
