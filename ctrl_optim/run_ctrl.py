@@ -147,7 +147,7 @@ def main():
 
     # Set up renderer with higher resolution - EXACTLY matching eval.py
     video_width, video_height = 1920, 1080
-    env.env.sim.renderer.render_offscreen(camera_id=4, width=video_width, height=video_height)
+    env.env.sim.renderer.render_offscreen(camera_id=-1, width=video_width, height=video_height)
     env.env.sim.renderer._scene_option.flags[0] = 0  # Remove convex hull
     env.env.sim.renderer._scene_option.flags[4] = 0
 

@@ -68,6 +68,7 @@ def setup_environment():
 
     os.environ["PYTHONPATH"] = new_pythonpath
     os.environ["ROOT_DIR"] = str(root_dir)
+    os.environ["PYTHON_CMD"] = sys.executable  # the .sh configs invoke "$PYTHON_CMD"
 
     # Change to script directory
     os.chdir(script_dir)

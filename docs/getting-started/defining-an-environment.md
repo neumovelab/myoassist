@@ -123,10 +123,10 @@ slope flag.
 ```bash
 # raw flags
 python -m ctrl_optim.optim.train --msk myolegs22 --device Humotech_L1 \
-    --terrain '{"terrain":"slope","deg":8}' --sim_time 20 -eff --ExoOn 1 ...
+    --terrain '{"terrain":"slope","deg":8}' --sim_time 20 -eff --ExoOn 1
 
 # or a shared env-spec file
-python -m ctrl_optim.optim.train --env-spec docs/examples/env_exo_slope.json --sim_time 20 -eff --ExoOn 1 ...
+python -m ctrl_optim.optim.train --env-spec docs/examples/env_exo_slope.json --sim_time 20 -eff --ExoOn 1
 ```
 
 ### Reinforcement Learning
