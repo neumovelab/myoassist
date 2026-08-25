@@ -143,31 +143,28 @@ Both are keyed off the measured geometry, so if the compose estimate is ever cor
 they go inert on their own: the keyframe will report contact, no shift will be applied, and the
 derived `safe_height` returns to 0.7.
 
-**The device command is capped, and its effort is priced.** A device actuator here can overpower
-its own joint limit. `OpenSourceLeg_A_L1` drives its ankle with 168 N·m into a joint with
-`damping=0` and `armature=0`; a MuJoCo joint limit is a soft constraint whose stiffness scales with
-the DOF's effective inertia, and with none the joint runs far past its own ±0.52 rad range and
-stays there. Measured on a trained policy, holding everything else fixed:
+**Device effort is priced, not capped.** A device actuator here can overpower its own joint
+limit: `OpenSourceLeg_A_L1` drives its ankle with 168 N·m into a joint with `damping=0` and
+`armature=0`, and a MuJoCo joint limit is a soft constraint whose stiffness scales with the DOF's
+effective inertia. The prosthetic ankle has a fifth of the intact ankle's rotational inertia
+(0.00276 against 0.01330 kg·m², one distal body against four), so full torque buys 60,900 rad/s²
+and the joint runs far past its ±0.52 rad range. Measured on a trained policy with no price on
+device effort, the command sat at saturation 19.7% of the time and the ankle was outside its limits
+92% of the time.
 
-| | survival | ankle outside its limits | worst overshoot |
-|---|---|---|---|
-| device on, full 168 N·m | 34 steps | 92% of steps | +4.29 rad |
-| device off | 50 steps | 31% | +0.31 rad |
-| +armature 0.05, +damping 2, device on | 33 steps | 57% | +1.59 rad |
-| +armature 0.05, +damping 2, device off | 53 steps | 26% | +0.30 rad |
+`env_params.device_ctrl_scale` exists to narrow `actuator_ctrlrange` at setup, but **it defaults to
+1.0 and should stay there**: the ctrlrange and gain are the device's specification, not something a
+training config should reduce. A run at 0.15 showed why a cap is the wrong instrument. It is a
+fraction of each device's own range, so one number meant 25 N·m on `OpenSourceLeg_A_L1`
+(ctrlrange 2.88) and 7.5 N·m on `NEUankle_L1` (ctrlrange 1.0). At 7.5 N·m — about 7% of what an
+ankle needs at push-off — the motor was not worth using, and the policy left it alone: mean
+commanded torque 1.08 N·m, never saturating, near zero 44.5% of the time, net mechanical power
+−0.74 W. The resulting gait walked 1000 steps with a prosthetic ankle that swung through 1.4 rad,
+twice the intact ankle's excursion, purely passively.
 
-Ground reaction alone leaves it 0.31 rad over, the same regime as the intact model's passive toe
-joint (0.36 rad) — which walks fine. The motor is what breaks it, and adding joint dynamics does
-not help while the motor is on. For reference the intact model's own load-bearing ankle never
-leaves its range at all (0.0% of steps).
-
-Two knobs follow. `device_ctrl_scale` (0.15 here, 1.0 everywhere else) narrows `actuator_ctrlrange`
-at setup so the policy commands at most 25 N·m; across a cap sweep that is where the overshoot
-reaches 0.47 rad. `exo_activation_penalty` is 1.0 rather than 0, so the torque is no longer free —
-at zero the command simply sat at saturation.
-
-Both are workarounds on the RL side. The real fix is in the device model: the ankle needs enough
-inertia to absorb its own actuator, or the device needs a control rate above this env's 30 Hz.
+The price is the instrument that belongs here. `exo_activation_penalty` is 1.0, against a muscle's
+10/18 = 0.56 per actuator. Note it was measured at only 1.3% of the weighted objective on the
+annealed run, so it is not by itself what stopped the motor being used — the cap was.
 
 **`reset_keyframe_joint_keys` names the prosthetic joints.** `reset` seeds the next episode from
 `sim.data.qpos`, so a DOF the reference does not write carries its value across the episode

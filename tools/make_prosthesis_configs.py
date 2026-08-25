@@ -243,13 +243,16 @@ def main() -> None:
     ap.add_argument(
         "--device-ctrl-scale",
         type=float,
-        default=0.15,
+        default=1.0,
         help="Fraction of its own ctrlrange the policy may command on the device actuators. "
-        "1.0 is the model's full authority, which for OpenSourceLeg_A_L1 is 168 N*m into an ankle "
-        "with zero damping and zero armature -- enough to drive the joint 4.3 rad past its "
-        "+-0.52 rad limit and hold it there. Measured across a cap sweep, 0.15 (25 N*m) brings "
-        "the overshoot to 0.47 rad, the same regime as the intact model's passive toe joint. "
-        "Filenames gain a _cap<value> suffix when this differs from the default.",
+        "1.0, the default, is the device's own specification and is what should normally be used: "
+        "the ctrlrange and gain are the manufacturer's, not ours to reduce. Kept as an escape "
+        "hatch only. A run at 0.15 showed why a cap is the wrong instrument -- it is a fraction "
+        "of each device's own range, so the same number meant 25 N*m on OpenSourceLeg_A_L1 "
+        "(ctrlrange 2.88) and 7.5 N*m on NEUankle_L1 (ctrlrange 1.0), and at 7.5 N*m the ankle is "
+        "worth so little that the policy left it alone: mean commanded torque 1.08 N*m, never "
+        "saturating, net mechanical power -0.74 W. Price device effort through "
+        "--device-activation-penalty instead. Filenames gain a _cap<value> suffix when set.",
     )
     ap.add_argument(
         "--device-activation-penalty",
@@ -341,7 +344,7 @@ def main() -> None:
         suffix += f"_d{args.device_net}"
     if args.device_activation_penalty != 1.0:
         suffix += f"_devpen{f'{args.device_activation_penalty:g}'.replace('.', 'p')}"
-    if args.device_ctrl_scale != 0.15:
+    if args.device_ctrl_scale != 1.0:
         suffix += f"_cap{f'{args.device_ctrl_scale:g}'.replace('.', 'p')}"
     if args.curriculum_start_velocity != 0.3:
         suffix += f"_curr{f'{args.curriculum_start_velocity:g}'.replace('.', 'p')}"

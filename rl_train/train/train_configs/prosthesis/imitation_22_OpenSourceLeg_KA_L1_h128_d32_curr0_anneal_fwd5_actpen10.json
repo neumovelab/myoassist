@@ -122,7 +122,7 @@
             "pelvis_tilt",
             "pelvis_ty"
         ],
-        "device_ctrl_scale": 0.15,
+        "device_ctrl_scale": 1.0,
         "reward_curriculum": {
             "qpos_imitation_rewards": [
                 1.0,
