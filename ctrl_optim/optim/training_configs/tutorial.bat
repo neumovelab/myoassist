@@ -20,5 +20,4 @@ python train.py ^
     --maxiter 50 ^
     --threads 8 ^
     --sigma_gain 10 ^
-    --param_path ../results/optim_results/tutorial_prep ^
     --save_path tutorial
