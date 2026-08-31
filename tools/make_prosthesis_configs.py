@@ -320,6 +320,16 @@ def main() -> None:
         help="Fraction of total_timesteps over which the target velocity ramps to full; held there afterwards.",
     )
     ap.add_argument(
+        "--joint-limit-penalty",
+        type=float,
+        default=20.0,
+        help="Weight on joint_constraint_force_penalty (template: 1.0). At 1.0 it was 1.5% of the "
+        "weighted reward while the prosthetic ankle spent 43% of steps past its own limit. 20 puts "
+        "it at roughly 1.4x the muscle activation penalty and 40% of forward_reward, which is the "
+        "range where a term in this reward has been observed to shape behaviour. Filenames gain a "
+        "_jlim<value> suffix when this differs from the default.",
+    )
+    ap.add_argument(
         "--anneal-imitation",
         action="store_true",
         help="Ramp the imitation weights to zero and the forward/effort weights up, so imitation "
@@ -350,6 +360,8 @@ def main() -> None:
         suffix += f"_curr{f'{args.curriculum_start_velocity:g}'.replace('.', 'p')}"
     if args.anneal_imitation:
         suffix += "_anneal"
+    if args.joint_limit_penalty != 20.0:
+        suffix += f"_jlim{f'{args.joint_limit_penalty:g}'.replace('.', 'p')}"
     if args.out_of_trajectory_threshold != 0.4:
         suffix += f"_oot{f'{args.out_of_trajectory_threshold:g}'.replace('.', 'p')}"
     if args.forward_reward != 20.0:
@@ -434,6 +446,15 @@ def main() -> None:
         # (10/18 = 0.56 for the transtibial models).
         rewards["exo_activation_penalty"] = args.device_activation_penalty
         env["device_ctrl_scale"] = args.device_ctrl_scale
+
+        # The limit penalty exists in the template at weight 1.0 but is far too small to matter
+        # here. Measured on the 100M spec-torque policy: the prosthetic ankle sat 0.74 rad past
+        # its +-0.52 rad range for 43% of steps, drawing a mean 71.7 N*m of constraint force, and
+        # the term still came to 1.5% of the weighted reward against forward_reward's 73%. Per
+        # step that is 0.0027 against 0.1485, so violating the limit paid about 55 times what it
+        # cost. The normalisation is part of why -- it divides a joint torque by body weight,
+        # which is dimensionally a length, so the scale is arbitrary rather than chosen.
+        rewards["joint_constraint_force_penalty"] = args.joint_limit_penalty
 
         # Speed curriculum. The amputee models only ever produced sustained stepping at
         # 0.2-0.35 m/s while the reward demanded 1.25 from the first step; measured on the 30M

@@ -254,3 +254,31 @@ def test_prosthetic_joints_reset_to_keyframe(config_path):
                 env.step(rng.uniform(-1, 1, env.sim.model.nu))
     finally:
         env.close()
+
+
+@pytest.mark.parametrize("config_path", shipped_prosthesis_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
+def test_joint_limit_penalty_is_large_enough_to_matter(config_path):
+    """The limit penalty has to be big enough to register against the forward term.
+
+    It exists in the template at 1.0, and at that weight it did nothing here: measured on the
+    100M spec-torque policy the prosthetic ankle spent 43% of steps past its own +-0.52 rad
+    range, drawing a mean 71.7 N*m of constraint force, and the term still came to 1.5% of the
+    weighted reward against forward_reward's 73%. Per step, 0.0027 against 0.1485.
+
+    Part of why is the normalisation: `joint_constraint_force_penalty` divides a joint torque by
+    body weight, which is dimensionally a length, so its scale is arbitrary rather than chosen.
+    Raising the weight is the config-only way to compensate, and this guards the value against
+    silently reverting to the template's.
+    """
+    rewards = json.loads(config_path.read_text())["env_params"]["reward_keys_and_weights"]
+    limit = rewards["joint_constraint_force_penalty"]
+    assert limit >= 10.0, (
+        f"{config_path.name}: joint_constraint_force_penalty is {limit}. At the template's 1.0 the "
+        "policy learned to hold the prosthetic ankle well outside its range because doing so paid "
+        "about 55 times what it cost."
+    )
+    assert limit < rewards["forward_reward"] * 10, (
+        f"{config_path.name}: joint_constraint_force_penalty ({limit}) dwarfs forward_reward "
+        f"({rewards['forward_reward']}); a limit term that large risks the policy abandoning the "
+        "device altogether, which is what a 7.5 N*m torque cap already produced once."
+    )

@@ -1,5 +1,5 @@
 {
-    "total_timesteps": 100000000.0,
+    "total_timesteps": 80000000.0,
     "evaluate_param_list": [
         {
             "num_timesteps": 200,
@@ -85,7 +85,7 @@
             "footstep_delta_time": 0.0,
             "average_velocity_per_step": 0.0,
             "muscle_activation_penalty_per_step": 0.0,
-            "joint_constraint_force_penalty": 1.0,
+            "joint_constraint_force_penalty": 20.0,
             "foot_force_penalty": 0.5,
             "exo_activation_penalty": 1.0
         },
