@@ -23,12 +23,19 @@ through the shared pipeline and measures it.
    joints armature 0.01 and damping 0.5, so this is a regression against that model as well as an
    inconsistency with the two sibling devices.
 
-3. JOINT LIMIT UNDER ACTUATOR TORQUE. Holding an actuator at full scale drives its joint well past
-   its own range and keeps it there, on every powered device including the exos on human joints.
-   The implied limit stiffness is near 120-130 N*m/rad against device torques of 50-168, so this
-   is MuJoCo's default solref/solimp meeting torques the muscle-driven model never produced. Not
-   an inertia effect: the overshoot is unchanged across two decades of added armature, because at
-   steady state inertia does not enter.
+3. JOINT LIMIT UNDER ACTUATOR TORQUE. A joint limit here is a soft constraint with MuJoCo's
+   default solref/solimp, so a motor holding torque against it settles some way past the range
+   rather than stopping at it. This is a worst case -- a sustained full-torque hold -- and the
+   printout says so, because reading it as what happens in practice is wrong: a trained exo policy
+   commands a mean 6.4 N*m of its 100 and leaves its ankle outside the range 5% of the time by
+   0.028 rad, while a trained prosthesis policy commands 11.4 of its 50 and is outside 36% of the
+   time by 0.744 rad.
+
+   What separates them is range against torque, not the actuator being stronger. The prosthetic
+   ankles span 1.047 rad against the human ankle's 1.483, and a muscle cannot hold much torque
+   near its limit because force falls off with length, whereas a motor is indifferent to angle.
+   Not an inertia effect either: the overshoot is unchanged across two decades of added armature,
+   because at steady state inertia does not enter.
 
 4. DISTAL INERTIA. Reported without a cause attached: the prosthetic ankles carry about a fifth of
    the intact ankle's rotational inertia, one distal body against four.
@@ -89,7 +96,9 @@ def check_joint_defaults():
 
 
 def check_limit_under_torque():
-    print("\n3. JOINT LIMIT -- hold the actuator at full scale for 1 s, measure the overshoot")
+    print("\n3. JOINT LIMIT -- WORST CASE: hold the actuator at full scale against the limit")
+    print("   Gravity and contacts off and every other DOF frozen, so only the actuator and the")
+    print("   limit are in play. This is not what a trained policy does -- see the note below.")
     print(f"   {'device':22} {'torque':>8} {'overshoot':>10} {'% of range':>11} {'stiffness':>10}")
     for dev, actuator, joint in POWERED:
         m = mj.MjModel.from_xml_string(compose_env_model(MSK, dev))
@@ -100,19 +109,35 @@ def check_limit_under_torque():
         for ctrl in (float(m.actuator_ctrlrange[aid][0]), float(m.actuator_ctrlrange[aid][1])):
             if ctrl == 0:
                 continue
+            # Gravity and contacts off, all other DOFs held: without this the model simply
+            # collapses over the second and the measured angle is mostly the fall, not the torque.
+            m.opt.gravity[:] = 0
+            m.opt.disableflags |= int(mj.mjtDisableBit.mjDSBL_CONTACT)
+            m.opt.timestep = 1 / 1200
             d = mj.MjData(m)
             mj.mj_resetDataKeyframe(m, d, 0)
-            m.opt.timestep = 1 / 1200
+            rest = d.qpos.copy()
+            qadr, dadr = m.jnt_qposadr[jid], m.jnt_dofadr[jid]
             d.ctrl[aid] = ctrl
-            for _ in range(1200):
+            for _ in range(6000):
                 mj.mj_step(m, d)
-            over = max(float(d.qpos[m.jnt_qposadr[jid]]) - hi, lo - float(d.qpos[m.jnt_qposadr[jid]]), 0.0)
+                q, v = float(d.qpos[qadr]), float(d.qvel[dadr])
+                d.qpos[:] = rest
+                d.qvel[:] = 0
+                d.qpos[qadr], d.qvel[dadr] = q, v
+            over = max(float(d.qpos[qadr]) - hi, lo - float(d.qpos[qadr]), 0.0)
             if over > best:
                 best, best_torque = over, abs(float(m.actuator_gainprm[aid][0]) * ctrl)
         span = float(hi - lo)
         stiff = best_torque / best if best > 1e-9 else float("inf")
         print(f"   {dev:22} {best_torque:8.1f} {best:+10.3f} {best / span * 100:10.1f}% {stiff:10.0f}")
-    print("   Adding armature does not change these; at steady state inertia does not enter.")
+    print()
+    print("   Measured on trained policies instead of a held torque, the same joints behave very")
+    print("   differently: Tutorial_L1's exo commands a mean 6.4 N*m of its 100 and leaves the")
+    print("   ankle outside its range 5.2% of steps by 0.028 rad; NEUankle_L1's prosthesis")
+    print("   commands 11.4 of its 50 and is outside 36.4% of steps by 0.744 rad. Range against")
+    print("   torque is what separates them -- 1.047 rad of prosthetic ankle against 1.483 human.")
+    print("   Adding armature does not change the worst case; at steady state inertia does not enter.")
     for armature in (0.0, 0.01, 0.1):
         dev, actuator, joint = POWERED[-2]
         m = mj.MjModel.from_xml_string(compose_env_model(MSK, dev))
