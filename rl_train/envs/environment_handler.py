@@ -122,7 +122,7 @@ class EnvironmentHandler:
                     terrain=config.env_params.terrain,
                 )
                 .validate()
-                .compose()
+                .compose(planar_root=config.env_params.planar_root)
             )
             EnvironmentHandler._validate_action_layout(model_path, config)
         elif not model_path:

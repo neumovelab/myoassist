@@ -457,7 +457,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     def setup_reference_data(self, data: dict | None):
         if data is None:
             raise ValueError("Reference data is not set")
-        self._reference_data = self._height_corrected_reference(data)
+        self._reference_data = self._height_corrected_reference(self._knee_sign_matched_reference(data))
         self._imitation_index = None
         self._reference_data_length = self._reference_data["metadata"]["resampled_data_length"]
 
@@ -520,6 +520,35 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             data.qpos[:] = saved_qpos
             data.qvel[:] = saved_qvel
             self.sim.forward()
+
+    def _knee_sign_matched_reference(self, data: dict) -> dict:
+        """Negate the reference knee angle for an MSK that measures knee flexion as positive.
+
+        The reference follows the Gait2392 convention, knee flexion negative (`q_knee_angle_*`
+        runs from about -1.1 to 0 rad). The Rajagopal-lineage MSKs (`myolegs`, `myofullbody`)
+        measure flexion as positive, with a range starting at 0, so the unflipped reference poses
+        their knee past its own limit on every reset and the imitation term rewards holding it
+        there. The convention is read off the joint range, so no per-MSK table is needed.
+        """
+        model = self.sim.model
+        joint_names = {model.joint(j).name: j for j in range(model.njnt)}
+        flipped = [
+            name
+            for name in ("knee_angle_r", "knee_angle_l")
+            if name in joint_names and model.jnt_limited[joint_names[name]] and model.jnt_range[joint_names[name]][0] >= 0
+        ]
+        if not flipped:
+            return data
+        corrected = dict(data)
+        corrected["series_data"] = dict(data["series_data"])
+        for name in flipped:
+            for prefix in ("q_", "dq_"):
+                if f"{prefix}{name}" in corrected["series_data"]:
+                    corrected["series_data"][f"{prefix}{name}"] = -np.asarray(
+                        data["series_data"][f"{prefix}{name}"], dtype=float
+                    )
+        print(f"Reference knee sign flipped for {flipped}: this MSK measures knee flexion as positive.")
+        return corrected
 
     def _height_corrected_reference(self, data: dict) -> dict:
         """Shift the reference's pelvis height so the composed model's feet reach the ground.

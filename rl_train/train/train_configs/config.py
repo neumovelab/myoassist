@@ -107,6 +107,11 @@ class TrainSessionConfigBase:
         msk_key: str = None
         device_key: str = None
         terrain: str = None
+        # Compose a 3D freejoint MSK (myolegs26, myolegs, myofullbody) with the six named pelvis
+        # DOFs (pelvis_tx/ty/tz/tilt/list/rotation) in the myolegs22 frame instead of the
+        # freejoint. The env reads the root through those names, so this is what lets it run a
+        # 3D model at all. Still a full 6-DOF root; a no-op on myolegs22.
+        planar_root: bool = False
 
         # Fraction of its own ctrlrange the policy may command on the device actuators, applied
         # by narrowing `actuator_ctrlrange` at setup. 1.0 is the model's full authority and is
