@@ -483,9 +483,11 @@ def replay_drift(m, rec, frame_skip):
 
 
 def validate(args):
+    # Pin before torch starts its threads: on Windows with more than 64 logical CPUs those can
+    # land in another processor group, and the affinity call then fails (WinError 87).
+    common.pin(args.core)
     from rl_train.envs.environment_handler import EnvironmentHandler
 
-    common.pin(args.core)
     session_dir, model_zip = map(pathlib.Path, args.validate)
     cfg_path = session_dir / "session_config.json"
     env_id = json.loads(cfg_path.read_text())["env_params"]["env_id"]

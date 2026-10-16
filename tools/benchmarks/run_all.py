@@ -40,7 +40,7 @@ STEPS = ["sim", "sim_bare", "validate", "sim_conc", "train", "train_ckpt", "buil
 def counts():
     phys, logical = psutil.cpu_count(logical=False), psutil.cpu_count(logical=True)
     parallel = sorted({phys // 2, phys, logical})
-    co_cap = 61 if os.name == "nt" else logical
+    co_cap = 60 if os.name == "nt" else logical  # one below co.py's Windows pool limit
     co_procs = sorted({0, 8, min(phys // 2, co_cap), min(phys, co_cap)})
     return parallel, co_procs
 
