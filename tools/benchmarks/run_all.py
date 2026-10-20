@@ -3,6 +3,9 @@
 Steps (each a separate script; see its docstring for the protocol):
   sim         1 pinned core, activation 0 / 0.05 / 0.5, 20 runs          -> sim_c1.json
   sim_bare    the same without the device, activation 0.05                -> sim_c1_bare.json
+  sim_ref     reference models from installed packages, read in place:    -> sim_c1_{myosuite,humanoid_*}.json
+              MyoSuite's MyoLeg (replay) and Gymnasium's Humanoid-v5 model
+              (random rollout, native settings and the MyoAssist solver)
   validate    replay vs closed-loop policy (needs --checkpoint)            -> validate.json
   sim_conc    N concurrent unpinned processes, 3 runs per N                -> sim_c<N>.json
   train       PPO from scratch, 4 models x num_envs, 3 runs                -> train_scratch.json
@@ -34,7 +37,9 @@ import common
 import psutil
 
 HERE = pathlib.Path(__file__).resolve().parent
-STEPS = ["sim", "sim_bare", "validate", "sim_conc", "train", "train_ckpt", "build", "co"]
+MYOSUITE_LEG = "myosuite:simhive/myo_sim/leg/myolegs.xml"
+HUMANOID = "gymnasium:envs/mujoco/assets/humanoid.xml"  # the Humanoid-v5 model (same file as v4)
+STEPS = ["sim", "sim_bare", "sim_ref", "validate", "sim_conc", "train", "train_ckpt", "build", "co"]
 
 
 def counts():
@@ -55,6 +60,13 @@ def plan(args, out):
     steps = {
         "sim": [[py, HERE / "sim.py", "--activation", "0", "0.05", "0.5", *sim_reps, *nopin, "--out", out / "sim_c1.json"]],
         "sim_bare": [[py, HERE / "sim.py", "--device", "none", *sim_reps, *nopin, "--out", out / "sim_c1_bare.json"]],
+        "sim_ref": [
+            [py, HERE / "sim.py", "--xml", MYOSUITE_LEG, *sim_reps, *nopin, "--out", out / "sim_c1_myosuite.json"],
+            [py, HERE / "sim.py", "--xml", HUMANOID, "--protocol", "random", "--native", "--frame-skip", "5"]
+            + [*sim_reps, *nopin, "--out", out / "sim_c1_humanoid_native.json"],
+            [py, HERE / "sim.py", "--xml", HUMANOID, "--protocol", "random", "--myoassist-solver"]
+            + [*sim_reps, *nopin, "--out", out / "sim_c1_humanoid_myoassist.json"],
+        ],
         "sim_conc": [
             [
                 py,

@@ -7,7 +7,7 @@ diagnostics, not part of the training path. Each script's docstring gives its pr
 
 | script | what it measures |
 |---|---|
-| `sim.py` | MuJoCo physics steps/s and real-time factor while every model replays one shared 3D walking reference; one pinned core or N concurrent processes; `--device none` for the bare MSK; `--validate` checks the replay against closed-loop walking of a trained 22-muscle policy |
+| `sim.py` | MuJoCo physics steps/s and real-time factor while every model replays one shared 3D walking reference; one pinned core or N concurrent processes; `--device none` for the bare MSK; `--xml` for reference models read from installed packages (MyoSuite's MyoLeg, Gymnasium's Humanoid-v5 model with its random-policy rollout); `--validate` checks the replay against closed-loop walking of a trained 22-muscle policy |
 | `train.py` | PPO training env steps/s vs `num_envs`, split into rollout collection and update; generates one imitation config per model; `--threads` sweeps the thread count; `--env-only` steps the vectorized env without a policy |
 | `build.py` | model build time (compose + MuJoCo compile), with and without `MYOASSIST_CACHE_DIR`, with and without the device |
 | `co.py` | CO rollouts/s and physics steps/s in a real CMA-ES run, serial and in parallel, with the exo controlled or not |

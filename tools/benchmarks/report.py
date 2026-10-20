@@ -32,23 +32,35 @@ def table(header, rows):
     print()
 
 
+def label(msk):
+    return LABEL.get(msk, msk)  # external models keep their own name
+
+
 def by_order(keys, field):
     order = {m: i for i, m in enumerate(common.MSKS)}
-    return sorted(keys, key=lambda k: order[field(k)])
+    return sorted(keys, key=lambda k: (order.get(field(k), len(order)), field(k)))
 
 
 def sim(docs):
     single = [d for d in docs if d["settings"]["concurrent"] == 1]
     for d in single:
-        dev = d["settings"]["device"]
-        print(f"## Simulation, 1 pinned core, device {dev}\n")
+        st = d["settings"]
+        if st.get("xml"):
+            extra = ", native timestep" if st["native"] else ""
+            extra += ", MyoAssist solver" if st["myoassist_solver"] else ""
+            print(f"## Simulation, 1 pinned core, external models, protocol {st['protocol']}{extra}\n")
+        else:
+            print(f"## Simulation, 1 pinned core, device {st['device']}\n")
         rows = []
         for k in by_order(d["summary"], lambda k: d["summary"][k]["msk"]):
             s = d["summary"][k]
             rows.append(
                 [
-                    LABEL[s["msk"]],
-                    f"{s['activation']:g}",
+                    label(s["msk"]),
+                    f"{s['activation']:g}" if st.get("protocol", "replay") == "replay" else "random",
+                    f"{1e3 * s['timestep']:.3g} ms, {s['integrator'][6:]}, {s['solver'][6:]} {s['iterations']}"
+                    if "timestep" in s  # results written before these fields existed
+                    else "",
                     pm(s["physics_steps_per_s"]),
                     pm(s["rtf"], "{:.2f}"),
                     pm(s["wall_per_sim_s"], "{:.4f}"),
@@ -56,9 +68,10 @@ def sim(docs):
                     s["mean_nefc"],
                 ]
             )
-        table(["muscles", "activation", "physics steps/s", "RTF", "wall s per sim s", "contacts", "constraint rows"], rows)
+        header = ["model", "activation", "step, integrator, solver", "physics steps/s", "RTF", "wall s per sim s"]
+        table(header + ["contacts", "constraint rows"], rows)
 
-    with_dev = [d for d in single if d["settings"]["device"] != "none"]
+    with_dev = [d for d in single if d["settings"]["device"] not in (None, "none")]
     bare = [d for d in single if d["settings"]["device"] == "none"]
     if with_dev and bare:
         dev, none = with_dev[0]["summary"], bare[0]["summary"]
@@ -68,7 +81,7 @@ def sim(docs):
             a, b = dev[k]["physics_steps_per_s"]["mean"], none[k]["physics_steps_per_s"]["mean"]
             rows.append(
                 [
-                    LABEL[dev[k]["msk"]],
+                    label(dev[k]["msk"]),
                     pm(dev[k]["physics_steps_per_s"]),
                     pm(none[k]["physics_steps_per_s"]),
                     f"{100 * (a / b - 1):+.1f}%",
@@ -85,7 +98,7 @@ def sim(docs):
         keys = by_order(conc[0]["summary"], lambda k: conc[0]["summary"][k]["msk"])
         rows = []
         for k in keys:
-            cells = [LABEL[conc[0]["summary"][k]["msk"]]]
+            cells = [label(conc[0]["summary"][k]["msk"])]
             for d in conc:
                 s = d["summary"][k]
                 cells.append(f"{s['aggregate_control_steps_per_s']:,.0f} ({s['physics_steps_per_s']['mean']:,.0f})")

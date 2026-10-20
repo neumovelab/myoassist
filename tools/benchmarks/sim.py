@@ -31,6 +31,19 @@ at zero command). `--device none` builds the bare MSK instead: the same compose 
 keyframes, so the bare model gets keyframe 0 of the Tutorial_L1 build (same joints and qpos
 layout); both builds then replay from the same pose and differ only by the device.
 
+`--xml SPEC` times an external MJCF instead of a composed MSK, as shipped (no device, no compose).
+SPEC is a path, or `package:relative/path` to read a file from an installed package without copying
+it, for example `gymnasium:envs/mujoco/assets/humanoid.xml` (Gymnasium's Humanoid model, the same
+file in Humanoid-v4 and -v5) or `myosuite:simhive/myo_sim/leg/myolegs.xml` (MyoSuite's MyoLeg). The
+model keeps its own MuJoCo options except the timestep, set to 1/1200 s as for the composed models;
+`--native` keeps the timestep too.
+  * `--protocol replay` (default) replays the walking reference; the model needs its joint names.
+  * `--protocol random` runs Gymnasium's Humanoid-v5 rollout instead: uniform random controls held
+    for `--frame-skip` physics steps, reset to qpos0 plus uniform noise (`--reset-noise`) when the
+    root height leaves `--healthy-z` or after `--max-episode-steps`. Resets are not timed. With
+    `--native --frame-skip 5` this is Humanoid-v5's physics; without `--native`, add
+    `--myoassist-solver` to also use the composed models' solver (Euler, Newton, 100 iterations).
+
 `--validate SESSION_DIR MODEL_ZIP` checks the replay against closed-loop walking, on a model
 with a trained walking policy (only the 22-muscle model has one). It drives the policy through
 the RL env, records state and controls at every control step, and times the recorded segments
@@ -43,6 +56,8 @@ Usage (repo root, project venv):
     python tools/benchmarks/sim.py                              # all models, 1 pinned core, 20 reps
     python tools/benchmarks/sim.py --device none                # bare MSKs
     python tools/benchmarks/sim.py --concurrent 32 --no-pin     # 32 copies at once
+    python tools/benchmarks/sim.py --xml myosuite:simhive/myo_sim/leg/myolegs.xml
+    python tools/benchmarks/sim.py --xml gymnasium:envs/mujoco/assets/humanoid.xml --protocol random --native --frame-skip 5
     python tools/benchmarks/sim.py --validate <session_dir> <session_dir>/trained_models/<model>.zip
 """
 
@@ -179,12 +194,14 @@ class ReferenceMapper:
         self.tz0 = ref["q_pelvis_tz"][0]
         self.n_clipped = 0
         self.n_set = 0
-        self.floor = m.geom("terrain").id
-        assert m.geom_type[self.floor] == mujoco.mjtGeom.mjGEOM_PLANE, "seating assumes a flat plane floor"
-        self.contact_geoms = [
+        planes = [g for g in range(m.ngeom) if m.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE]
+        assert len(planes) == 1, "seating assumes one flat plane floor"
+        self.floor = planes[0]
+        self.contact_geoms = [  # the model's own geoms that collide with the floor
             g
             for g in range(m.ngeom)
             if g != self.floor
+            and m.geom_bodyid[g] != 0
             and ((m.geom_contype[g] & m.geom_conaffinity[self.floor]) or (m.geom_contype[self.floor] & m.geom_conaffinity[g]))
         ]
         self._d = mujoco.MjData(m)
@@ -317,36 +334,150 @@ def model_info(m):
     }
 
 
+def resolve_xml(spec):
+    """A path, or `package:relative/path` inside an installed package (read in place, not copied)."""
+    if ":" in spec and not pathlib.Path(spec).exists():
+        import importlib.util
+
+        package, rel = spec.split(":", 1)
+        path = pathlib.Path(importlib.util.find_spec(package).origin).parent / rel
+    else:
+        path = pathlib.Path(spec)
+    assert path.is_file(), f"no model file at {path}"
+    return path
+
+
+def xml_label(spec):
+    return (spec.split(":", 1)[0] + ":" if ":" in spec and not pathlib.Path(spec).exists() else "") + pathlib.Path(spec).stem
+
+
+def load_external(spec, native, myoassist_solver):
+    m = mujoco.MjModel.from_xml_path(str(resolve_xml(spec)))
+    if not native:
+        m.opt.timestep = 1.0 / PHYSICS_HZ
+    if myoassist_solver:  # the composed models' options
+        m.opt.integrator = mujoco.mjtIntegrator.mjINT_EULER
+        m.opt.solver = mujoco.mjtSolver.mjSOL_NEWTON
+        m.opt.iterations = 100
+        m.opt.ls_iterations = 50
+        m.opt.tolerance = 1e-8
+    return m
+
+
+def time_random(m, frame_skip, n_control, n_warmup, healthy_z, reset_noise, max_episode_steps, seed):
+    """Gymnasium Humanoid-v5's rollout with a random policy; only the mj_step calls are timed."""
+    rng = np.random.default_rng(seed)
+    d = mujoco.MjData(m)
+    lo, hi = m.actuator_ctrlrange[:, 0], m.actuator_ctrlrange[:, 1]
+    assert m.actuator_ctrllimited.all(), "random controls are drawn from the control range"
+
+    def reset():
+        d.qpos[:] = m.qpos0 + rng.uniform(-reset_noise, reset_noise, m.nq)
+        d.qvel[:] = rng.uniform(-reset_noise, reset_noise, m.nv)
+        d.act[:] = 0
+        mujoco.mj_forward(m, d)
+
+    reset()
+    wall_ns = np.empty(n_control, dtype=np.int64)
+    ncon = np.empty(n_control, dtype=np.int64)
+    nefc = np.empty(n_control, dtype=np.int64)
+    niter = np.empty(n_control, dtype=np.int64)
+    resets, episode = 0, 0
+    for k in range(n_control):
+        d.ctrl[:] = rng.uniform(lo, hi)
+        t0 = time.perf_counter_ns()
+        mujoco.mj_step(m, d, nstep=frame_skip)
+        wall_ns[k] = time.perf_counter_ns() - t0
+        ncon[k], nefc[k], niter[k] = d.ncon, d.nefc, d.solver_niter[0]
+        episode += 1
+        if not healthy_z[0] < d.qpos[2] < healthy_z[1] or episode >= max_episode_steps:
+            reset()
+            resets += int(k >= n_warmup)
+            episode = 0
+    s = slice(n_warmup, n_control)
+    n_steps = (n_control - n_warmup) * frame_skip
+    sim_s = n_steps * m.opt.timestep
+    wall_s = wall_ns[s].sum() / 1e9
+    return {
+        "physics_steps_per_s": round(n_steps / wall_s, 1),
+        "control_steps_per_s": round((n_control - n_warmup) / wall_s, 2),
+        "sim_s": round(sim_s, 4),
+        "wall_s": round(wall_s, 6),
+        "wall_per_sim_s": round(wall_s / sim_s, 6),
+        "rtf": round(sim_s / wall_s, 3),
+        "us_per_step": round(wall_ns[s].sum() / 1e3 / n_steps, 3),
+        "mean_ncon": round(float(ncon[s].mean()), 2),
+        "frac_anchor_with_contact": round(float((ncon[s] > 0).mean()), 3),
+        "mean_nefc": round(float(nefc[s].mean()), 1),
+        "mean_solver_niter": round(float(niter[s].mean()), 2),
+        "resets": resets,
+        "mean_episode_steps": round((n_control - n_warmup) / max(resets, 1), 1),
+    }
+
+
+def solver_info(m, frame_skip):
+    return {
+        "timestep": m.opt.timestep,
+        "frame_skip": frame_skip,
+        "integrator": mujoco.mjtIntegrator(m.opt.integrator).name,
+        "solver": mujoco.mjtSolver(m.opt.solver).name,
+        "iterations": int(m.opt.iterations),
+    }
+
+
 # --- speed ------------------------------------------------------------------------------------
 
 
 def worker(args):
     common.pin(args.core)
-    m = load_model(args.msk, args.device, args.planar_root)
-    qpos, qvel, map_info = build_anchors(m, load_reference(), args.t_start, args.warmup + args.duration)
-    act, ctrl, n_motors = constant_inputs(m, len(qpos), args.activation)
-    assert args.device != "none" or n_motors == 0
-    res = time_anchors(m, qpos, qvel, act, ctrl, PHYSICS_HZ // CONTROL_HZ, int(round(args.warmup * CONTROL_HZ)))
+    if args.xml:
+        m = load_external(args.xml, args.native, args.myoassist_solver)
+    else:
+        m = load_model(args.msk, args.device, args.planar_root)
+    n_motors = m.nu - int(sum(m.actuator_dyntype == mujoco.mjtDyn.mjDYN_MUSCLE))
+    if args.protocol == "replay":
+        frame_skip = PHYSICS_HZ // CONTROL_HZ
+        assert abs(m.opt.timestep - 1.0 / PHYSICS_HZ) < 1e-12, "the replay steps at 1/1200 s"
+        qpos, qvel, info = build_anchors(m, load_reference(), args.t_start, args.warmup + args.duration)
+        act, ctrl, _ = constant_inputs(m, len(qpos), args.activation)
+        assert args.xml or args.device != "none" or n_motors == 0
+        res = time_anchors(m, qpos, qvel, act, ctrl, frame_skip, int(round(args.warmup * CONTROL_HZ)))
+    else:
+        frame_skip = args.frame_skip
+        control_dt = m.opt.timestep * frame_skip
+        n_control = int(round((args.warmup + args.duration) / control_dt))
+        n_warmup = int(round(args.warmup / control_dt))
+        res = time_random(
+            m, frame_skip, n_control, n_warmup, args.healthy_z, args.reset_noise, args.max_episode_steps, args.rep
+        )
+        info = {}
     common.emit(
         {
-            "msk": args.msk,
-            "device": args.device,
+            "msk": xml_label(args.xml) if args.xml else args.msk,
+            "xml": str(resolve_xml(args.xml)) if args.xml else None,
+            "device": None if args.xml else args.device,
             "device_motors": n_motors,
+            "protocol": args.protocol,
             "activation": args.activation,
             "planar_root": args.planar_root,
             "rep": args.rep,
             "core": args.core,
             **model_info(m),
-            **map_info,
+            **solver_info(m, frame_skip),
+            **info,
             **res,
         }
     )
 
 
-def worker_cmd(args, msk, activation, rep, core):
-    cmd = [sys.executable, __file__, "--worker", "--msk", msk, "--activation", str(activation), "--rep", str(rep)]
-    cmd += ["--device", args.device, "--duration", str(args.duration), "--warmup", str(args.warmup)]
-    cmd += ["--t-start", str(args.t_start)]
+def worker_cmd(args, model, activation, rep, core):
+    cmd = [sys.executable, __file__, "--worker", "--xml" if args.xml else "--msk", model, "--activation", str(activation)]
+    cmd += ["--rep", str(rep), "--device", args.device, "--duration", str(args.duration), "--warmup", str(args.warmup)]
+    cmd += ["--t-start", str(args.t_start), "--protocol", args.protocol, "--frame-skip", str(args.frame_skip)]
+    cmd += ["--healthy-z", *map(str, args.healthy_z), "--reset-noise", str(args.reset_noise)]
+    cmd += ["--max-episode-steps", str(args.max_episode_steps)]
+    cmd += ["--native"] if args.native else []
+    cmd += ["--myoassist-solver"] if args.myoassist_solver else []
     if core is not None:
         cmd += ["--core", str(core)]
     if args.planar_root:
@@ -361,7 +492,8 @@ def speed(args):
     cores = [args.first_core + smt * i for i in range(args.concurrent)] if args.pin else [None] * args.concurrent
     assert not args.pin or cores[-1] < psutil.cpu_count(logical=True), "not enough cores for --concurrent"
     runs = []
-    cases = [(msk, a) for msk in args.msk for a in args.activation]
+    models = args.xml or args.msk
+    cases = [(model, a) for model in models for a in args.activation]
     for rep in range(args.reps):
         order = cases[rep % len(cases) :] + cases[: rep % len(cases)]  # rotate to spread drift
         for msk, a in order:
@@ -380,15 +512,18 @@ def speed(args):
             )
 
     summary = {}
-    for msk, a in cases:
+    for model, a in cases:
+        msk = xml_label(model) if args.xml else model
         rs = [r for r in runs if r["msk"] == msk and r["activation"] == a]
         # Across concurrent copies, a rep's value is the mean over copies; variability is across reps.
         per_rep = {
             k: [float(np.mean([r[k] for r in rs if r["rep"] == rep])) for rep in range(args.reps)]
             for k in ("physics_steps_per_s", "control_steps_per_s", "us_per_step", "wall_per_sim_s", "rtf")
         }
-        static = ("muscles", "nu", "nv", "ngeom", "nwrap", "n_driven", "n_coupled", "n_held", "sign_flipped", "clipped_frac")
-        observed = ("seat_shift_mm_mean", "mean_ncon", "mean_nefc", "mean_solver_niter")
+        static = ("muscles", "nu", "nv", "ngeom", "nwrap", "timestep", "frame_skip", "integrator", "solver", "iterations")
+        static += ("n_driven", "n_coupled", "n_held", "sign_flipped", "clipped_frac") if args.protocol == "replay" else ()
+        observed = ("mean_ncon", "mean_nefc", "mean_solver_niter")
+        observed += ("seat_shift_mm_mean",) if args.protocol == "replay" else ("mean_episode_steps",)
         summary[f"{msk}@act{a:g}"] = {
             "msk": msk,
             "activation": a,
@@ -399,7 +534,15 @@ def speed(args):
             "aggregate_control_steps_per_s": round(float(np.mean(per_rep["control_steps_per_s"])) * args.concurrent, 1),
         }
     settings = {
-        "device": args.device,
+        "device": None if args.xml else args.device,
+        "xml": args.xml,
+        "protocol": args.protocol,
+        "native": args.native,
+        "myoassist_solver": args.myoassist_solver,
+        "frame_skip": args.frame_skip if args.protocol == "random" else PHYSICS_HZ // CONTROL_HZ,
+        "healthy_z": args.healthy_z if args.protocol == "random" else None,
+        "reset_noise": args.reset_noise if args.protocol == "random" else None,
+        "max_episode_steps": args.max_episode_steps if args.protocol == "random" else None,
         "physics_hz": PHYSICS_HZ,
         "control_hz": CONTROL_HZ,
         "duration_s": args.duration,
@@ -582,6 +725,14 @@ def main():
     ap.add_argument("--concurrent", type=int, default=1, help="identical workers run at once, one per core")
     ap.add_argument("--first-core", type=int, default=2, help="first logical CPU to pin to (skip CPU 0)")
     ap.add_argument("--no-pin", dest="pin", action="store_false", help="leave workers unpinned (required on macOS)")
+    ap.add_argument("--xml", nargs="+", default=None, help="external MJCF files (path or package:relative/path)")
+    ap.add_argument("--protocol", choices=["replay", "random"], default="replay")
+    ap.add_argument("--native", action="store_true", help="--xml: keep the model's own timestep")
+    ap.add_argument("--myoassist-solver", action="store_true", help="--xml: Euler, Newton, 100 iterations")
+    ap.add_argument("--frame-skip", type=int, default=40, help="--protocol random: physics steps per action")
+    ap.add_argument("--healthy-z", type=float, nargs=2, default=[1.0, 2.0], help="--protocol random: root height range")
+    ap.add_argument("--reset-noise", type=float, default=0.01, help="--protocol random: uniform reset noise")
+    ap.add_argument("--max-episode-steps", type=int, default=1000, help="--protocol random: episode truncation")
     ap.add_argument("--validate", nargs=2, metavar=("SESSION_DIR", "MODEL_ZIP"), help="check the replay against a policy")
     ap.add_argument("--velocity", type=float, default=1.25, help="--validate: target speed for the policy [m/s]")
     ap.add_argument("--out", default=None)
@@ -590,8 +741,9 @@ def main():
     ap.add_argument("--core", type=int, default=None, help=argparse.SUPPRESS)
     args = ap.parse_args()
     if args.worker:
-        assert len(args.msk) == 1 and len(args.activation) == 1
-        args.msk, args.activation = args.msk[0], args.activation[0]
+        assert len(args.activation) == 1 and (len(args.xml) == 1 if args.xml else len(args.msk) == 1)
+        args.activation = args.activation[0]
+        args.msk, args.xml = (None, args.xml[0]) if args.xml else (args.msk[0], None)
         worker(args)
     elif args.validate:
         args.activation = args.activation or [0.0, 0.05]
