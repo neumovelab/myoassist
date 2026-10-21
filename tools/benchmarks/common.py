@@ -94,6 +94,24 @@ def cpu_name():
     return platform.processor()
 
 
+def package_checkouts():
+    """`{module: {"path", "commit", "modified"}}` for the packages imported from a git checkout."""
+    import importlib.util
+
+    out = {}
+    for module in ("assist_sim", "myo_sim", "myoassist_terrains"):
+        root = pathlib.Path(importlib.util.find_spec(module).origin).resolve().parents[1]
+        if not (root / ".git").exists():
+            continue
+        git = ["git", "-C", str(root)]
+        out[module] = {
+            "path": str(root),
+            "commit": subprocess.check_output([*git, "rev-parse", "--short", "HEAD"]).decode().strip(),
+            "modified": subprocess.check_output([*git, "status", "--porcelain", "--untracked-files=no"]).decode().splitlines(),
+        }
+    return out
+
+
 def system_info():
     import mujoco
     import numpy as np
@@ -111,6 +129,9 @@ def system_info():
         "mujoco": mujoco.__version__,
         "numpy": np.__version__,
         "packages": {p: version(p) for p in PACKAGES},
+        # A package installed from a git checkout (editable) reports its release version
+        # even when the checkout carries unreleased commits, so record the commit too.
+        "package_checkouts": package_checkouts(),
         # Under Windows "Balanced", 416-muscle single-core runs split into two clusters ~25% apart.
         "power_scheme": subprocess.check_output(["powercfg", "/getactivescheme"]).decode().strip() if os.name == "nt" else None,
         "git_commit": subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=REPO).decode().strip(),
