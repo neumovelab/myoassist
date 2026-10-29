@@ -121,8 +121,6 @@ def get_optimization_type(args: argparse.Namespace) -> str:
         return "Classic"
     elif args.kinematics:
         return "Kine"
-    elif args.combined:
-        return "Combined"
     elif args.velocity:
         return "Velocity"
     elif args.velocity_grf:
@@ -155,7 +153,6 @@ def get_optimization_suffix(optim_type: str) -> str:
         "Eff_Knee": "Eff_Kne",
         "Classic": "Class",
         "Kine": "Kine",
-        "Combined": "Comb",
         "Velocity": "Vel",
         "Vel_grf": "Vel_grf",
         "Kine_grf": "Kine_grf",

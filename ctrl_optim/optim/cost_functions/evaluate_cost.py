@@ -11,6 +11,13 @@ from typing import Dict, List, Union, Any
 from .kinematic_costs import calculate_kinematic_costs
 from . import effort_costs
 
+# Muscle groups of the effort cost, by control mode: the group names of
+# reflex_interface.muscles_dict (every group the reflex controller drives).
+EFFORT_GROUPS = {
+    "2D": ["HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "FDL", "EDL"],
+    "3D": ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "FDL", "EDL"],
+}
+
 
 def evaluateCost(
     data_store: List[Dict],
@@ -75,7 +82,8 @@ def evaluateCost(
     unpacked_velocities = np.zeros((len(data_store), 3))
     unpacked_grf = np.zeros((len(data_store), 2))
     unpacked_act = np.zeros((len(data_store), data_store[0]["obj_func_out"]["mus_act"].shape[0]))
-    unpacked_torque = np.zeros((len(data_store), 8))
+    # Joint-limit constraint torques (jointlimitfrc sensors): hip, knee, ankle, each left then right.
+    unpacked_torque = np.zeros((len(data_store), 6))
     unpacked_euclidDist = np.zeros((len(data_store), 3))
     unpacked_spinal_phases_r = np.zeros((len(data_store), 11))
     unpacked_spinal_phases_l = np.zeros((len(data_store), 11))
@@ -116,6 +124,9 @@ def evaluateCost(
         unpacked_grf[idx, 0] = data_store[idx]["obj_func_out"]["GRF"]["l_leg"]
         unpacked_grf[idx, 1] = data_store[idx]["obj_func_out"]["GRF"]["r_leg"]
         unpacked_act[idx, :] = data_store[idx]["obj_func_out"]["mus_act"]
+        for col, joint in enumerate(("hip", "knee", "ankle")):
+            unpacked_torque[idx, 2 * col] = obj_out["l_leg"]["joint"][f"{joint}_limit_sens"]
+            unpacked_torque[idx, 2 * col + 1] = obj_out["r_leg"]["joint"][f"{joint}_limit_sens"]
         unpacked_euclidDist[idx, :] = data_store[idx]["obj_func_out"]["pelvis"]["x_pos"]
         unpacked_velocities[idx, 0] = data_store[idx]["obj_func_out"]["torso"]["dpitch"]
 
@@ -175,7 +186,7 @@ def evaluateCost(
 
     GRF_cost = calculate_grf_cost(unpacked_grf, index_vector, tgt_grf)
 
-    # Calculate joint pain costs
+    # Joint-limit reliance: mean joint-limit torque over the window, per joint (both legs) and total
     pain_costs = effort_costs.calculate_joint_limit_cost(unpacked_torque, index_vector)
     pain_cost = pain_costs["total"]
     knee_pain = pain_costs["knee"]
@@ -183,11 +194,7 @@ def evaluateCost(
     ankle_pain = pain_costs["ankle"]
 
     # --- Effort and Profile Costs ---
-    # Define muscles to use based on control mode
-    if eval_ctrl_mode == "2D":
-        filter_musc = ["HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "TOFL", "TOEX"]
-    else:
-        filter_musc = ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "TOFL", "TOEX"]
+    filter_musc = EFFORT_GROUPS["2D" if eval_ctrl_mode == "2D" else "3D"]
 
     # Extract muscle indices from the dictionary
     muscle_indices = []
@@ -211,8 +218,10 @@ def evaluateCost(
         unpacked_act, one_EMG, muscles_dict, eval_ctrl_mode, index_vector, stride_num
     )
 
-    # Calculate kinematic costs
-    kinematic_cost, trunk_cost = calculate_kinematic_costs(unpacked_angles, one_step, stride_num, index_vector)
+    # Calculate kinematic costs (trunk_err_type selects the trunk term)
+    kinematic_cost, trunk_cost = calculate_kinematic_costs(
+        unpacked_angles, one_step, stride_num, index_vector, trunk_err_type, trunk_vel=unpacked_velocities[:, 0]
+    )
 
     # Calculate 3D-specific costs if needed
     if eval_ctrl_mode == "3D":
@@ -318,78 +327,6 @@ def extract_simulation_data(data_store):
     unpacked_velocities = np.zeros((len(data_store), 3))
     unpacked_grf = np.zeros((len(data_store), 2))
     return unpacked_cost, unpacked_angles, unpacked_velocities, unpacked_grf
-
-
-def extract_basic_data(
-    data_store,
-    idx,
-    unpacked_cost,
-    unpacked_angles,
-    unpacked_velocities,
-    unpacked_grf,
-    unpacked_act,
-    unpacked_torque,
-    unpacked_euclidDist,
-):
-    """Extract data for a single timestep"""
-    if "obj_func_out" not in data_store[idx]:
-        return
-
-    # Extract basic cost data
-    unpacked_cost[idx, 0] = np.abs(data_store[idx]["obj_func_out"]["pelvis_dist"][0])
-    unpacked_cost[idx, 1] = np.abs(data_store[idx]["obj_func_out"]["pelvis_dist"][1])
-    unpacked_cost[idx, 2] = data_store[idx]["obj_func_out"]["sim_time"]
-    unpacked_cost[idx, 3] = data_store[idx]["obj_func_out"]["new_step"]
-
-    # Extract position data
-    unpacked_euclidDist[idx, 0] = data_store[idx]["obj_func_out"]["pelvis"]["x_pos"][0]
-    unpacked_euclidDist[idx, 1] = data_store[idx]["obj_func_out"]["pelvis"]["x_pos"][1]
-    unpacked_euclidDist[idx, 2] = data_store[idx]["obj_func_out"]["pelvis"]["x_pos"][2]
-
-    # Extract muscle activations
-    unpacked_act[idx, :] = data_store[idx]["obj_func_out"]["mus_act"]
-
-    # Extract joint angles
-    unpacked_angles[idx, 0] = data_store[idx]["obj_func_out"]["torso"]["pitch"]
-    unpacked_angles[idx, 1] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["hip"]
-    unpacked_angles[idx, 2] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["knee"]
-    unpacked_angles[idx, 3] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["ankle"]
-    unpacked_angles[idx, 4] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["hip"]
-    unpacked_angles[idx, 5] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["knee"]
-    unpacked_angles[idx, 6] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["ankle"]
-
-    try:
-        # Extract joint velocities - store in unpacked_velocities[:, 3:7]
-        # Left leg velocities
-        unpacked_velocities[idx, 3] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["ankle_vel"]
-        unpacked_velocities[idx, 4] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["mtp_vel"]
-        # Right leg velocities
-        unpacked_velocities[idx, 5] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["ankle_vel"]
-        unpacked_velocities[idx, 6] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["mtp_vel"]
-    except KeyError as e:
-        print(f"Warning: Unable to access joint velocity data: {e}")
-        print("Joint velocity cost will not be included in kinematic cost calculation")
-        unpacked_velocities[idx, 3:7] = 0
-
-    # Extract joint torques
-    unpacked_torque[idx, 0] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["knee_torque"]
-    unpacked_torque[idx, 1] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["knee_torque"]
-    unpacked_torque[idx, 2] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["knee_limit_sens"]
-    unpacked_torque[idx, 3] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["knee_limit_sens"]
-    unpacked_torque[idx, 4] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["hip_limit_sens"]
-    unpacked_torque[idx, 5] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["hip_limit_sens"]
-    unpacked_torque[idx, 6] = data_store[idx]["obj_func_out"]["l_leg"]["joint"]["ankle_limit_sens"]
-    unpacked_torque[idx, 7] = data_store[idx]["obj_func_out"]["r_leg"]["joint"]["ankle_limit_sens"]
-
-    # Extract pelvis velocities
-    pelvis_vel = data_store[idx]["obj_func_out"]["pelvis"]["vel"]  # This is a 2D array [forward, lateral]
-    unpacked_velocities[idx, 0] = pelvis_vel[0]  # Forward velocity (x)
-    unpacked_velocities[idx, 1] = pelvis_vel[1]  # Lateral velocity (y)
-    unpacked_velocities[idx, 2] = 0  # No z velocity data available, set to 0
-
-    # Extract ground reaction forces
-    unpacked_grf[idx, 0] = data_store[idx]["obj_func_out"]["GRF"]["l_leg"]
-    unpacked_grf[idx, 1] = data_store[idx]["obj_func_out"]["GRF"]["r_leg"]
 
 
 def filter_step_indices(step_index, step_size):
@@ -561,10 +498,7 @@ def calculate_effort_and_emg_cost(
         return None, None
 
     # Get muscle indices based on control mode
-    if eval_ctrl_mode == "2D":
-        filter_musc = ["HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "TOFL", "TOEX"]
-    else:
-        filter_musc = ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "TOFL", "TOEX"]
+    filter_musc = EFFORT_GROUPS["2D" if eval_ctrl_mode == "2D" else "3D"]
 
     # Extract muscle indices from both legs
     muscle_indices = []
