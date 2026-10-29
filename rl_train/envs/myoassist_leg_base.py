@@ -8,7 +8,6 @@ from rl_train.train.train_configs.config import TrainSessionConfigBase
 from rl_train.utils.data_types import DictionableDataclass
 import collections
 from enum import Enum
-import random
 
 
 class MyoAssistLegBase(env_base.MujocoEnv):
@@ -447,9 +446,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._max_target_velocity = float(max_velocity)
 
     def _change_mode_and_target_velocity_randomly(self):
-        velocity_mode_for_this_episode = random.choice(list(MyoAssistLegBase.VelocityMode))
-        starting_phase = random.uniform(0, 2 * np.pi)
-        target_velocity_period = random.uniform(
+        modes = list(MyoAssistLegBase.VelocityMode)
+        velocity_mode_for_this_episode = modes[int(self.np_random.integers(len(modes)))]
+        starting_phase = self.np_random.uniform(0, 2 * np.pi)
+        target_velocity_period = self.np_random.uniform(
             self._min_target_velocity_period, self._max_target_velocity_period
         )  # maximum acc/dec is self._target_velocity_period / 2
         if velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.SINUSOIDAL:
@@ -457,7 +457,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
                 starting_phase, target_velocity_period, self._min_target_velocity, self._max_target_velocity, time=0.0
             )
         else:
-            initial_target_velocity = random.uniform(self._min_target_velocity, self._max_target_velocity)
+            initial_target_velocity = self.np_random.uniform(self._min_target_velocity, self._max_target_velocity)
         # Keyword arguments, because these were positional and two of them were in the wrong
         # slots: `starting_phase` landed in `max_target_velocity`. Since a phase is drawn from
         # [0, 2*pi], the episode's speed band became [0, 6.28] m/s, and because the setter also
@@ -494,7 +494,7 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             )
         elif self._velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.STEP:
             if self.sim.data.time - self._prev_step_changed_time > self._target_velocity_period:
-                self._target_velocity = np.random.uniform(self._min_target_velocity, self._max_target_velocity)
+                self._target_velocity = self.np_random.uniform(self._min_target_velocity, self._max_target_velocity)
                 self._prev_step_changed_time = self.sim.data.time
 
     def reset(self, **kwargs):

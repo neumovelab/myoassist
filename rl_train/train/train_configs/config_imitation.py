@@ -17,8 +17,6 @@ class ImitationTrainSessionConfig(TrainSessionConfigBase):
             qpos_imitation_rewards: dict = field(default_factory=dict)
             qvel_imitation_rewards: dict = field(default_factory=dict)
 
-            end_effector_imitation_reward: float = 0.3
-
         reward_keys_and_weights: RewardWeights = field(default_factory=RewardWeights)
 
         flag_random_ref_index: bool = False

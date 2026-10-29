@@ -215,23 +215,11 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         )
         return np.array([diffs[k] for k in self._out_of_trajectory_joint_keys])
 
-    def _get_end_effector_diff(self):
-        # body_pos = self.sim.data.body('pelvis').xpos.copy()
-        # diff_array = []
-        # for mapping in self.ANCHOR_SIM_TO_REF.values():
-        #     sim_anchor = self.sim.data.joint(mapping.sim_name).xanchor.copy() - body_pos
-        #     ref_anchor = self._reference_data[mapping.ref_name][self._imitation_index]
-        #     diff = np.linalg.norm(sim_anchor - ref_anchor)
-        #     diff_array.append(diff)
-        # return diff_array
-        return np.array([0])
-
     def _calculate_imitation_rewards(self, obs_dict):
         base_reward, base_info = super()._calculate_base_reward(obs_dict)
 
         q_diff_dict = self._get_qpos_diff()
         dq_diff_dict = self._get_qvel_diff()
-        anchor_diff_array = self._get_end_effector_diff()
 
         # Calculate joint position rewards
         q_reward_dict = {}
@@ -241,9 +229,6 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         dq_reward_dict = {}
         for joint_name, diff in dq_diff_dict.items():
             dq_reward_dict[joint_name] = self.dt * np.exp(-8 * np.square(diff))
-
-        # Calculate end effector reward
-        anchor_reward = self.dt * np.mean(np.exp(-5 * np.square(anchor_diff_array)))
 
         # Calculate joint imitation rewards sum
         qpos_imitation_rewards = np.sum(
@@ -258,7 +243,6 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             {
                 "qpos_imitation_rewards": qpos_imitation_rewards,
                 "qvel_imitation_rewards": qvel_imitation_rewards,
-                "end_effector_imitation_reward": anchor_reward,
             }
         )
 
@@ -601,7 +585,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         return corrected
 
     def reset(self, **kwargs):
-        rng = np.random.default_rng()  # TODO: refactoring random to use seed
+        rng = self.np_random  # seeded through the env seed, like every draw of the episode
 
         if self._flag_random_ref_index:
             self._imitation_index = rng.integers(0, int(self._reference_data_length * 0.8))

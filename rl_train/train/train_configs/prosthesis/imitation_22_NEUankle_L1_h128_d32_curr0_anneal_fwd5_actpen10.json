@@ -80,7 +80,6 @@
                 "hip_flexion_r": 0.2,
                 "knee_angle_r": 0.2
             },
-            "end_effector_imitation_reward": 0.0,
             "forward_reward": 5.0,
             "muscle_activation_penalty": 10.0,
             "muscle_activation_diff_penalty": 0.1,

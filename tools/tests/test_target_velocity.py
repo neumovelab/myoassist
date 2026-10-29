@@ -96,3 +96,41 @@ def test_velocity_curriculum_survives_the_reset_randomiser():
         )
     finally:
         env.close()
+
+
+def _episode_draws(seed: int, n: int = 6) -> list[tuple]:
+    """Start frame and target-velocity profile of `n` resets of a training env seeded with `seed`."""
+    from rl_train.envs.environment_handler import EnvironmentHandler
+    from rl_train.utils.data_types import DictionableDataclass
+
+    raw = json.loads(CONFIGS[0].read_text())
+    config = DictionableDataclass.create(EnvironmentHandler.get_config_type_from_session_id(raw["env_params"]["env_id"]), raw)
+    config.env_params.num_envs = 1
+    config.env_params.seed = seed
+    env = EnvironmentHandler.create_environment(config, is_rendering_on=False)
+    try:
+        draws = []
+        for _ in range(n):
+            env.reset()
+            draws.append(
+                (
+                    int(env._imitation_index),
+                    str(env._velocity_mode_for_this_episode),
+                    round(float(env._starting_phase), 9),
+                    round(float(env._target_velocity_period), 9),
+                )
+            )
+        return draws
+    finally:
+        env.close()
+
+
+def test_env_seed_sets_the_episode_draws():
+    """The env seed decides the start frame and the target-velocity profile of every episode.
+
+    They used to come from `np.random.default_rng()` and the `random` module, so two runs with the
+    same seed started their episodes differently.
+    """
+    first = _episode_draws(seed=7)
+    assert _episode_draws(seed=7) == first, "the same seed drew different episodes"
+    assert _episode_draws(seed=8) != first, "a different seed drew the same episodes"

@@ -125,7 +125,6 @@ TrainSessionConfigBase
 |-----------|-------------|---------|
 | `qpos_imitation_rewards` | Joint position imitation rewards | {"pelvis_ty": 0.1, "hip_flexion_l": 0.2} |
 | `qvel_imitation_rewards` | Joint velocity imitation rewards | {"pelvis_ty": 0.1, "hip_flexion_l": 0.2} |
-| `end_effector_imitation_reward` | End effector imitation reward | 0.0 |
 | `forward_reward` | Forward movement reward | 1.0 |
 | `muscle_activation_penalty` | Muscle activation penalty, squared | 0.1 |
 | `exo_activation_penalty` | Device effort penalty, in the same units as `muscle_activation_penalty`. The muscle mean is over 22 actuators and the device mean over 2, so the per-actuator price is `muscle_activation_penalty`/22 against `exo_activation_penalty`/2. | 0.0 |
