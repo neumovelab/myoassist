@@ -19,7 +19,17 @@ EXPECTED_OBS = 44
 EXPECTED_ACT = 24
 
 
-@pytest.mark.parametrize("config_path", shipped_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
+def _configs_with_known_failures():
+    # As in test_episode_reset: the UTAnkleExo_L2 connect anchors are 0.9 m off on myolegs22
+    # (assist_sim A-S4), so its reset cannot close the constraints. Strict, so that the mark
+    # must go when the placement is fixed.
+    broken = pytest.mark.xfail(
+        reason="UTAnkleExo_L2 connect anchors are 0.9 m off on myolegs22 (assist_sim)", raises=AssertionError, strict=True
+    )
+    return [pytest.param(p, marks=broken) if "UTAnkleExo_L2" in p.name else p for p in shipped_configs()]
+
+
+@pytest.mark.parametrize("config_path", _configs_with_known_failures(), ids=lambda p: p.stem.replace("imitation_22_", ""))
 def test_shipped_config_trains(config_path):
     config, env = build_env(config_path)
     try:
