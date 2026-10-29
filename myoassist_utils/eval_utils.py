@@ -327,9 +327,22 @@ def _collect_right_actuators(gait_data: GaitData) -> list[str]:
     return sorted(names, key=rank)
 
 
+def _device_output(gait_data: GaitData, name: str):
+    """(sign, unit) for a device actuator panel. Joint actuators output a torque (Nm),
+    tendon (cable) actuators a force (N). An actuator whose control range is
+    non-positive is plotted negated, so that its assistance is positive."""
+    info = gait_data.metadata.get("actuator_info", {}).get(name, {})
+    unit = "N" if info.get("transmission") == "tendon" else "Nm"
+    ctrlrange = info.get("ctrlrange")
+    sign = -1.0 if ctrlrange is None or ctrlrange[1] <= 0 else 1.0
+    return sign, unit
+
+
 def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None, cmap=None) -> None:
     """axes_flat: flat iterable of Axes (>= muscles + exo). Empty axes hidden.
-    Activations on [0,1] scale; Exo on autoscaled torque (Nm).
+    Muscle activation (`act`) on [0,1] scale; data recorded without `act` falls
+    back to the excitation |ctrl| and says so in the title. Device actuators on an
+    autoscaled torque (Nm) or cable force (N) axis.
 
     Constant speed (norm is None): mean +- SD (black). Varying (norm given): one
     trace per stride, colour-mapped by the stride's mean speed with the same
@@ -358,25 +371,27 @@ def draw_muscle_grid(axes_flat, gait_data: GaitData, n_cols: int = 4, norm=None,
         ad = actuator_data[name]
         is_exo = "exo" in name.lower()
         if is_exo:
-            unit_label = name[:-2] + " (Nm)"
+            sign, unit = _device_output(gait_data, name)
+            unit_label = f"{name[:-2]} ({unit})"
             if norm is None:
                 x, mean, std, _ = _segment_and_average(ad["force"], segments)
                 if mean is not None:
-                    ax.plot(x, -mean, color=LINE_BLACK)
-                    ax.fill_between(x, -mean - std, -mean + std, color=FILL_GREY, alpha=0.5, linewidth=0)
+                    ax.plot(x, sign * mean, color=LINE_BLACK)
+                    ax.fill_between(x, sign * mean - std, sign * mean + std, color=FILL_GREY, alpha=0.5, linewidth=0)
             else:
-                for y, col in _per_stride(ad["force"], lambda c: -c):
+                for y, col in _per_stride(ad["force"], lambda c: sign * c):
                     ax.plot(xg, y, color=col, lw=0.8 * TRAJ_LW, alpha=0.85)
         else:
-            unit_label = name[:-2]
+            key = "act" if "act" in ad else "ctrl"
+            unit_label = name[:-2] if key == "act" else f"{name[:-2]} (excitation)"
             if norm is None:
-                x, mean, std, _ = _segment_and_average(ad["ctrl"], segments)
+                x, mean, std, _ = _segment_and_average(ad[key], segments)
                 if mean is not None:
                     mean_a = np.abs(mean)
                     ax.plot(x, mean_a, color=LINE_BLACK)
                     ax.fill_between(x, mean_a - std, mean_a + std, color=FILL_GREY, alpha=0.5, linewidth=0)
             else:
-                for y, col in _per_stride(ad["ctrl"], np.abs):
+                for y, col in _per_stride(ad[key], np.abs):
                     ax.plot(xg, y, color=col, lw=0.8 * TRAJ_LW, alpha=0.85)
             ax.set_ylim(0, 1)
         ax.axvline(toe_off, **TOE_OFF_STYLE)
@@ -599,7 +614,8 @@ def build_composite(
         os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
         fig.savefig(save_path, bbox_inches="tight")
         fig.savefig(os.path.splitext(save_path)[0] + ".svg", bbox_inches="tight")
-        print(f"  Composite saved to {save_path} (+ .svg)")
+        fig.savefig(os.path.splitext(save_path)[0] + ".pdf", bbox_inches="tight")
+        print(f"  Composite saved to {save_path} (+ .svg, .pdf)")
     if show:
         plt.show()
     return fig
@@ -748,8 +764,9 @@ def _colored_line(ax, y, cvals, norm, cmap=None, lw=None, x=None):
 def load_cma_fitness(results_dir: str, pkl_path: Optional[str] = None):
     """Return (fbest, fmedian, fworst) for the CMA-ES fitness panel.
 
-    Prefers pycma's on-disk `outcmaes/*_fit.dat` (columns: iter, evals, sigma,
-    axis_ratio, fbest, fmedian, fworst). Falls back to `es.fit.hist` from the pkl
+    Prefers pycma's on-disk `outcmaes/*_fit.dat` (columns: iteration, evaluation,
+    sigma, axis ratio, bestever, best, median, worst). The panel uses the best,
+    median, and worst of each generation. Falls back to `es.fit.hist` from the pkl
     (best only) if outcmaes is missing — common for older runs.
     """
     fit_files = glob.glob(os.path.join(results_dir, "outcmaes", "*_fit.dat"))
@@ -760,9 +777,9 @@ def load_cma_fitness(results_dir: str, pkl_path: Optional[str] = None):
             arr = np.loadtxt(fit_path, comments="%")
             if arr.ndim == 1:
                 arr = arr.reshape(1, -1)
-            if arr.shape[1] >= 7:
-                return arr[:, 4], arr[:, 5], arr[:, 6]
-            return arr[:, 4], None, None
+            if arr.shape[1] >= 8:
+                return arr[:, 5], arr[:, 6], arr[:, 7]
+            return arr[:, 5], None, None
         except Exception as e:
             print(f"Warning: could not parse {fit_path}: {e}")
 
