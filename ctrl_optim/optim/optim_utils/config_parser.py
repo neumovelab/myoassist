@@ -32,7 +32,8 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
     if not os.path.exists(bat_file_path):
         raise FileNotFoundError(f"Configuration file not found: {bat_file_path}")
 
-    # Default values based on TestEnv constructor
+    # Default values: the TestEnv constructor, and the training defaults of
+    # arg_parser for n_points and max_torque (a config that omits them trained with these).
     config = {
         "sim_time": 20,
         "mode": "2D",
@@ -41,9 +42,9 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "delayed": False,
         "exo_bool": False,
         "fixed_exo": False,
-        "n_points": 0,
+        "n_points": 4,
         "use_4param_spline": False,
-        "max_torque": 0.0,
+        "max_torque": 10.0,
         "msk_key": None,
         "device_key": None,
         "terrain": None,
@@ -51,6 +52,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "reflex_mode": None,
         "optimize_stiffness": False,
         "ankle_range": None,
+        "target_velocity": None,
     }
 
     try:
@@ -71,6 +73,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
             "--terrain": (r"--terrain\s+(\S+)", str),
             "--pose_key": (r"--pose_key\s+(\w+)", str),
             "--reflex_mode": (r"--reflex_mode\s+(\w+)", str),
+            "--tgt_vel": (r"--tgt_vel\s+([\d.]+)", float),
         }
 
         # Check for flags
@@ -107,6 +110,8 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                         config["init_pose"] = value
                 elif param == "--reflex_mode":
                     config["reflex_mode"] = value
+                elif param == "--tgt_vel":
+                    config["target_velocity"] = value
 
         # Check for flags
         for flag in flag_patterns:

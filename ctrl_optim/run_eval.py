@@ -9,10 +9,9 @@ Usage:
     python -m ctrl_optim.run_eval --config path/to/eval_config.json
     python -m ctrl_optim.run_eval --results-dir <dir> [overrides...]
 
-If `--config` is omitted, command-line overrides are used as a fallback. Any value
-present in the JSON config is overridden by an explicit CLI flag.
-
-Defaults are tuned for the preoptimized `exo_4param_1_25ms` example.
+Values are resolved in this order: an explicit CLI flag, the JSON config, the
+training config (.bat or .sh) that `train.py` copies into the results directory,
+and the defaults of `CtrlOptimEvalConfig`.
 """
 
 from __future__ import annotations
@@ -21,6 +20,7 @@ import argparse
 import glob
 import json
 import os
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -29,6 +29,7 @@ from ctrl_optim.eval.gait_evaluator import (
     CtrlOptimEvalConfig,
     CtrlOptimGaitEvaluator,
 )
+from ctrl_optim.optim.optim_utils.config_parser import parse_bat_config
 from myoassist_utils.eval_utils import (
     CompositeInputs,
     build_composite,
@@ -36,19 +37,41 @@ from myoassist_utils.eval_utils import (
 )
 from myoassist_utils.env_spec import slope_deg_from_terrain
 
-REFERENCE_NPZ = "rl_train/reference_data/segmented.npz"
+# The kinematic reference of the CO tracking cost (one gait cycle, 100 samples), in the
+# reflex controller's angle convention. Columns: trunk pitch, then hip, knee, and ankle of
+# the left leg from left heel strike, then of the right leg.
+REFERENCE_CSV = Path(__file__).resolve().parent / "optim" / "ref_data" / "ref_kinematics_radians.csv"
 
 
-def _load_reference():
-    """Load the shared segmented gait reference (parity with RL eval)."""
-    if not os.path.exists(REFERENCE_NPZ):
-        return None
+def _load_reference(msk_key: str):
+    """CO kinematic reference as right-leg joint angles (rad) over one gait cycle.
+
+    The left-leg columns start at a heel strike of that leg, so they are the
+    ipsilateral cycle for the report's right-heel-strike strides. The angles are
+    converted from the reflex convention (phi_hip = pi - hip_flexion, phi_knee =
+    pi + knee_sign * knee_angle, phi_ankle = pi/2 - ankle_angle) to joint angles.
+    """
     try:
-        ref = np.load(REFERENCE_NPZ, allow_pickle=True)
-        return {k: ref[k] for k in ref.files}
+        ref = np.genfromtxt(REFERENCE_CSV, delimiter=",")
     except Exception as e:
-        print(f"Warning: could not load reference data ({REFERENCE_NPZ}): {e}")
+        print(f"Warning: could not load reference data ({REFERENCE_CSV}): {e}")
         return None
+    knee_sign = -1.0 if msk_key in ("myolegs", "myofullbody") else 1.0  # 80-muscle knee flexes positive
+    return {
+        "q_hip_flexion_r": np.pi - ref[:, 1],
+        "q_knee_angle_r": knee_sign * (ref[:, 2] - np.pi),
+        "q_ankle_angle_r": 0.5 * np.pi - ref[:, 3],
+    }
+
+
+def _training_config(results_dir: str) -> dict:
+    """Settings of the training run, from the .bat/.sh that train.py copies into results_dir."""
+    path = _find_in_dir(results_dir, ".bat") or _find_in_dir(results_dir, ".sh")
+    if not path:
+        return {}
+    cfg = parse_bat_config(path)
+    print(f"Training config: {os.path.basename(path)}")
+    return {k: v for k, v in cfg.items() if v is not None}
 
 
 def _find_in_dir(results_dir: str, suffix: str) -> Optional[str]:
@@ -85,29 +108,41 @@ def _build_config_from_args(args, cfg_dict: dict) -> tuple[CtrlOptimEvalConfig, 
     output_dir = args.output_dir or cfg_dict.get("output_dir") or os.path.join(results_dir, "eval_output")
     os.makedirs(output_dir, exist_ok=True)
 
-    # Build evaluator config. CLI overrides JSON; JSON overrides hard defaults.
-    def pick(name, default):
+    # Build evaluator config. CLI overrides JSON; JSON overrides the training config;
+    # the training config overrides the evaluator defaults.
+    train_cfg = _training_config(results_dir)
+    defaults = CtrlOptimEvalConfig(param_file=param_file)
+
+    def pick(name):
         cli_val = getattr(args, name, None)
         if cli_val is not None:
             return cli_val
-        return cfg_dict.get(name, default)
+        if name in cfg_dict:
+            return cfg_dict[name]
+        if name in train_cfg:
+            return train_cfg[name]
+        return getattr(defaults, name)
 
+    terrain = pick("terrain")
     eval_config = CtrlOptimEvalConfig(
         param_file=param_file,
-        sim_time=pick("sim_time", 10.0),
-        target_velocity=pick("target_velocity", 1.25),
-        mode=pick("mode", "2D"),
-        init_pose=pick("init_pose", "walk_left"),
-        slope_deg=slope_deg_from_terrain(cfg_dict.get("terrain")),
-        delayed=pick("delayed", False),
-        exo_bool=pick("exo_bool", True),
-        fixed_exo=pick("fixed_exo", False),
-        use_4param_spline=pick("use_4param_spline", True),
-        max_torque=pick("max_torque", 1.0),
-        n_points=pick("n_points", 4),
-        msk_key=pick("msk_key", "myolegs22"),
-        device_key=pick("device_key", "Tutorial_L1"),
-        terrain=cfg_dict.get("terrain"),
+        sim_time=pick("sim_time"),
+        target_velocity=pick("target_velocity"),
+        mode=pick("mode"),
+        init_pose=pick("init_pose"),
+        slope_deg=slope_deg_from_terrain(terrain),
+        delayed=pick("delayed"),
+        exo_bool=pick("exo_bool"),
+        fixed_exo=pick("fixed_exo"),
+        use_4param_spline=pick("use_4param_spline"),
+        max_torque=pick("max_torque"),
+        n_points=pick("n_points"),
+        msk_key=pick("msk_key"),
+        device_key=pick("device_key"),
+        reflex_mode=pick("reflex_mode"),
+        optimize_stiffness=pick("optimize_stiffness"),
+        ankle_range=pick("ankle_range"),
+        terrain=terrain,
         camera_speed=cfg_dict.get("camera_speed"),
         camera_distance=cfg_dict.get("camera_distance", 3.5),
         camera_elevation=cfg_dict.get("camera_elevation", -10.0),
@@ -178,7 +213,6 @@ def main():
     except Exception as e:
         print(f"Warning: could not load CMA fitness: {e}")
 
-    # 3. Composite figure (with shared human gait reference for kinematics)
     metadata = {
         "Param file": os.path.basename(eval_config.param_file),
         "Model": f"{eval_config.msk_key} + {eval_config.device_key}",
@@ -187,17 +221,18 @@ def main():
         "Sim time": f"{eval_config.sim_time:.1f} s",
         "Target velocity": f"{eval_config.target_velocity:.2f} m/s",
         "Slope": f"{eval_config.slope_deg:.1f} deg",
-        "Exo": ("on" if eval_config.exo_bool else "off"),
+        "Exo": (f"on, max torque {eval_config.max_torque:g} Nm" if eval_config.exo_bool else "off"),
     }
     if cma_fitness is not None:
         metadata["CMA generations"] = str(len(cma_fitness[0]))
 
+    # 3. Composite figure (with the kinematic reference of the CO tracking cost)
     composite_path = os.path.join(output_dir, "composite.png")
     build_composite(
         CompositeInputs(
             gait_data=gait_data,
             skeleton_frame=skeleton_frame,
-            ref_data=_load_reference(),
+            ref_data=_load_reference(eval_config.msk_key),
             cma_fitness=cma_fitness,
             title=os.path.basename(results_dir),
             metadata=metadata,

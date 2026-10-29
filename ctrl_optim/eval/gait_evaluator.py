@@ -34,8 +34,13 @@ class CtrlOptimEvalConfig:
     exo_bool: bool = True
     fixed_exo: bool = False
     use_4param_spline: bool = True
-    max_torque: float = 1.0
+    max_torque: float = 10.0  # the training default (arg_parser --max_torque)
     n_points: int = 4
+    # Controller layout of the run (from its training config): reflex parameter
+    # blocks, prosthetic-ankle stiffness, and ankle range-of-motion limits.
+    reflex_mode: Optional[str] = None
+    optimize_stiffness: bool = False
+    ankle_range: Optional[list] = None
     # Composed env: raw assist_sim registry keys (see `python -m assist_sim list`).
     msk_key: str = "myolegs22"
     device_key: str = "Tutorial_L1"
@@ -80,6 +85,9 @@ class CtrlOptimGaitEvaluator:
             msk_key=cfg.msk_key,
             device_key=cfg.device_key,
             terrain=cfg.terrain,
+            reflex_mode=cfg.reflex_mode,
+            optimize_stiffness=cfg.optimize_stiffness,
+            ankle_range=cfg.ankle_range,
         )
         env.reset()
 
