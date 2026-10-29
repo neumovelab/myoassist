@@ -168,7 +168,7 @@ To optimize on an amputee model, pair a prosthetic device with `--reflex_mode am
 
 ### Ankle Range of Motion
 
-`--ankle_range MIN MAX` limits the ankle travel, in radians. `MIN` is the plantarflexion limit (negative). `MAX` is the dorsiflexion limit (positive). The framework clamps both ankles to this range on every step. Use it as a swept study variable, for example with the Anatomics exoskeleton.
+`--ankle_range MIN MAX` limits the ankle travel, in radians. `MIN` is the plantarflexion limit (negative). `MAX` is the dorsiflexion limit (positive). On every step, the framework clamps the ankle of each side that carries the ROM device to this range. For the Anatomics exoskeleton, this is the right ankle only. Use it as a swept study variable, for example with the Anatomics exoskeleton.
 
 ### Exoskeleton Configuration
 - `--ExoOn`: set to `1` to enable the exoskeleton, or `0` to disable it.

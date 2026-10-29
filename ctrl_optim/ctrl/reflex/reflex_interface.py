@@ -162,8 +162,10 @@ class myoLeg_reflex(object):
         # parameters in the vector tail (feet with a df_/pf_ankle_angle joint pair).
         self.optimize_stiffness = optimize_stiffness
         # Ankle ROM: a hard [lo, hi] rad constraint (per-step qpos clamp + qvel zero)
-        # swept from the optimization config; applies to both ankles (bilateral exo).
+        # swept from the optimization config. It applies to the ankle of each side
+        # that carries the ROM device (see _rom_ankle_joints).
         self.ankle_range = ankle_range
+        self._rom_joints = None
         # Powered-prosthesis impedance control: a four-phase impedance controller
         # drives the powered prosthetic joints, and its gains (12 per joint) are the
         # last tail of the vector.  See ctrl/prosthetic/impedance_ctrl.py.
@@ -402,15 +404,40 @@ class myoLeg_reflex(object):
             sim.advance(substeps=1, render=False)
         self.env.forward()
 
+    def _rom_ankle_joints(self):
+        """Ankle joints of the sides that carry the ROM device: the sides whose tibia
+        has a device body as a child.  The Anatomics ROM frame is on the right shank
+        only; its soles and uppers on both feet are shoes, so the feet do not count.
+        Resolved once and cached."""
+        if self._rom_joints is None:
+            model = self.env.sim.model
+            prefix = f"{self.device_key}_"
+            sides = []
+            for side in ("r", "l"):
+                try:
+                    tibia = model.body(f"tibia_{side}").id
+                except KeyError:
+                    continue  # no tibia on this side (transfemoral amputation)
+                if any(model.body_parentid[b] == tibia and model.body(b).name.startswith(prefix) for b in range(model.nbody)):
+                    sides.append(side)
+            if not sides:
+                raise ValueError(
+                    f"ankle_range: device {self.device_key!r} has no body on a tibia, so no ankle carries the "
+                    "ROM device to constrain"
+                )
+            self._rom_joints = tuple(f"ankle_angle_{side}" for side in sides)
+        return self._rom_joints
+
     def _apply_rom_clamp(self):
-        """Hard-clamp the ankle joints into the configured ROM after a physics step
-        (qpos into [lo, hi], qvel zeroed at a limit).  No-op when ankle_range is
-        unset.  See ctrl/exo/joint_rom.py and the MYOASSIST_FEATURES decision log."""
+        """Hard-clamp the ankle of each side with the ROM device into the configured
+        ROM after a physics step (qpos into [lo, hi], qvel zeroed at a limit).  No-op
+        when ankle_range is unset.  See ctrl/exo/joint_rom.py and the MYOASSIST_FEATURES
+        decision log."""
         if self.ankle_range is None:
             return
         from ctrl_optim.ctrl.exo.joint_rom import clamp_joint_rom
 
-        hit = clamp_joint_rom(self.env.sim, ("ankle_angle_r", "ankle_angle_l"), self.ankle_range[0], self.ankle_range[1])
+        hit = clamp_joint_rom(self.env.sim, self._rom_ankle_joints(), self.ankle_range[0], self.ankle_range[1])
         if hit:
             self.env.forward()
 

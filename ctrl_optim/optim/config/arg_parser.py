@@ -94,7 +94,8 @@ def initParser() -> argparse.Namespace:
         nargs=2,
         default=None,
         metavar=("MIN", "MAX"),
-        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step (both ankles)",
+        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step on the ankle of "
+        "each side that carries the ROM device (the right ankle for Anatomics_L1)",
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(

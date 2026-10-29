@@ -155,3 +155,20 @@ def test_reflex_env_builds_and_steps(case):
     # On a prosthetic side, groups can be empty or absent, so check the intact left leg.
     missing = set(EFFORT_GROUPS[env.mode]) - set(env.muscles_dict["l_leg"])
     assert not missing, f"effort groups not in muscles_dict: {missing}"
+
+
+def test_rom_clamp_applies_to_the_device_side_only():
+    """The ROM clamp holds only the ankle of a side that carries the ROM device.
+
+    The Anatomics ROM frame is on the right shank; its soles and uppers on both feet
+    are shoes. Clamping both ankles constrained the intact left ankle as well.
+    """
+    env = _build(mode="2D", msk="myolegs22", device="Anatomics_L1", leg="22", n=77, ankle_range=[-0.1745, 0.2618])
+    assert env._rom_ankle_joints() == ("ankle_angle_r",)
+
+
+def test_rom_clamp_needs_a_device_on_the_shank():
+    """ankle_range with a device that has no shank part is an error, not a silent no-op."""
+    env = _build(mode="2D", msk="myolegs22", device="HMEDI_L1", leg="22", n=77, ankle_range=[-0.1745, 0.2618])
+    with pytest.raises(ValueError, match="no body on a tibia"):
+        env._rom_ankle_joints()
