@@ -142,6 +142,7 @@ class myoLeg_reflex(object):
         reflex_mode=None,
         optimize_stiffness=False,
         ankle_range=None,
+        optimize_impedance=False,
     ):
 
         self.dt = dt
@@ -163,28 +164,22 @@ class myoLeg_reflex(object):
         # Ankle ROM: a hard [lo, hi] rad constraint (per-step qpos clamp + qvel zero)
         # swept from the optimization config; applies to both ankles (bilateral exo).
         self.ankle_range = ankle_range
+        # Powered-prosthesis impedance control: a four-phase impedance controller
+        # drives the powered prosthetic joints, and its gains (12 per joint) are the
+        # last tail of the vector.  See ctrl/prosthetic/impedance_ctrl.py.
+        self.optimize_impedance = optimize_impedance
+        self.ProsCtrl = None
         # The gait2392-lineage 80-muscle model (myolegs) uses POSITIVE knee flexion,
         # while the reflex controller is written for the myoLeg NEGATIVE-flexion
         # convention (22/26).  Read/write the knee through this sign so the same
         # controller drives both; it is identity (+1) for 22/26.
         self.knee_sign = -1.0 if leg_model == "80" else 1.0
 
-        # Parameter-vector layout: the single source of truth for block sizes
-        # (ctrl_optim/param_layout.py).  spline_params is 0 when the exo is off;
-        # the bilateral / stiffness tails are added by their respective features.
+        # spline_params is 0 when the exo is off.  The parameter layout is built
+        # after the env, because the impedance tail size comes from the model.
         if self.exo_bool and not use_4param_spline and n_points < 1:
             raise ValueError("Number of spline points must be at least 1")
         spline_params = (4 if use_4param_spline else n_points * 2) if self.exo_bool else 0
-
-        self.layout = ParamLayout(
-            mode, bilateral=self.is_bilat, spline=spline_params, stiffness=2 if self.optimize_stiffness else 0
-        )
-        expected_params = self.layout.total
-        if len(control_params) != expected_params:
-            raise ValueError(
-                f"myoLeg_reflex: expected {expected_params} parameters for mode={mode} "
-                f"(spline={spline_params}), got {len(control_params)}"
-            )
 
         self.muscle_labels = {}
         self.muscles_dict = {}
@@ -258,6 +253,29 @@ class myoLeg_reflex(object):
         self.sim_time = sim_time
         self.timestep_limit = int(self.sim_time / self.dt)
 
+        # The impedance controller finds the powered prosthetic joints in the model.
+        if self.optimize_impedance:
+            from ctrl_optim.ctrl.prosthetic.impedance_ctrl import ProsthesisImpedanceController
+
+            self.ProsCtrl = ProsthesisImpedanceController(self.env.sim.model)
+
+        # Parameter-vector layout: the single source of truth for block sizes
+        # (ctrl_optim/param_layout.py).  The bilateral / stiffness / impedance
+        # tails are added by their respective features.
+        self.layout = ParamLayout(
+            mode,
+            bilateral=self.is_bilat,
+            spline=spline_params,
+            stiffness=2 if self.optimize_stiffness else 0,
+            impedance=self.ProsCtrl.n_params if self.ProsCtrl is not None else 0,
+        )
+        expected_params = self.layout.total
+        if len(control_params) != expected_params:
+            raise ValueError(
+                f"myoLeg_reflex: expected {expected_params} parameters for mode={mode} "
+                f"(spline={spline_params}, impedance={self.layout.impedance}), got {len(control_params)}"
+            )
+
         self.CONTROL_PARAM = control_params
 
         self.update_init_pose_param_cmaes(self.CONTROL_PARAM[self.layout.slice_pose()])
@@ -325,6 +343,10 @@ class myoLeg_reflex(object):
             p_pf, p_df = self.CONTROL_PARAM[self.layout.slice_stiffness()]
             self.last_pf_stiffness, self.last_df_stiffness = apply_stiffness(self.env.sim, p_pf, p_df)
 
+        # Powered-prosthesis impedance gains (K, B, theta_eq per phase per joint).
+        if self.layout.impedance:
+            self.ProsCtrl.set_params(self.CONTROL_PARAM[self.layout.slice_impedance()])
+
         self.set_init_pose(key_name=self.init_pose)
         self.adjust_initial_pose_cmaes()
         self.adjust_model_height()
@@ -345,6 +367,40 @@ class myoLeg_reflex(object):
         self.ReflexCtrl.reset_spinal_phases(self.init_pose)
         self.ReflexCtrl.reset_delay_buffers(self.SENSOR_DATA, self.init_pose, self.DEFAULT_INIT_MUSC)  # , updateFlag=True
         self.ReflexCtrl.reset(reflex_params)
+        if self.ProsCtrl is not None:
+            self.ProsCtrl.reset(self.init_pose)
+
+    def _apply_prosthesis(self, new_act):
+        """Write the powered-prosthesis controls into new_act.  No-op without the
+        impedance controller.  The load sensor is the foot ground force of that side
+        (load_ipsi, in body weights), not delayed: the device has its own sensors."""
+        if self.ProsCtrl is None:
+            return
+        loads = {side: self.SENSOR_DATA[f"{side}_leg"]["load_ipsi"] for side in self.ProsCtrl.sides}
+        self.ProsCtrl.apply(self.env.sim.data, loads, new_act)
+
+    def _step_env(self, new_act):
+        """Advance the env by one control step.
+
+        Without a powered prosthesis this is ``env.step``.  With one, the physics
+        substeps run one at a time, and the impedance torque law runs again before
+        each substep (the phases stay as ``_apply_prosthesis`` set them).  Otherwise
+        it does what ``env.step`` does: it sets ``data.ctrl``, advances the same
+        number of substeps, and calls ``env.forward``.  The env observes the main
+        sim, so ``env.forward`` runs ``mj_forward`` and the touch sensors (the foot
+        loads) read the new state.
+        """
+        if self.ProsCtrl is None:
+            self.env.step(new_act)
+            return
+        sim = self.env.sim
+        n_frames = int(self.env.dt / sim.step_duration)  # as in myosuite Robot.step
+        sim.data.ctrl[:] = new_act
+        for k in range(n_frames):
+            if k:
+                self.ProsCtrl.write_controls(sim.data, sim.data.ctrl)
+            sim.advance(substeps=1, render=False)
+        self.env.forward()
 
     def _apply_rom_clamp(self):
         """Hard-clamp the ankle joints into the configured ROM after a physics step
@@ -370,6 +426,7 @@ class myoLeg_reflex(object):
         # new_act = self.reflex2mujoco(self.update(out_dict))
         self.get_sensor_data()
         new_act = self.reflex2mujoco(self.update(self.SENSOR_DATA))
+        self._apply_prosthesis(new_act)
 
         if data_list is not None:
             plt_dict = self.get_plot_data(data_list)
@@ -380,7 +437,7 @@ class myoLeg_reflex(object):
             else:
                 plt_dict["new_step"] = 0
 
-        self.env.step(new_act)
+        self._step_env(new_act)
         self._apply_rom_clamp()
 
         self.update_footstep()
@@ -500,10 +557,9 @@ class myoLeg_reflex(object):
             # object_velocity from DMcontrol - {https://github.com/deepmind/dm_control/blob/d6f9cb4e4a616d1e1d3bd8944bc89541434f1d49/dm_control/mujoco/wrapper/core.py#L481}
 
             # Leg joint angles
+            knee_name, knee_k = self._knee_joint(s_leg[0])
             self.SENSOR_DATA[s_leg]["phi_hip"] = np.pi - self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qpos[0].copy()
-            self.SENSOR_DATA[s_leg]["phi_knee"] = (
-                np.pi + self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
-            )
+            self.SENSOR_DATA[s_leg]["phi_knee"] = np.pi + knee_k * self.env.sim.data.joint(knee_name).qpos[0].copy()
             self.SENSOR_DATA[s_leg]["phi_ankle"] = 0.5 * np.pi - self._reflex_ankle_angle(s_leg[0])
             try:
                 mtp = self.env.sim.data.joint(f"mtp_angle_{s_leg[0]}").qpos[0].copy()
@@ -512,9 +568,7 @@ class myoLeg_reflex(object):
             self.SENSOR_DATA[s_leg]["phi_mtp"] = 0.5 * np.pi - mtp
 
             self.SENSOR_DATA[s_leg]["dphi_hip"] = -1 * self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qvel[0].copy()
-            self.SENSOR_DATA[s_leg]["dphi_knee"] = (
-                self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qvel[0].copy()
-            )
+            self.SENSOR_DATA[s_leg]["dphi_knee"] = knee_k * self.env.sim.data.joint(knee_name).qvel[0].copy()
 
             # Check sign - BODY FRAME ALPHA
             self.SENSOR_DATA[s_leg]["alpha"] = self.SENSOR_DATA[s_leg]["phi_hip"] - 0.5 * self.SENSOR_DATA[s_leg]["phi_knee"]
@@ -597,7 +651,9 @@ class myoLeg_reflex(object):
             new_act[self.torque_dict["Exo_R"]] = 0
             new_act[self.torque_dict["Exo_L"]] = 0
 
-        self.env.step(new_act)
+        self._apply_prosthesis(new_act)
+
+        self._step_env(new_act)
         self._apply_rom_clamp()
 
         self.update_footstep()
@@ -690,27 +746,25 @@ class myoLeg_reflex(object):
         temp_spinal_control_phase = copy.deepcopy(getattr(self.ReflexCtrl, "spinal_control_phase"))
 
         for s_leg in ["r_leg", "l_leg"]:
+            knee_name, knee_k = self._knee_joint(s_leg[0])
             cost_dict[s_leg] = {}
             cost_dict[s_leg]["joint"] = {}
             cost_dict[s_leg]["joint"]["hip"] = np.pi - self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qpos[0].copy()
-            cost_dict[s_leg]["joint"]["knee"] = (
-                np.pi + self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
-            )
+            cost_dict[s_leg]["joint"]["knee"] = np.pi + knee_k * self.env.sim.data.joint(knee_name).qpos[0].copy()
             cost_dict[s_leg]["joint"]["ankle"] = 0.5 * np.pi - self._reflex_ankle_angle(s_leg[0])
 
             cost_dict[s_leg]["joint"]["hip_pos"] = self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").xanchor.copy()
-            cost_dict[s_leg]["joint"]["knee_pos"] = self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").xanchor.copy()
+            cost_dict[s_leg]["joint"]["knee_pos"] = self.env.sim.data.joint(knee_name).xanchor.copy()
             try:
                 cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(f"ankle_angle_{s_leg[0]}").xanchor.copy()
             except KeyError:
-                self._reflex_ankle_angle(s_leg[0])  # populate the prosthetic-ankle cache
-                df, _ = self._pros_ankle_cache[s_leg[0]]
-                cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(df).xanchor.copy()
+                pros_ankle, _ = self._pros_ankle_joints(s_leg[0])
+                cost_dict[s_leg]["joint"]["ankle_pos"] = self.env.sim.data.joint(pros_ankle[0]).xanchor.copy()
 
             # Joint torque: https://github.com/google-deepmind/mujoco/issues/1095: data.joint("my_joint").qfrc_constraint + data.joint("my_joint").qfrc_smooth
-            cost_dict[s_leg]["joint"]["knee_torque"] = self.knee_sign * (
-                self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qfrc_constraint[0].copy()
-                + self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qfrc_smooth[0].copy()
+            cost_dict[s_leg]["joint"]["knee_torque"] = knee_k * (
+                self.env.sim.data.joint(knee_name).qfrc_constraint[0].copy()
+                + self.env.sim.data.joint(knee_name).qfrc_smooth[0].copy()
             )
             cost_dict[s_leg]["joint"]["knee_limit_sens"] = self.env.sim.data.sensor(f"{s_leg[0]}_knee_sensor").data[0].copy()
             cost_dict[s_leg]["joint"]["hip_limit_sens"] = self.env.sim.data.sensor(f"{s_leg[0]}_hip_sensor").data[0].copy()
@@ -828,24 +882,66 @@ class myoLeg_reflex(object):
 
     def _reflex_ankle_angle(self, side):
         """Ankle angle for the reflex law: the biological ``ankle_angle_{side}``
-        joint if present, else the prosthetic ``df_+pf_ankle_angle_{side}`` pair
-        (their sum is the compound ankle angle).  Resolves the assist_sim
-        device-prefixed prosthetic joint names once and caches them."""
-        data, model = self.env.sim.data, self.env.sim.model
+        joint if present, else the prosthetic ankle.  A spring foot has a
+        ``df_+pf_ankle_angle_{side}`` pair (their sum is the compound ankle angle);
+        a powered ankle has one joint, read dorsiflexion positive like the
+        biological ankle."""
+        data = self.env.sim.data
         try:
             return data.joint(f"ankle_angle_{side}").qpos[0].copy()
         except KeyError:
             pass
+        joints, sign = self._pros_ankle_joints(side)
+        if len(joints) == 2:
+            return data.joint(joints[0]).qpos[0] + data.joint(joints[1]).qpos[0]
+        return sign * data.joint(joints[0]).qpos[0]
+
+    def _pros_ankle_joints(self, side):
+        """Prosthetic ankle joints of a side, and the sign that maps their qpos to
+        the dorsiflexion-positive convention.  Resolves the assist_sim
+        device-prefixed joint names once and caches them."""
         cache = getattr(self, "_pros_ankle_cache", None)
         if cache is None:
             cache = self._pros_ankle_cache = {}
         if side not in cache:
+            model = self.env.sim.model
             names = [model.joint(i).name for i in range(model.njnt)]
-            df = next(n for n in names if n.endswith(f"df_ankle_angle_{side}"))
-            pf = next(n for n in names if n.endswith(f"pf_ankle_angle_{side}"))
-            cache[side] = (df, pf)
-        df, pf = cache[side]
-        return data.joint(df).qpos[0] + data.joint(pf).qpos[0]
+            df = next((n for n in names if n.endswith(f"df_ankle_angle_{side}")), None)
+            pf = next((n for n in names if n.endswith(f"pf_ankle_angle_{side}")), None)
+            if df is not None and pf is not None:
+                cache[side] = ((df, pf), 1.0)
+            else:
+                from ctrl_optim.ctrl.prosthetic.impedance_ctrl import joint_sign
+
+                joint = next((n for n in names if n.endswith(f"ankle_angle_{side}")), None)
+                if joint is None:
+                    raise KeyError(f"no biological or prosthetic ankle joint on side {side!r}")
+                cache[side] = ((joint,), joint_sign(model, joint, "ankle"))
+        return cache[side]
+
+    def _knee_joint(self, side):
+        """Knee joint of a side and the factor that maps its qpos to the reflex knee
+        coordinate (0 at full extension, negative in flexion; phi_knee = pi + it).
+        This is the biological ``knee_angle_{side}`` with ``knee_sign``, else the
+        prosthetic knee of a transfemoral device.  Cached per side."""
+        cache = getattr(self, "_knee_cache", None)
+        if cache is None:
+            cache = self._knee_cache = {}
+        if side not in cache:
+            model = self.env.sim.model
+            try:
+                model.joint(f"knee_angle_{side}")
+                cache[side] = (f"knee_angle_{side}", self.knee_sign)
+            except KeyError:
+                from ctrl_optim.ctrl.prosthetic.impedance_ctrl import joint_sign
+
+                names = [model.joint(i).name for i in range(model.njnt)]
+                joint = next((n for n in names if n.endswith(f"knee_angle_{side}")), None)
+                if joint is None:
+                    raise KeyError(f"no biological or prosthetic knee joint on side {side!r}")
+                # joint_sign maps qpos to flexion positive; the reflex coordinate is minus flexion.
+                cache[side] = (joint, -joint_sign(model, joint, "knee"))
+        return cache[side]
 
     def _placement_body(self, side):
         """Foot-placement reference body for the reflex's alpha target: the

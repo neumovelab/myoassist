@@ -193,6 +193,22 @@ JOINT_KEYS = [("hip_flexion_r", "HIP", "hip"), ("knee_angle_r", "KNEE", "knee"),
 REF_KEYS = {"hip_flexion_r": "q_hip_flexion_r", "knee_angle_r": "q_knee_angle_r", "ankle_angle_r": "q_ankle_angle_r"}
 
 
+def _no_joint(ax, label: str) -> None:
+    """Placeholder for a biological joint that a prosthetic device removed."""
+    ax.text(
+        0.5,
+        0.5,
+        "no biological joint\n(prosthesis)",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+        color=LINE_GREY,
+        fontsize=7,
+    )
+    ax.set_ylabel(label)
+    ax.set_yticks([])
+
+
 def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict], norm=None, cmap=None) -> None:
     """axes: iterable of 3 Axes (hip/knee/ankle, top to bottom).
 
@@ -207,6 +223,10 @@ def draw_segmented_kinematics(axes, gait_data: GaitData, ref_data: Optional[dict
     cmap = cmap or SPEED_CMAP
 
     for ax, (jkey, _lim_key, label) in zip(axes, JOINT_KEYS):
+        if jkey not in joint_data:
+            _no_joint(ax, label)
+            ax.set_xlim(0, 100)
+            continue
         if norm is None:
             _x, mean, std, _ = _segment_and_average(joint_data[jkey]["qpos"], segments)
             if mean is not None:
@@ -428,6 +448,9 @@ def draw_timeseries(axes, gait_data: GaitData, norm=None, fs: float = 30.0, cmap
 
     kin = [("hip_flexion_r", "hip (deg)"), ("knee_angle_r", "knee (deg)"), ("ankle_angle_r", "ankle (deg)")]
     for ax, (key, ylabel) in zip(axes[:3], kin):
+        if key not in joint_data:
+            _no_joint(ax, ylabel)
+            continue
         if norm is None:
             ax.plot(_ts(key), color=LINE_BLACK)
         else:

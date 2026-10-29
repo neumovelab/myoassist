@@ -35,7 +35,7 @@ python run_optim.py tutorial
 
 ### Available Configurations
 
-The `optim/training_configs/` directory contains configuration files for different optimization scenarios. Every configuration has a Windows `.bat` file. Six also have a Unix `.sh` file: `tutorial`, `debug`, `amp_kfoot`, `kfoot_stiffness`, `reflex_bilat`, and `anatomics_rom`. The other five (`baseline`, `exo_4param`, `exo_4param_kine`, `exo_npoint`, and `exo_npoint_cont`) are `.bat`-only, so they do not run on Unix. `run_optim.py` selects the file type for your OS. Some example configurations are below.
+The `optim/training_configs/` directory contains configuration files for different optimization scenarios. Every configuration has a Windows `.bat` file. Nine also have a Unix `.sh` file: `tutorial`, `debug`, `amp_kfoot`, `kfoot_stiffness`, `osl_a_impedance`, `osl_ka_impedance`, `neuankle_impedance`, `reflex_bilat`, and `anatomics_rom`. The other five (`baseline`, `exo_4param`, `exo_4param_kine`, `exo_npoint`, and `exo_npoint_cont`) are `.bat`-only, so they do not run on Unix. `run_optim.py` selects the file type for your OS. Some example configurations are below.
 
 | Configuration         | Description                                                                                             |
 |-----------------------|---------------------------------------------------------------------------------------------------------|
@@ -49,6 +49,9 @@ The `optim/training_configs/` directory contains configuration files for differe
 | `reflex_bilat`        | Bilateral reflex on the 3D 26-muscle model, with independent per-leg blocks.                             |
 | `amp_kfoot`           | Amputee reflex on the passive K-Foot prosthesis (see [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md)).  |
 | `kfoot_stiffness`     | Amputee reflex plus prosthetic ankle stiffness optimization.                                             |
+| `osl_a_impedance`     | Amputee reflex plus the impedance controller of the powered Open-Source Leg ankle.                       |
+| `osl_ka_impedance`    | Amputee reflex plus the impedance controller of the powered Open-Source Leg knee and ankle.              |
+| `neuankle_impedance`  | Amputee reflex plus the impedance controller of the powered NEUankle.                                    |
 | `anatomics_rom`       | Ankle range-of-motion study with the Anatomics exoskeleton.                                              |
 
 ### Listing Available Configurations
@@ -161,7 +164,7 @@ Every shipped configuration sets these.
 
 ### Amputee and Prosthetic Devices
 
-To optimize on an amputee model, pair a prosthetic device with `--reflex_mode amp`. To also tune a passive prosthetic ankle, add `--optimize_stiffness`. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md) for both.
+To optimize on an amputee model, pair a prosthetic device with `--reflex_mode amp`. To also tune a passive prosthetic ankle, add `--optimize_stiffness`. To drive a powered prosthesis with the four-phase impedance controller and tune its gains, add `--optimize_impedance`. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md) for all three.
 
 ### Ankle Range of Motion
 

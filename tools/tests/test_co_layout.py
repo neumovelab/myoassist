@@ -26,6 +26,9 @@ from ctrl_optim.optim.optim_utils.bounds import get_bounds
         (dict(control_mode="2D", bilateral=True, stiffness=2), 130),  # amp + K-Foot stiffness
         (dict(control_mode="2D", spline=4), 81),  # exo 4-param spline
         (dict(control_mode="3D", spline=12), 109),  # exo 6-point spline (2n)
+        (dict(control_mode="2D", bilateral=True, impedance=12), 140),  # amp + powered ankle
+        (dict(control_mode="2D", bilateral=True, impedance=24), 152),  # amp + powered knee and ankle
+        (dict(control_mode="3D", bilateral=True, impedance=24), 184),
     ],
 )
 def test_paramlayout_total(kwargs, expected):
@@ -42,6 +45,8 @@ def test_paramlayout_total(kwargs, expected):
         ("26", "3D", dict(bilateral=True, exo_spline=0, stiffness=0), 160),
         ("22", "2D", dict(bilateral=True, exo_spline=0, stiffness=2), 130),  # amp + K-Foot stiffness
         ("22", "2D", dict(bilateral=False, exo_spline=4, stiffness=0), 81),  # exo 4-param
+        ("22", "2D", dict(bilateral=True, exo_spline=0, stiffness=0, impedance=12), 140),  # amp + powered ankle
+        ("22", "2D", dict(bilateral=True, exo_spline=0, stiffness=0, impedance=24), 152),  # amp + powered knee and ankle
     ],
 )
 def test_get_bounds_length_matches_layout(musc, mode, kw, expected):
@@ -57,9 +62,24 @@ def test_get_bounds_rejects_2d_only_model_in_3d():
 
 
 def test_slices_partition_the_vector():
-    """reflex | pose | spline | stiffness must tile [0, total) with no gap or overlap."""
-    lay = ParamLayout("3D", bilateral=True, spline=4, stiffness=2)
+    """reflex | pose | spline | stiffness | impedance must tile [0, total) with no gap or overlap."""
+    lay = ParamLayout("3D", bilateral=True, spline=4, stiffness=2, impedance=24)
     covered = []
-    for s in (lay.slice_reflex(), lay.slice_pose(), lay.slice_spline(), lay.slice_stiffness()):
+    for s in (lay.slice_reflex(), lay.slice_pose(), lay.slice_spline(), lay.slice_stiffness(), lay.slice_impedance()):
         covered.extend(range(s.start, s.stop))
     assert covered == list(range(lay.total))
+
+
+def test_impedance_tail_is_normalized():
+    """The impedance tail is bounded to [0, 1], like the other device tails."""
+    start, end = get_bounds("22", "2D", bilateral=True, exo_spline=0, stiffness=0, impedance=24)
+    assert start[-24:] == [0.0] * 24 and end[-24:] == [1.0] * 24
+
+
+def test_impedance_count_from_the_composed_model():
+    """train.py sizes the tail from the model: 12 per powered joint."""
+    from ctrl_optim.ctrl.prosthetic.impedance_ctrl import n_params_for_env
+
+    assert n_params_for_env("myolegs22", "OpenSourceLeg_A_L1") == 12
+    assert n_params_for_env("myolegs22", "NEUankle_L1") == 12
+    assert n_params_for_env("myolegs22", "OpenSourceLeg_KA_L1") == 24

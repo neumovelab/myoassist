@@ -52,6 +52,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "reflex_mode": None,
         "optimize_stiffness": False,
         "ankle_range": None,
+        "optimize_impedance": False,
         "target_velocity": None,
     }
 
@@ -77,7 +78,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         }
 
         # Check for flags
-        flag_patterns = ["--use_4param_spline", "--fixed_exo", "--optimize_stiffness"]
+        flag_patterns = ["--use_4param_spline", "--fixed_exo", "--optimize_stiffness", "--optimize_impedance"]
 
         # Parse parameter values
         for param, (pattern, type_func) in patterns.items():
@@ -122,6 +123,8 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
                     config["fixed_exo"] = True
                 elif flag == "--optimize_stiffness":
                     config["optimize_stiffness"] = True
+                elif flag == "--optimize_impedance":
+                    config["optimize_impedance"] = True
 
         # Ankle ROM: two floats (radians), a swept study constraint carried for eval.
         rom_match = re.search(r"--ankle_range\s+(-?[\d.]+)\s+(-?[\d.]+)", content)
@@ -190,6 +193,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             reflex_mode=config.get("reflex_mode"),
             optimize_stiffness=config.get("optimize_stiffness", False),
             ankle_range=config.get("ankle_range"),
+            optimize_impedance=config.get("optimize_impedance", False),
         )
 
         return TestEnv, config

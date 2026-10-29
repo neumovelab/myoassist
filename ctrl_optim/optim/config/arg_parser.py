@@ -83,6 +83,12 @@ def initParser() -> argparse.Namespace:
         help="Append 2 normalized pf/df prosthetic-ankle stiffness params to the CMA-ES vector (prosthetic feet)",
     )
     optim_group.add_argument(
+        "--optimize_impedance",
+        action="store_true",
+        help="Drive the powered prosthetic joints with the four-phase impedance controller and append its "
+        "normalized gains (stiffness, damping, target angle per phase: 12 per joint) to the CMA-ES vector",
+    )
+    optim_group.add_argument(
         "--ankle_range",
         type=float,
         nargs=2,

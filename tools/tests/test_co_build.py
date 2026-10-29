@@ -14,6 +14,12 @@ exercises the bilateral + prosthetic K-Foot layout; ``+stiffness`` and
 ``len(params) == layout.total`` on construction, so each case also checks the
 param contract for its mode.
 
+The ``+impedance`` cases run the powered prostheses (OpenSourceLeg_A, OpenSourceLeg_KA,
+NEUankle) under the four-phase impedance controller, in 2D on myolegs22 and in 3D on
+myolegs26. Their impedance tail starts at the initDefaults gains, as ``train.py`` seeds it.
+The test also checks that the controller, not the 0.01 reflex default, sets the prosthetic
+actuator controls, and that the actuators produce torque.
+
 The 80-muscle ``myolegs`` 3D case also guards the runtime seat
 (``adjust_model_height``): the reflex env is always planar-root, so its vertical DOF
 is ``pelvis_ty``, not ``qpos[2]`` (the freejoint z on the RL build). Seating the wrong
@@ -33,7 +39,7 @@ from ctrl_optim.optim.cost_functions.evaluate_cost import EFFORT_GROUPS, evaluat
 REF_DIR = Path(__file__).resolve().parents[2] / "ctrl_optim" / "optim" / "ref_data"
 
 
-def _build(mode, msk, device, leg, n, reflex_mode=None, optimize_stiffness=False, ankle_range=None):
+def _build(mode, msk, device, leg, n, reflex_mode=None, optimize_stiffness=False, ankle_range=None, optimize_impedance=False):
     return myoLeg_reflex(
         sim_time=5,
         control_params=np.ones(n),
@@ -47,6 +53,7 @@ def _build(mode, msk, device, leg, n, reflex_mode=None, optimize_stiffness=False
         reflex_mode=reflex_mode,
         optimize_stiffness=optimize_stiffness,
         ankle_range=ankle_range,
+        optimize_impedance=optimize_impedance,
         exo_bool=False,
     )
 
@@ -67,24 +74,72 @@ CASES = [
         id="ROM-Anatomics",
     ),
     pytest.param(dict(mode="3D", msk="myolegs", device="Tutorial_L1", leg="80", n=97), id="80-3D"),
+    pytest.param(
+        dict(
+            mode="2D", msk="myolegs22", device="OpenSourceLeg_A_L1", leg="22", n=140, reflex_mode="amp", optimize_impedance=True
+        ),
+        id="amp-OSL_A-impedance",
+    ),
+    pytest.param(
+        dict(
+            mode="2D",
+            msk="myolegs22",
+            device="OpenSourceLeg_KA_L1",
+            leg="22",
+            n=152,
+            reflex_mode="amp",
+            optimize_impedance=True,
+        ),
+        id="amp-OSL_KA-impedance",
+    ),
+    pytest.param(
+        dict(mode="2D", msk="myolegs22", device="NEUankle_L1", leg="22", n=140, reflex_mode="amp", optimize_impedance=True),
+        id="amp-NEUankle-impedance",
+    ),
+    pytest.param(
+        dict(
+            mode="3D",
+            msk="myolegs26",
+            device="OpenSourceLeg_KA_L1",
+            leg="26",
+            n=184,
+            reflex_mode="amp",
+            optimize_impedance=True,
+        ),
+        id="26-3D-amp-OSL_KA-impedance",
+    ),
 ]
 
 
 @pytest.mark.parametrize("case", CASES)
 def test_reflex_env_builds_and_steps(case):
     env = _build(**case)  # myoLeg_reflex validates len(params) == layout.total on construction
-    env.reset()
+    params = np.ones(case["n"])
+    if env.ProsCtrl is not None:
+        assert env.layout.impedance == env.ProsCtrl.n_params == 12 * len(env.ProsCtrl.joints)
+        params[env.layout.slice_impedance()] = env.ProsCtrl.default_params()
+    env.reset(params)
     assert env.check_pose_validity(), "initial pose invalid (would be the 1.2e6 sim-error)"
     steps = 0
     store = []
+    pros_force = []
     for i in range(int(5 / env.dt)):
         cost_dict, sim_time, is_done = env.run_reflex_step_Cost()
         store.append({"obj_func_out": cost_dict.copy(), "sim_time": sim_time})
+        if env.ProsCtrl is not None:
+            data = env.env.sim.data
+            for joint in env.ProsCtrl.joints:  # the last substep's control is the controller's torque law
+                tau = env.ProsCtrl.last_torque[joint.name]
+                assert data.ctrl[joint.actuator_id] == pytest.approx(joint.sign * tau / joint.gain)
+            pros_force.append([abs(data.actuator_force[j.actuator_id]) for j in env.ProsCtrl.joints])
         steps = i + 1
         if is_done:
             break
     assert steps >= 1
     assert np.all(np.isfinite(np.asarray(env.env.sim.data.qpos))), "non-finite qpos after stepping"
+    if env.ProsCtrl is not None:
+        peak = np.max(pros_force, axis=0)
+        assert np.all(peak > 1.0), f"prosthetic actuators produced no torque: peak |force| {peak} Nm"
 
     # The cost evaluation unpacks every frame of the rollout (in 3D also the hip adduction
     # and rotation and the pelvis list and rotation) before it checks the strides. A time
