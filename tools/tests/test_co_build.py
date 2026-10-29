@@ -22,10 +22,15 @@ axis in 3D used to leave the 80-muscle feet ~7 cm off the ground with all foot G
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from ctrl_optim.ctrl.reflex.reflex_interface import myoLeg_reflex
+from ctrl_optim.optim.cost_functions.evaluate_cost import EFFORT_GROUPS, evaluateCost
+
+REF_DIR = Path(__file__).resolve().parents[2] / "ctrl_optim" / "optim" / "ref_data"
 
 
 def _build(mode, msk, device, leg, n, reflex_mode=None, optimize_stiffness=False, ankle_range=None):
@@ -71,10 +76,27 @@ def test_reflex_env_builds_and_steps(case):
     env.reset()
     assert env.check_pose_validity(), "initial pose invalid (would be the 1.2e6 sim-error)"
     steps = 0
+    store = []
     for i in range(int(5 / env.dt)):
-        _, _, is_done = env.run_reflex_step_Cost()
+        cost_dict, sim_time, is_done = env.run_reflex_step_Cost()
+        store.append({"obj_func_out": cost_dict.copy(), "sim_time": sim_time})
         steps = i + 1
         if is_done:
             break
     assert steps >= 1
     assert np.all(np.isfinite(np.asarray(env.env.sim.data.qpos))), "non-finite qpos after stepping"
+
+    # The cost evaluation unpacks every frame of the rollout (in 3D also the hip adduction
+    # and rotation and the pelvis list and rotation) before it checks the strides. A time
+    # limit equal to the rollout length makes it unpack even a rollout that fell.
+    one_step = np.genfromtxt(REF_DIR / "ref_kinematics_radians.csv", delimiter=",")
+    one_emg = np.genfromtxt(REF_DIR / "ref_EMG.csv", delimiter=",")
+    cost = evaluateCost(
+        store, env.dt, env.mode, len(store), 0, env.muscles_dict, "Kine", one_step, one_emg, "ref_diff", 1.25, 5, 0.1, 1.5
+    )
+    assert np.isfinite(cost)
+
+    # Every effort group is a group of the controller (a name mismatch silently drops it).
+    # On a prosthetic side, groups can be empty or absent, so check the intact left leg.
+    missing = set(EFFORT_GROUPS[env.mode]) - set(env.muscles_dict["l_leg"])
+    assert not missing, f"effort groups not in muscles_dict: {missing}"

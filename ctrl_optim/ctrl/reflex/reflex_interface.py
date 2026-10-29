@@ -664,6 +664,10 @@ class myoLeg_reflex(object):
             "theta_tgt"
         ]  # Get theta_tgt from ReflexController, any leg will do, since they are the same
         cost_dict["pelvis"]["vel"] = np.array([dx_local, dy_local])  # Local coord (+ direction) [(Forward), (Leftward)]
+        # Pelvis list (roll) and rotation (yaw) in degrees, for the 3D pelvis-orientation cost
+        # (its constraint threshold is 20 deg). Both stay 0 with a planar root.
+        cost_dict["pelvis"]["list"] = np.rad2deg(pelvis_euler[0])
+        cost_dict["pelvis"]["rotation"] = np.rad2deg(pelvis_euler[2])
 
         cost_dict["torso"] = {}
         cost_dict["torso"]["pitch"] = torso_euler[1]  # Forward tilt (+), using torso tilt instead of pelvis
@@ -689,7 +693,9 @@ class myoLeg_reflex(object):
             cost_dict[s_leg] = {}
             cost_dict[s_leg]["joint"] = {}
             cost_dict[s_leg]["joint"]["hip"] = np.pi - self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").qpos[0].copy()
-            cost_dict[s_leg]["joint"]["knee"] = np.pi + self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
+            cost_dict[s_leg]["joint"]["knee"] = (
+                np.pi + self.knee_sign * self.env.sim.data.joint(f"knee_angle_{s_leg[0]}").qpos[0].copy()
+            )
             cost_dict[s_leg]["joint"]["ankle"] = 0.5 * np.pi - self._reflex_ankle_angle(s_leg[0])
 
             cost_dict[s_leg]["joint"]["hip_pos"] = self.env.sim.data.joint(f"hip_flexion_{s_leg[0]}").xanchor.copy()
@@ -721,6 +727,9 @@ class myoLeg_reflex(object):
                     self.env.sim.data.joint(f"hip_adduction_{s_leg[0]}").qpos[0].copy()
                 ) + 0.5 * np.pi
                 cost_dict[s_leg]["joint"]["hip_rot"] = self.env.sim.data.joint(f"hip_rotation_{s_leg[0]}").qpos[0].copy()
+                # Joint angles (rad) for the 3D hip adduction and rotation costs.
+                cost_dict[s_leg]["joint"]["hip_adduction"] = self.env.sim.data.joint(f"hip_adduction_{s_leg[0]}").qpos[0].copy()
+                cost_dict[s_leg]["joint"]["hip_rotation"] = cost_dict[s_leg]["joint"]["hip_rot"]
 
             # Getting spinal phases for scruffing cost
             cost_dict[s_leg]["spinal_control_phase"] = temp_spinal_control_phase[s_leg]
