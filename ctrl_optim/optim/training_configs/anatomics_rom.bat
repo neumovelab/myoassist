@@ -8,6 +8,7 @@ python train.py ^
     --delayed 0 ^
     --optim_mode single ^
     --ankle_range -0.1745 0.2618 ^
+    --ankle_range_side r ^
     --tgt_vel 1.25 ^
     --trunk_err_type ref_diff ^
     --tgt_sym_th 0.1 ^

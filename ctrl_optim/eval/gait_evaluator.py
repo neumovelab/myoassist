@@ -42,6 +42,7 @@ class CtrlOptimEvalConfig:
     reflex_mode: Optional[str] = None
     optimize_stiffness: bool = False
     ankle_range: Optional[list] = None
+    ankle_range_side: str = "r"
     optimize_impedance: bool = False
     # Composed env: raw assist_sim registry keys (see `python -m assist_sim list`).
     msk_key: str = "myolegs22"
@@ -90,6 +91,7 @@ class CtrlOptimGaitEvaluator:
             reflex_mode=cfg.reflex_mode,
             optimize_stiffness=cfg.optimize_stiffness,
             ankle_range=cfg.ankle_range,
+            ankle_range_side=cfg.ankle_range_side,
             optimize_impedance=cfg.optimize_impedance,
         )
         env.reset()

@@ -72,6 +72,7 @@ def func_Walk_FitCost(
             reflex_mode=env_dict.get("reflex_mode"),
             optimize_stiffness=env_dict.get("optimize_stiffness", False),
             ankle_range=env_dict.get("ankle_range"),
+            ankle_range_side=env_dict.get("ankle_range_side", "r"),
             optimize_impedance=env_dict.get("optimize_impedance", False),
         )
     else:

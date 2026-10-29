@@ -39,7 +39,18 @@ from ctrl_optim.optim.cost_functions.evaluate_cost import EFFORT_GROUPS, evaluat
 REF_DIR = Path(__file__).resolve().parents[2] / "ctrl_optim" / "optim" / "ref_data"
 
 
-def _build(mode, msk, device, leg, n, reflex_mode=None, optimize_stiffness=False, ankle_range=None, optimize_impedance=False):
+def _build(
+    mode,
+    msk,
+    device,
+    leg,
+    n,
+    reflex_mode=None,
+    optimize_stiffness=False,
+    ankle_range=None,
+    ankle_range_side="r",
+    optimize_impedance=False,
+):
     return myoLeg_reflex(
         sim_time=5,
         control_params=np.ones(n),
@@ -53,6 +64,7 @@ def _build(mode, msk, device, leg, n, reflex_mode=None, optimize_stiffness=False
         reflex_mode=reflex_mode,
         optimize_stiffness=optimize_stiffness,
         ankle_range=ankle_range,
+        ankle_range_side=ankle_range_side,
         optimize_impedance=optimize_impedance,
         exo_bool=False,
     )
@@ -157,18 +169,29 @@ def test_reflex_env_builds_and_steps(case):
     assert not missing, f"effort groups not in muscles_dict: {missing}"
 
 
-def test_rom_clamp_applies_to_the_device_side_only():
-    """The ROM clamp holds only the ankle of a side that carries the ROM device.
+def test_rom_clamp_holds_the_selected_side():
+    """--ankle_range clamps the ankle(s) of --ankle_range_side: the right one by default.
 
-    The Anatomics ROM frame is on the right shank; its soles and uppers on both feet
-    are shoes. Clamping both ankles constrained the intact left ankle as well.
+    It is a study constraint and needs no device. Before, it always clamped both
+    ankles, so a unilateral device such as Anatomics_L1 also held the free ankle.
     """
-    env = _build(mode="2D", msk="myolegs22", device="Anatomics_L1", leg="22", n=77, ankle_range=[-0.1745, 0.2618])
+    rom = [-0.1745, 0.2618]
+    env = _build(mode="2D", msk="myolegs22", device="Anatomics_L1", leg="22", n=77, ankle_range=rom)
     assert env._rom_ankle_joints() == ("ankle_angle_r",)
+    env = _build(mode="2D", msk="myolegs22", device="HMEDI_L1", leg="22", n=77, ankle_range=rom, ankle_range_side="both")
+    assert env._rom_ankle_joints() == ("ankle_angle_r", "ankle_angle_l")
 
 
-def test_rom_clamp_needs_a_device_on_the_shank():
-    """ankle_range with a device that has no shank part is an error, not a silent no-op."""
-    env = _build(mode="2D", msk="myolegs22", device="HMEDI_L1", leg="22", n=77, ankle_range=[-0.1745, 0.2618])
-    with pytest.raises(ValueError, match="no body on a tibia"):
-        env._rom_ankle_joints()
+def test_rom_clamp_rejects_an_unknown_side():
+    with pytest.raises(ValueError, match="ankle_range_side"):
+        _build(mode="2D", msk="myolegs22", device="Anatomics_L1", leg="22", n=77, ankle_range=[-0.1, 0.1], ankle_range_side="x")
+
+
+def test_anatomics_config_replays_with_its_rom_side():
+    """The eval replays a run with the ROM side of its training config."""
+    from ctrl_optim.optim.optim_utils.config_parser import parse_bat_config
+
+    for ext in ("bat", "sh"):
+        cfg = parse_bat_config(str(REF_DIR.parents[1] / "optim" / "training_configs" / f"anatomics_rom.{ext}"))
+        assert cfg["ankle_range"] == [-0.1745, 0.2618]
+        assert cfg["ankle_range_side"] == "r"

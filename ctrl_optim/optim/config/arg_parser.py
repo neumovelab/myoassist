@@ -94,8 +94,15 @@ def initParser() -> argparse.Namespace:
         nargs=2,
         default=None,
         metavar=("MIN", "MAX"),
-        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step on the ankle of "
-        "each side that carries the ROM device (the right ankle for Anatomics_L1)",
+        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step on the "
+        "ankle(s) that --ankle_range_side selects. It needs no device.",
+    )
+    optim_group.add_argument(
+        "--ankle_range_side",
+        choices=["r", "l", "both"],
+        default="r",
+        help="Side(s) whose ankle --ankle_range clamps: r (default; the side of the shipped unilateral "
+        "devices, for example Anatomics_L1), l, or both",
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(

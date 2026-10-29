@@ -52,6 +52,7 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         "reflex_mode": None,
         "optimize_stiffness": False,
         "ankle_range": None,
+        "ankle_range_side": "r",
         "optimize_impedance": False,
         "target_velocity": None,
     }
@@ -130,6 +131,9 @@ def parse_bat_config(bat_file_path: str) -> Dict[str, Any]:
         rom_match = re.search(r"--ankle_range\s+(-?[\d.]+)\s+(-?[\d.]+)", content)
         if rom_match:
             config["ankle_range"] = [float(rom_match.group(1)), float(rom_match.group(2))]
+        side_match = re.search(r"--ankle_range_side\s+(\w+)", content)
+        if side_match:
+            config["ankle_range_side"] = side_match.group(1)
 
         # Derive the muscle model + 2D/3D control mode from the MSK key.
         msk_to_musc = {"myolegs22": "22", "myolegs26": "26", "myolegs": "80"}
@@ -193,6 +197,7 @@ def create_testenv_from_bat(bat_file_path: str, params: np.ndarray, **override_k
             reflex_mode=config.get("reflex_mode"),
             optimize_stiffness=config.get("optimize_stiffness", False),
             ankle_range=config.get("ankle_range"),
+            ankle_range_side=config.get("ankle_range_side", "r"),
             optimize_impedance=config.get("optimize_impedance", False),
         )
 

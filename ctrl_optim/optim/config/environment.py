@@ -98,6 +98,7 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "reflex_mode": args.reflex_mode,
         "optimize_stiffness": args.optimize_stiffness,
         "ankle_range": args.ankle_range,
+        "ankle_range_side": args.ankle_range_side,
         "optimize_impedance": args.optimize_impedance,
     }
 
