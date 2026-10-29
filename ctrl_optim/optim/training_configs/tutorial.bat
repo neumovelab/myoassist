@@ -15,10 +15,9 @@ python train.py ^
     -eff ^
     --ExoOn 1 ^
     --use_4param_spline ^
-    --max_torque 100.0 ^
-    --popsize 8 ^
-    --maxiter 50 ^
-    --threads 8 ^
+    --max_torque 50.0 ^
+    --popsize 32 ^
+    --maxiter 1500 ^
+    --threads 32 ^
     --sigma_gain 10 ^
-    --param_path ../results/optim_results/tutorial_prep ^
     --save_path tutorial
