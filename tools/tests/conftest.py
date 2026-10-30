@@ -17,6 +17,29 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 DEVICE_SWEEP_DIR = REPO_ROOT / "rl_train/train/train_configs/device_sweep"
 
 
+def ut_exo_misplaced_on_myolegs22() -> pytest.MarkDecorator:
+    """A strict xfail for the UTAnkleExo_L2 configs while the installed assist_sim misplaces the exo.
+
+    assist_sim 1.0.0 places UTAnkleExo_L2's free-floating exo for myolegs26's frame, and MuJoCo
+    derives each connect constraint's leg-side anchor from qpos0, where myolegs22 hangs 0.9 m
+    lower. Its constraints therefore hold the exo about 1 m from the foot and cannot all hold at a
+    walking pose, so reset refuses to start an episode on it. The release after 1.0.0 gives
+    myolegs22 its own attachment block (assist_sim A-S4). With that release the mark is off, and
+    it can go once the requirement pins that release.
+    """
+    from assist_sim.config import DeviceConfig
+    from assist_sim.registry import resolve_device_config
+
+    config = DeviceConfig.from_yaml(str(resolve_device_config("myolegs22", "UTAnkleExo_L2")))
+    misplaced = config.resolve_attachments("myolegs22") == config.resolve_attachments("default")
+    return pytest.mark.xfail(
+        misplaced,
+        reason="UTAnkleExo_L2 connect anchors are 0.9 m off on myolegs22 (assist_sim)",
+        raises=AssertionError,
+        strict=True,
+    )
+
+
 def shipped_configs() -> list[pathlib.Path]:
     """The device-sweep configs, which are the ones a user is told to run."""
     configs = sorted(DEVICE_SWEEP_DIR.glob("imitation_22_*.json"))

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from tools.tests.conftest import build_env, shipped_configs, take_a_few_ppo_steps
+from tools.tests.conftest import build_env, shipped_configs, take_a_few_ppo_steps, ut_exo_misplaced_on_myolegs22
 
 # qpos(8) | qvel(9) | act(22 muscles) | sensor(4) | target_velocity(1)
 EXPECTED_OBS = 44
@@ -20,12 +20,7 @@ EXPECTED_ACT = 24
 
 
 def _configs_with_known_failures():
-    # As in test_episode_reset: the UTAnkleExo_L2 connect anchors are 0.9 m off on myolegs22
-    # (assist_sim A-S4), so its reset cannot close the constraints. Strict, so that the mark
-    # must go when the placement is fixed.
-    broken = pytest.mark.xfail(
-        reason="UTAnkleExo_L2 connect anchors are 0.9 m off on myolegs22 (assist_sim)", raises=AssertionError, strict=True
-    )
+    broken = ut_exo_misplaced_on_myolegs22()
     return [pytest.param(p, marks=broken) if "UTAnkleExo_L2" in p.name else p for p in shipped_configs()]
 
 

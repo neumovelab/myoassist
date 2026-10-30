@@ -16,7 +16,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from tools.tests.conftest import REPO_ROOT
+from tools.tests.conftest import REPO_ROOT, ut_exo_misplaced_on_myolegs22
 
 TRAIN_CONFIGS = REPO_ROOT / "rl_train/train/train_configs"
 SPEED_CONTROL_CONFIG = TRAIN_CONFIGS / "imitation_tutorial_22_separated_net_speed_control.json"
@@ -29,13 +29,7 @@ def _shipped_configs() -> list:
         + sorted(TRAIN_CONFIGS.glob("imitation_tutorial_22_*.json"))
     )
     assert paths, f"no shipped configs under {TRAIN_CONFIGS}"
-    # assist_sim places UTAnkleExo_L2's free-floating exo for myolegs26's frame, and MuJoCo
-    # derives each connect constraint's leg-side anchor from qpos0, where myolegs22 hangs 0.9 m
-    # lower. Its constraints therefore hold the exo about 1 m from the foot and cannot all hold
-    # at a walking pose, so reset refuses to start an episode on it.
-    broken = pytest.mark.xfail(
-        reason="UTAnkleExo_L2 connect anchors are 0.9 m off on myolegs22 (assist_sim)", raises=AssertionError, strict=True
-    )
+    broken = ut_exo_misplaced_on_myolegs22()
     return [pytest.param(p, marks=broken) if "UTAnkleExo_L2" in p.name else p for p in paths]
 
 
@@ -72,6 +66,9 @@ def test_start_state_is_independent_of_history_and_on_the_constraints(path):
             max_target_velocity=1.25,
         )
         env._flag_random_ref_index = False
+        # A joint coupling closes exactly. The UT exo loop has more equations than DOFs and
+        # closes only as well as the exported MJCF digits allow, which reset accepts below 1 um.
+        tolerance = env.EQUALITY_PROJECTION_MAX_RESIDUAL if "UTAnkleExo_L2" in path.name else 1e-9
         rng = np.random.default_rng(0)
         starts = []
         for history in (0, 25, 60):
@@ -80,15 +77,18 @@ def test_start_state_is_independent_of_history_and_on_the_constraints(path):
             env.reset()
             starts.append((env.sim.data.qpos.copy(), env.sim.data.qvel.copy(), env.sim.data.act.copy()))
             position_residual, velocity_residual = _equality_residuals(env)
-            assert position_residual < 1e-9 and velocity_residual < 1e-9, (
+            assert position_residual < tolerance and velocity_residual < tolerance, (
                 f"after {history} steps of history, reset starts the equality constraints off by "
                 f"{position_residual:.3g} in position and {velocity_residual:.3g} in velocity"
             )
+        model = env.sim.model.ptr
+        # A free joint has 7 position coordinates and 6 DOFs, so compare joint by joint.
+        joint_of_qpos = np.repeat(np.arange(model.njnt), np.diff(np.append(model.jnt_qposadr, model.nq)))
         for (qpos, qvel, act), history in zip(starts[1:], (25, 60)):
-            changed = np.flatnonzero((qpos != starts[0][0]) | (qvel != starts[0][1]))
-            assert not len(changed), (
-                f"after {history} steps of history, reset to the same index starts DOFs "
-                f"{[env.sim.model.joint(int(env.sim.model.dof_jntid[i])).name for i in changed]} differently"
+            changed = set(joint_of_qpos[qpos != starts[0][0]]) | set(model.dof_jntid[qvel != starts[0][1]])
+            assert not changed, (
+                f"after {history} steps of history, reset to the same index starts joints "
+                f"{sorted(model.joint(int(j)).name for j in changed)} differently"
             )
             assert np.array_equal(act, starts[0][2])
     finally:
