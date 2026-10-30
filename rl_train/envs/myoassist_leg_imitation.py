@@ -115,8 +115,12 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     # Gauss-Newton budget and tolerance for putting the DOFs the reference does not set onto the
     # equality constraints at reset. A joint coupling is linear in the coupled joint once the
     # reference fixes its driver, so the shipped compositions converge in one or two iterations.
+    # A loop with more equations than DOFs (UTAnkleExo_L2: three connects on two bodies) closes
+    # only as well as the exported MJCF, which keeps about six significant digits, so it stops
+    # near 1e-7 m. The start is accepted below 1 um; a misplaced device is off by millimetres.
     EQUALITY_PROJECTION_MAX_ITERATIONS = 20
     EQUALITY_PROJECTION_TOLERANCE = 1e-10
+    EQUALITY_PROJECTION_MAX_RESIDUAL = 1e-6
 
     # automatically inherit from MyoAssistLegBase
     # DEFAULT_OBS_KEYS = ['qpos',
@@ -328,7 +332,7 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             mujoco.mj_integratePos(model, data.qpos, step, 1.0)
             residual, jacobian = self._equality_residual_and_jacobian()
         worst = np.max(np.abs(residual), initial=0.0)
-        assert worst < self.EQUALITY_PROJECTION_TOLERANCE, (
+        assert worst < self.EQUALITY_PROJECTION_MAX_RESIDUAL, (
             f"the equality constraints cannot all hold at reference index {self._imitation_index}: "
             f"residual {worst:.3g} after {self.EQUALITY_PROJECTION_MAX_ITERATIONS} iterations. The composed "
             "model's constraints disagree with its kinematics, so the episode has no consistent start state."
