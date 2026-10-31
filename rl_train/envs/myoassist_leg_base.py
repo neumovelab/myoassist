@@ -406,11 +406,11 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         )  # maximum acc/dec is self._target_velocity_period / 2
         self.set_target_velocity_mode_manually(
             velocity_mode_for_this_episode,
+            starting_phase,
             self._min_target_velocity,
             self._min_target_velocity,
             self._max_target_velocity,
-            starting_phase,
-            target_velocity_period,
+            target_velocity_period=target_velocity_period,
         )
         if self._velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.UNIFORM:
             self._target_velocity = random.uniform(self._min_target_velocity, self._max_target_velocity)
