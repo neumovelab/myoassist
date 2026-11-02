@@ -95,6 +95,7 @@ TrainSessionConfigBase
 | `max_target_velocity` | Maximum target velocity | 1.25 |
 | `min_target_velocity_period` | Minimum target velocity period | 2 |
 | `max_target_velocity_period` | Maximum target velocity period | 10 |
+| `velocity_map` | Read the target velocity from a velocity map over a tiled `terrain` instead of drawing it per episode. Takes the keyword arguments of `myoassist_terrains.velocity_map.generate_velocity_map`, at least `start` and `goal` (see [Velocity Maps](https://myoassist.neumove.org/modeling/terrains/velocity-maps/)). Every episode then runs in `MAP` mode: on each control step the target is the map's speed, interpolated bilinearly between the four samples around the pelvis and held at the edge value beyond the outermost samples. The map's direction is not used. | null |
 | `enable_lumbar_joint` | Enable lumbar joint | false |
 | `lumbar_joint_fixed_angle` | Lumbar joint fixed angle | -0.13 |
 | `lumbar_joint_damping_value` | Lumbar joint damping value | 0.05 |
@@ -189,7 +190,7 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 | `min_target_velocity` | Minimum target velocity | 1.25 |
 | `max_target_velocity` | Maximum target velocity | 1.25 |
 | `target_velocity_period` | Target velocity period | 2 |
-| `velocity_mode` | Velocity mode (UNIFORM, SINUSOIDAL, STEP) | "UNIFORM" |
+| `velocity_mode` | Velocity mode (UNIFORM, SINUSOIDAL, STEP, or MAP, which needs `velocity_map`) | "UNIFORM" |
 | `cam_type` | Camera type | "follow" |
 | `cam_distance` | Camera distance | 2.5 |
 | `visualize_activation` | Visualize muscle activation | true |

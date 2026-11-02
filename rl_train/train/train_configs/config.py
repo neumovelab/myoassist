@@ -72,6 +72,12 @@ class TrainSessionConfigBase:
         reward_curriculum_end: float = 0.6
         min_target_velocity_period: float = 3
         max_target_velocity_period: float = 5
+        # Target velocity from a velocity map over a tiled `terrain`. None, which is what every
+        # existing config uses, keeps the random UNIFORM/SINUSOIDAL/STEP episodes. Set it to the
+        # keyword arguments of `myoassist_terrains.velocity_map.generate_velocity_map`, at least
+        # `start` and `goal`, and every episode runs in VelocityMode.MAP: on each control step the
+        # target is the map's speed interpolated bilinearly at the pelvis (see TargetVelocityMap).
+        velocity_map: dict = None
 
         custom_max_episode_steps: int = 500
         model_path: str = None

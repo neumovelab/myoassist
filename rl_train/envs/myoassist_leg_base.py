@@ -19,6 +19,12 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         UNIFORM = 0
         SINUSOIDAL = 1
         STEP = 2
+        # The target is read from a velocity map at the pelvis position (env_params.velocity_map).
+        MAP = 3
+
+    # The modes a training episode draws from when no velocity map is configured. Listed rather
+    # than taken from the enum, so MAP does not join the draw and change every seed's episodes.
+    RANDOM_VELOCITY_MODES = (VelocityMode.UNIFORM, VelocityMode.SINUSOIDAL, VelocityMode.STEP)
 
     JOINT_LIMIT_SENSOR_NAMES = [
         "r_knee_sensor",
@@ -66,6 +72,14 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._max_target_velocity = env_params.max_target_velocity
         self._min_target_velocity_period = env_params.min_target_velocity_period
         self._max_target_velocity_period = env_params.max_target_velocity_period
+        self._target_velocity_map = None
+        if env_params.velocity_map is not None:
+            from rl_train.envs.target_velocity_map import TargetVelocityMap
+
+            # The map sets the target everywhere, so a speed curriculum would have nothing to move.
+            assert env_params.curriculum_start_velocity == 0.0, "velocity_map and curriculum_start_velocity both set the target"
+            self._target_velocity_map = TargetVelocityMap(env_params.terrain, env_params.velocity_map)
+            self._velocity_map_start_xy = self._keyframe_pelvis_xy()
         self._change_mode_and_target_velocity_randomly()
 
         self._step_count_per_episode = 0
@@ -411,6 +425,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._starting_phase = starting_phase
         if mode == MyoAssistLegBase.VelocityMode.SINUSOIDAL and target_velocity_period is None:
             raise ValueError("target_velocity_period must be provided for sinusoidal mode")
+        if mode == MyoAssistLegBase.VelocityMode.MAP:
+            assert self._target_velocity_map is not None, "VelocityMode.MAP needs env_params.velocity_map"
         self._target_velocity_period = target_velocity_period
         # self._modulate_target_velocity()
         self._initial_target_velocity = initial_target_velocity
@@ -446,7 +462,16 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         self._max_target_velocity = float(max_velocity)
 
     def _change_mode_and_target_velocity_randomly(self):
-        modes = list(MyoAssistLegBase.VelocityMode)
+        if self._target_velocity_map is not None:
+            self.set_target_velocity_mode_manually(
+                mode=MyoAssistLegBase.VelocityMode.MAP,
+                starting_phase=0.0,
+                initial_target_velocity=self._target_velocity_map.speed_at(*self._velocity_map_start_xy),
+                min_target_velocity=self._min_target_velocity,
+                max_target_velocity=self._max_target_velocity,
+            )
+            return
+        modes = MyoAssistLegBase.RANDOM_VELOCITY_MODES
         velocity_mode_for_this_episode = modes[int(self.np_random.integers(len(modes)))]
         starting_phase = self.np_random.uniform(0, 2 * np.pi)
         target_velocity_period = self.np_random.uniform(
@@ -496,6 +521,10 @@ class MyoAssistLegBase(env_base.MujocoEnv):
             if self.sim.data.time - self._prev_step_changed_time > self._target_velocity_period:
                 self._target_velocity = self.np_random.uniform(self._min_target_velocity, self._max_target_velocity)
                 self._prev_step_changed_time = self.sim.data.time
+        elif self._velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.MAP:
+            # Pelvis position from the last forward pass, i.e. at the start of this control step.
+            x, y = self.sim.data.body("pelvis").xpos[:2]
+            self._target_velocity = self._target_velocity_map.speed_at(x, y)
 
     def reset(self, **kwargs):
         self._start_target_velocity_schedule()
@@ -522,6 +551,8 @@ class MyoAssistLegBase(env_base.MujocoEnv):
                 self._max_target_velocity,
                 time=0.0,
             )
+        elif self._velocity_mode_for_this_episode == MyoAssistLegBase.VelocityMode.MAP:
+            self._target_velocity = self._target_velocity_map.speed_at(*self._velocity_map_start_xy)
         else:
             self._target_velocity = self._initial_target_velocity
 
@@ -542,6 +573,18 @@ class MyoAssistLegBase(env_base.MujocoEnv):
         obs = super().reset(**kwargs)
         assert self.sim.data.time == 0.0, f"reset left the clock at {self.sim.data.time}, not at the schedule's t = 0"
         return obs
+
+    def _keyframe_pelvis_xy(self) -> tuple[float, float]:
+        """World (x, y) of the pelvis in the first keyframe, where every episode starts."""
+        import mujoco
+
+        model = self.sim.model.ptr
+        assert model.nkey > 0, "the velocity map is read at the start pose, which comes from keyframe 0"
+        data = mujoco.MjData(model)
+        data.qpos[:] = model.key_qpos[0]
+        mujoco.mj_kinematics(model, data)
+        x, y = data.body("pelvis").xpos[:2]
+        return float(x), float(y)
 
     def _get_done(self):
         pelvis_height = self.sim.data.joint("pelvis_ty").qpos[0].copy()
