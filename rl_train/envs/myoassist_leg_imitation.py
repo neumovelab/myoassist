@@ -1,4 +1,5 @@
 import collections
+import mujoco
 import numpy as np
 from rl_train.envs.myoassist_leg_base import MyoAssistLegBase
 from rl_train.train.train_configs.config import TrainSessionConfigBase
@@ -19,10 +20,15 @@ class ImitationCustomLearningCallback(BaseCustomLearningCallback):
         log_handler: train_log_handler.TrainLogHandler,
         original_reward_weights: ImitationTrainSessionConfig.EnvParams.RewardWeights,
         auto_reward_adjust_params: ImitationTrainSessionConfig.AutoRewardAdjustParams,
+        env_params=None,
         verbose=1,
     ):
         super().__init__(
-            log_rollout_freq=log_rollout_freq, evaluate_freq=evaluate_freq, log_handler=log_handler, verbose=verbose
+            log_rollout_freq=log_rollout_freq,
+            evaluate_freq=evaluate_freq,
+            log_handler=log_handler,
+            env_params=env_params,
+            verbose=verbose,
         )
         self._reward_weights = original_reward_weights
         self._auto_reward_adjust_params = auto_reward_adjust_params
@@ -106,6 +112,16 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     # 1 cm of the reference, STRIDE_L2's sole pads put it 5.5 cm above it.
     REFERENCE_HEIGHT_CORRECTION_THRESHOLD = 0.02
 
+    # Gauss-Newton budget and tolerance for putting the DOFs the reference does not set onto the
+    # equality constraints at reset. A joint coupling is linear in the coupled joint once the
+    # reference fixes its driver, so the shipped compositions converge in one or two iterations.
+    # A loop with more equations than DOFs (UTAnkleExo_L2: three connects on two bodies) closes
+    # only as well as the exported MJCF, which keeps about six significant digits, so it stops
+    # near 1e-7 m. The start is accepted below 1 um; a misplaced device is off by millimetres.
+    EQUALITY_PROJECTION_MAX_ITERATIONS = 20
+    EQUALITY_PROJECTION_TOLERANCE = 1e-10
+    EQUALITY_PROJECTION_MAX_RESIDUAL = 1e-6
+
     # automatically inherit from MyoAssistLegBase
     # DEFAULT_OBS_KEYS = ['qpos',
     #                     'qvel',
@@ -123,7 +139,11 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     ):
         self._flag_random_ref_index = env_params.flag_random_ref_index
         self._out_of_trajectory_threshold = env_params.out_of_trajectory_threshold
+        self._out_of_trajectory_joint_keys = env_params.out_of_trajectory_joint_keys
         self.reference_data_keys = env_params.reference_data_keys
+        self._unreferenced_dofs = self._dofs_not_in_reference()
+        self._scale_reference_playback = env_params.scale_reference_playback
+        self._imitation_index_exact = None
         self._loop_reference_data = loop_reference_data
         self._reward_keys_and_weights: ImitationTrainSessionConfig.EnvParams.RewardWeights = env_params.reward_keys_and_weights
 
@@ -176,23 +196,34 @@ class MyoAssistLegImitation(MyoAssistLegBase):
     def _get_qpos_diff_nparray(self):
         return np.array([diff for diff in self._get_qpos_diff().values()])
 
-    def _get_end_effector_diff(self):
-        # body_pos = self.sim.data.body('pelvis').xpos.copy()
-        # diff_array = []
-        # for mapping in self.ANCHOR_SIM_TO_REF.values():
-        #     sim_anchor = self.sim.data.joint(mapping.sim_name).xanchor.copy() - body_pos
-        #     ref_anchor = self._reference_data[mapping.ref_name][self._imitation_index]
-        #     diff = np.linalg.norm(sim_anchor - ref_anchor)
-        #     diff_array.append(diff)
-        # return diff_array
-        return np.array([0])
+    def _get_out_of_trajectory_diff(self) -> np.ndarray:
+        """Tracking errors the episode-ending check looks at.
+
+        By default every joint the imitation reward names, which is what the intact configs
+        rely on. `out_of_trajectory_joint_keys` narrows it, which is what lets a reward term
+        exist without also being a hard terminator.
+
+        An amputee needs that split. The residual limb wants a weak posture term -- without one
+        the knee simply folds, since nothing else in the reward cares about it -- but it cannot
+        also be a terminator: it is the joint that deviates most from a healthy walker, and on
+        the first 30M runs `knee_angle_r` was the single most frequent cause of episode
+        termination.
+        """
+        if not self._out_of_trajectory_joint_keys:
+            return self._get_qpos_diff_nparray()
+        diffs = self._get_qpos_diff()
+        missing = [k for k in self._out_of_trajectory_joint_keys if k not in diffs]
+        assert not missing, (
+            f"out_of_trajectory_joint_keys names {missing}, which the imitation reward does not "
+            f"track, so there is no reference to compare against. Tracked: {sorted(diffs)}"
+        )
+        return np.array([diffs[k] for k in self._out_of_trajectory_joint_keys])
 
     def _calculate_imitation_rewards(self, obs_dict):
         base_reward, base_info = super()._calculate_base_reward(obs_dict)
 
         q_diff_dict = self._get_qpos_diff()
         dq_diff_dict = self._get_qvel_diff()
-        anchor_diff_array = self._get_end_effector_diff()
 
         # Calculate joint position rewards
         q_reward_dict = {}
@@ -202,9 +233,6 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         dq_reward_dict = {}
         for joint_name, diff in dq_diff_dict.items():
             dq_reward_dict[joint_name] = self.dt * np.exp(-8 * np.square(diff))
-
-        # Calculate end effector reward
-        anchor_reward = self.dt * np.mean(np.exp(-5 * np.square(anchor_diff_array)))
 
         # Calculate joint imitation rewards sum
         qpos_imitation_rewards = np.sum(
@@ -219,7 +247,6 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             {
                 "qpos_imitation_rewards": qpos_imitation_rewards,
                 "qvel_imitation_rewards": qvel_imitation_rewards,
-                "end_effector_imitation_reward": anchor_reward,
             }
         )
 
@@ -249,6 +276,87 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         rwd_dict["dense"] = np.sum([wt * rwd_dict[key] for key, wt in self.rwd_keys_wt.items() if key in rwd_dict], axis=0)
 
         return rwd_dict
+
+    def _dofs_not_in_reference(self) -> np.ndarray:
+        model = self.sim.model.ptr
+        referenced = []
+        for key in self.reference_data_keys:
+            joint_id = model.joint(key).id
+            assert model.jnt_type[joint_id] in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE), (
+                f"reference joint {key} is not a hinge or slide, so one reference value cannot set it"
+            )
+            referenced.append(model.jnt_dofadr[joint_id])
+        return np.setdiff1d(np.arange(model.nv), referenced)
+
+    def _set_episode_start_state(self):
+        """Write every DOF of the state an episode starts from.
+
+        The start depends only on the reference index and the target velocity, never on how the
+        previous episode ended. `reset` hands the simulation reset `sim.data.qpos` and `qvel` as
+        they stand, and this used to write only the reference joints, so every other DOF kept
+        the value the previous episode's fall left it at: the toes, the prosthesis' own joints,
+        and the joints equality constraints tie to the knees and hips. Two resets to one index
+        then started differently, the tied joints started off their constraints for the solver
+        to pull back on the first step, and the OSL ankle started successive episodes at +1.43
+        and +1.94 rad against its +-0.52 rad limit.
+
+        Every DOF starts at the model's first keyframe, the reference joints take the reference,
+        and the DOFs the equality constraints tie to them are then moved onto those constraints.
+        """
+        self.sim.data.qpos[:] = self.sim.model.key_qpos[0]
+        self.sim.data.qvel[:] = self.sim.model.key_qvel[0]
+        self._follow_reference_motion(False)
+        self._place_unreferenced_dofs_on_equality_constraints()
+
+    def _place_unreferenced_dofs_on_equality_constraints(self):
+        """Move the DOFs the reference does not set so that every equality constraint holds.
+
+        Gauss-Newton on MuJoCo's own equality residual and its Jacobian, over the unreferenced
+        DOFs only, so the reference pose is left as it is. Reading both off the solver rather
+        than re-deriving each constraint covers every equality type and chained couplings
+        (STRIDE_L2 ties joints to joints that are themselves tied) without a case per type. The
+        velocity is then put on the constraints' tangent the same way, which for a joint
+        coupling y = f(x) is the chain rule y' = f'(x) x'.
+
+        A composition whose constraints cannot all hold at the reference pose fails the
+        assertion rather than starting episodes that the solver has to tear apart.
+        """
+        model, data = self.sim.model.ptr, self.sim.data.ptr
+        dofs = self._unreferenced_dofs
+        residual, jacobian = self._equality_residual_and_jacobian()
+        for _ in range(self.EQUALITY_PROJECTION_MAX_ITERATIONS):
+            if np.max(np.abs(residual), initial=0.0) < self.EQUALITY_PROJECTION_TOLERANCE:
+                break
+            step = np.zeros(model.nv)
+            step[dofs] = -np.linalg.lstsq(jacobian[:, dofs], residual, rcond=None)[0]
+            mujoco.mj_integratePos(model, data.qpos, step, 1.0)
+            residual, jacobian = self._equality_residual_and_jacobian()
+        worst = np.max(np.abs(residual), initial=0.0)
+        assert worst < self.EQUALITY_PROJECTION_MAX_RESIDUAL, (
+            f"the equality constraints cannot all hold at reference index {self._imitation_index}: "
+            f"residual {worst:.3g} after {self.EQUALITY_PROJECTION_MAX_ITERATIONS} iterations. The composed "
+            "model's constraints disagree with its kinematics, so the episode has no consistent start state."
+        )
+        correction = np.zeros(model.nv)
+        correction[dofs] = -np.linalg.lstsq(jacobian[:, dofs], jacobian @ data.qvel, rcond=None)[0]
+        data.qvel[:] += correction
+
+    def _equality_residual_and_jacobian(self) -> tuple[np.ndarray, np.ndarray]:
+        model, data = self.sim.model.ptr, self.sim.data.ptr
+        mujoco.mj_fwdPosition(model, data)
+        rows = np.flatnonzero(data.efc_type[: data.nefc] == mujoco.mjtConstraint.mjCNSTR_EQUALITY)
+        if mujoco.mj_isSparse(model):
+            jacobian = np.zeros((data.nefc, model.nv))
+            mujoco.mju_sparse2dense(
+                jacobian,
+                data.efc_J,
+                data.efc_J_rownnz[: data.nefc],
+                data.efc_J_rowadr[: data.nefc],
+                data.efc_J_colind,
+            )
+        else:
+            jacobian = data.efc_J[: data.nefc * model.nv].reshape(data.nefc, model.nv)
+        return data.efc_pos[rows].copy(), jacobian[rows].copy()
 
     def _follow_reference_motion(self, is_x_follow: bool):
         for key in self.reference_data_keys:
@@ -280,19 +388,41 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         return self._imitation_index
         # pass
 
+    def _advance_imitation_index(self) -> None:
+        """Step the reference forward by one control step, at the target velocity if asked.
+
+        Default is one frame per control step, which plays the reference at the 1.281 m/s it was
+        recorded at. `scale_reference_playback` instead advances by `target / reference` frames,
+        keeping a float accumulator so a rate below 1 does not round to a standstill. The stride
+        is unchanged and the cadence follows the target, which is what makes a slow target
+        reachable at all: at 0.3 m/s the unscaled reference still demands full-stride angles at
+        full cadence, and no gait satisfies that while travelling 0.3 m/s.
+        """
+        if not self._scale_reference_playback:
+            self._imitation_index += 1
+            return
+        reference_speed = float(self._reference_data["series_data"]["dq_pelvis_tx"][self._imitation_index])
+        rate = abs(self._target_velocity / reference_speed) if reference_speed else 1.0
+        if self._imitation_index_exact is None:
+            self._imitation_index_exact = float(self._imitation_index)
+        self._imitation_index_exact += rate
+        self._imitation_index = int(self._imitation_index_exact)
+
     # override
     def step(self, a, **kwargs):
         if self._imitation_index is not None:
-            self._imitation_index += 1
+            self._advance_imitation_index()
             if self._imitation_index < self._reference_data_length:
                 is_out_of_index = False
             else:
                 if self._loop_reference_data:
                     self._imitation_index = 0
+                    self._imitation_index_exact = 0.0
                     is_out_of_index = False
                 else:
                     is_out_of_index = True
                     self._imitation_index = self._reference_data_length - 1
+                    self._imitation_index_exact = float(self._imitation_index)
         else:
             is_out_of_index = True
 
@@ -301,18 +431,112 @@ class MyoAssistLegImitation(MyoAssistLegBase):
             reward = 0
             truncated = True
         else:
-            q_diff_nparray: np.ndarray = self._get_qpos_diff_nparray()
-            is_out_of_trajectory = np.any(np.abs(q_diff_nparray) > self._out_of_trajectory_threshold)
-            terminated = terminated or is_out_of_trajectory
+            # Once a reward curriculum has annealed the imitation term to nothing, the
+            # reference is no longer part of the objective, and ending an episode for drifting
+            # from it would keep enforcing a target the policy is no longer paid to hit. The
+            # fall check carries termination from there.
+            if self.rwd_keys_wt.get("qpos_imitation_rewards", 0.0) > 0.0:
+                q_diff_nparray: np.ndarray = self._get_out_of_trajectory_diff()
+                is_out_of_trajectory = np.any(np.abs(q_diff_nparray) > self._out_of_trajectory_threshold)
+                terminated = terminated or is_out_of_trajectory
 
         return (next_obs, reward, terminated, truncated, info)
 
     def setup_reference_data(self, data: dict | None):
         if data is None:
             raise ValueError("Reference data is not set")
-        self._reference_data = self._height_corrected_reference(data)
+        self._reference_data = self._height_corrected_reference(self._knee_sign_matched_reference(data))
         self._imitation_index = None
         self._reference_data_length = self._reference_data["metadata"]["resampled_data_length"]
+
+    def _standing_pelvis_height(self) -> float | None:
+        """The `pelvis_ty` qpos at which this composed model's feet reach the ground.
+
+        Normally the keyframe. assist_sim authors it per composition with the feet on the ground,
+        and reading it there keeps every device that satisfies that assumption exactly as it was.
+
+        Two compositions do not satisfy it. `myolegs22 + OpenSourceLeg_A_L1` and
+        `+ OpenSourceLeg_KA_L1` open 9 cm above the floor with no ground contact at all, so their
+        keyframe `pelvis_ty` is a height they cannot stand at. The cause is upstream, in the
+        shared compose pipeline: `compose._model_ground_candidates` estimates a primitive's
+        underside as `centre_z - max(geom_size)`, which reads a horizontal capsule's half-length
+        as its downward extent. The OpenSourceLeg foot contacts are capsules of radius 0.012 m and
+        half-length 0.11 m laid flat, so the seater lifts the model onto a point 9.8 cm below
+        where the geometry actually is. That pipeline is shared with the CO framework and is not
+        ours to change, so this compensates on the RL side instead.
+
+        Detected rather than tabulated: no contact at the keyframe pose means the keyframe is not
+        a standing pose, and the height is then measured by lowering the pelvis until the feet
+        touch. If the upstream estimate is ever corrected this goes inert on its own, because the
+        keyframe will then report contact.
+
+        Returns None when the model has no keyframe to start from.
+        """
+        model, data = self.sim.model, self.sim.data
+        if model.nkey == 0:
+            return None
+
+        ty_adr = model.jnt_qposadr[model.joint("pelvis_ty").id]
+        keyframe_height = float(model.key_qpos[0][ty_adr])
+
+        saved_qpos, saved_qvel = data.qpos.copy(), data.qvel.copy()
+        try:
+            data.qpos[:] = model.key_qpos[0]
+            data.qvel[:] = 0
+            self.sim.forward()
+            if data.ncon > 0:
+                return keyframe_height
+
+            # Bisect on "is anything touching": above the answer nothing is, below it something
+            # is. 0.4 m is more than the largest gap any shipped composition produces.
+            low, high = keyframe_height - 0.4, keyframe_height
+            for _ in range(40):
+                mid = 0.5 * (low + high)
+                data.qpos[ty_adr] = mid
+                self.sim.forward()
+                if data.ncon > 0:
+                    low = mid
+                else:
+                    high = mid
+            standing = 0.5 * (low + high)
+            print(
+                f"Keyframe pose has no ground contact, so its pelvis height {keyframe_height:.3f} m "
+                f"is not a standing height; measured {standing:.3f} m by lowering onto the floor."
+            )
+            return standing
+        finally:
+            data.qpos[:] = saved_qpos
+            data.qvel[:] = saved_qvel
+            self.sim.forward()
+
+    def _knee_sign_matched_reference(self, data: dict) -> dict:
+        """Negate the reference knee angle for an MSK that measures knee flexion as positive.
+
+        The reference follows the Gait2392 convention, knee flexion negative (`q_knee_angle_*`
+        runs from about -1.1 to 0 rad). The Rajagopal-lineage MSKs (`myolegs`, `myofullbody`)
+        measure flexion as positive, with a range starting at 0, so the unflipped reference poses
+        their knee past its own limit on every reset and the imitation term rewards holding it
+        there. The convention is read off the joint range, so no per-MSK table is needed.
+        """
+        model = self.sim.model
+        joint_names = {model.joint(j).name: j for j in range(model.njnt)}
+        flipped = [
+            name
+            for name in ("knee_angle_r", "knee_angle_l")
+            if name in joint_names and model.jnt_limited[joint_names[name]] and model.jnt_range[joint_names[name]][0] >= 0
+        ]
+        if not flipped:
+            return data
+        corrected = dict(data)
+        corrected["series_data"] = dict(data["series_data"])
+        for name in flipped:
+            for prefix in ("q_", "dq_"):
+                if f"{prefix}{name}" in corrected["series_data"]:
+                    corrected["series_data"][f"{prefix}{name}"] = -np.asarray(
+                        data["series_data"][f"{prefix}{name}"], dtype=float
+                    )
+        print(f"Reference knee sign flipped for {flipped}: this MSK measures knee flexion as positive.")
+        return corrected
 
     def _height_corrected_reference(self, data: dict) -> dict:
         """Shift the reference's pelvis height so the composed model's feet reach the ground.
@@ -338,39 +562,48 @@ class MyoAssistLegImitation(MyoAssistLegBase):
         if "q_pelvis_ty" not in series or self.sim.model.nkey == 0:
             return data
 
-        ty_adr = self.sim.model.jnt_qposadr[self.sim.model.joint("pelvis_ty").id]
-        standing_height = float(self.sim.model.key_qpos[0][ty_adr])
+        standing_height = self._standing_pelvis_height()
+        if standing_height is None:
+            return data
         reference_height = float(np.mean(series["q_pelvis_ty"]))
         offset = standing_height - reference_height
 
+        # Compared on magnitude, not sign. A device that adds material under the foot needs the
+        # reference raised; a composition that stands *below* the reference needs it lowered, and
+        # the two OpenSourceLeg models do -- their standing height is 0.823 m against the
+        # reference's 0.906 m mean, so every reset placed the pelvis 8.3 cm above the height at
+        # which their feet reach the floor, and the imitation term then rewarded holding it there.
         # Devices that add nothing under the foot land within a centimetre of the reference, and
         # the existing configs train correctly at that residual, so leave them exactly as they
         # were rather than perturbing every run for a rounding difference.
-        if offset < self.REFERENCE_HEIGHT_CORRECTION_THRESHOLD:
+        if abs(offset) < self.REFERENCE_HEIGHT_CORRECTION_THRESHOLD:
             return data
 
         corrected = dict(data)
         corrected["series_data"] = dict(series)
         corrected["series_data"]["q_pelvis_ty"] = np.asarray(series["q_pelvis_ty"], dtype=float) + offset
         print(
-            f"Reference pelvis height shifted by {offset:+.4f} m: this device stands at "
+            f"Reference pelvis height shifted by {offset:+.4f} m: this composition stands at "
             f"{standing_height:.3f} m against the reference's {reference_height:.3f} m"
         )
         return corrected
 
     def reset(self, **kwargs):
-        rng = np.random.default_rng()  # TODO: refactoring random to use seed
+        rng = self.np_random  # seeded through the env seed, like every draw of the episode
 
         if self._flag_random_ref_index:
             self._imitation_index = rng.integers(0, int(self._reference_data_length * 0.8))
         else:
             self._imitation_index = 0
+        self._imitation_index_exact = float(self._imitation_index)
         # generate random targets
         # new_qpos = self.generate_qpos()# TODO: should set qvel too.
         # self.sim.data.qpos = new_qpos
-        self._follow_reference_motion(False)
+        # The target velocity first: the start state scales the reference velocities by it.
+        self._start_target_velocity_schedule()
+        self._set_episode_start_state()
 
-        obs = super().reset(reset_qpos=self.sim.data.qpos, reset_qvel=self.sim.data.qvel, **kwargs)
+        obs = self._reset_simulation(reset_qpos=self.sim.data.qpos, reset_qvel=self.sim.data.qvel, **kwargs)
         return obs
 
     # override

@@ -72,7 +72,7 @@ ctrl_optim/
 ├── ctrl/                        # Controller implementations
 │   ├── reflex/                  # Reflex controller modules
 │   ├── exo/                     # Exoskeleton controller modules
-│   └── prosthetic/              # Prosthetic ankle controllers
+│   └── prosthetic/              # Prosthetic controllers (ankle stiffness, powered impedance)
 └── optim/                       # Optimization framework
     ├── cost_functions/          # Cost function implementations
     ├── config/                  # Argument parsing and environment code

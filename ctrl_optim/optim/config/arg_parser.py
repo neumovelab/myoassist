@@ -83,16 +83,34 @@ def initParser() -> argparse.Namespace:
         help="Append 2 normalized pf/df prosthetic-ankle stiffness params to the CMA-ES vector (prosthetic feet)",
     )
     optim_group.add_argument(
+        "--optimize_impedance",
+        action="store_true",
+        help="Drive the powered prosthetic joints with the four-phase impedance controller and append its "
+        "normalized gains (stiffness, damping, target angle per phase: 12 per joint) to the CMA-ES vector",
+    )
+    optim_group.add_argument(
         "--ankle_range",
         type=float,
         nargs=2,
         default=None,
         metavar=("MIN", "MAX"),
-        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step (both ankles)",
+        help="Ankle ROM [min max] in radians -- a swept study constraint, hard-clamped each step on the "
+        "ankle(s) that --ankle_range_side selects. It needs no device.",
+    )
+    optim_group.add_argument(
+        "--ankle_range_side",
+        choices=["r", "l", "both"],
+        default="r",
+        help="Side(s) whose ankle --ankle_range clamps: r (default; the side of the shipped unilateral "
+        "devices, for example Anatomics_L1), l, or both",
     )
     optim_group.add_argument("--tgt_vel", type=float, help="(float) Target velocity to optimize for")
     optim_group.add_argument(
-        "--trunk_err_type", help="(String) type of trunk error, from ['ref_diff','zero_diff','vel_square']"
+        "--trunk_err_type",
+        choices=["ref_diff", "tgt_diff", "zero_diff", "vel_square", "no_trunk"],
+        help="(String) trunk term of the cost: absolute error from the reference trunk pitch (ref_diff), "
+        "squared trunk pitch (zero_diff; tgt_diff from a target, 0 by default), squared pitch rate "
+        "(vel_square), or none (no_trunk)",
     )
     optim_group.add_argument("--tgt_sym_th", type=float, help="(float) Threshold difference for symmetry")
     optim_group.add_argument("--tgt_grf_th", type=float, help="(float) Threshold for normalized GRF")
@@ -106,7 +124,6 @@ def initParser() -> argparse.Namespace:
     group.add_argument("-class", "--classic", action="store_true", help="Flag for Effort+Velocity+KneeOver optimization")
     group.add_argument("-kine", "--kinematics", action="store_true", help="Flag for Kinematics optimization")
     group.add_argument("-kine_grf", "--kinematics_grf", action="store_true", help="Flag for Kinematics optimization")
-    group.add_argument("-combined", "--combined", action="store_true", help="Flag to combine both effort and kinematics cost")
     group.add_argument("-kine_grf_musc", "--kinematics_grf_musc", action="store_true", help="Flag for Kinematics optimization")
     group.add_argument("-vel_musc", "--vel_musc", action="store_true", help="Velocity Muscle profile")
     group.add_argument("-vel_musc_grf", "--vel_musc_grf", action="store_true", help="Vel Musc Profile GRF")

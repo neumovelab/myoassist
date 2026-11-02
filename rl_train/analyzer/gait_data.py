@@ -6,6 +6,15 @@ import mujoco
 import numpy as np
 from rl_train.utils import numpy_utils
 
+# mjtTrn values that the reports distinguish (joint actuators: N*m; tendon actuators: N).
+TRANSMISSION_NAMES = {
+    int(mujoco.mjtTrn.mjTRN_JOINT): "joint",
+    int(mujoco.mjtTrn.mjTRN_JOINTINPARENT): "joint",
+    int(mujoco.mjtTrn.mjTRN_TENDON): "tendon",
+    int(mujoco.mjtTrn.mjTRN_SITE): "site",
+    int(mujoco.mjtTrn.mjTRN_BODY): "body",
+}
+
 
 class GaitData:
     def __init__(
@@ -44,6 +53,15 @@ class GaitData:
         # TODO: there is no lumbar extension ctrl!!
 
         self.metadata["data_length"] += 1
+        if "actuator_info" not in self.metadata:
+            # Static per-actuator facts the reports need for units and sign.
+            self.metadata["actuator_info"] = {
+                mj_model.actuator(idx).name: {
+                    "transmission": TRANSMISSION_NAMES.get(int(mj_model.actuator(idx).trntype[0]), "other"),
+                    "ctrlrange": [float(v) for v in mj_model.actuator(idx).ctrlrange],
+                }
+                for idx in range(mj_model.nu)
+            }
 
         # for idx in range(mj_model.na):
         for idx in range(mj_model.nu):
@@ -57,6 +75,10 @@ class GaitData:
             actuator_dict["force"].append(numpy_utils.numpy2array(actuator_data.force.copy()))
             actuator_dict["velocity"].append(numpy_utils.numpy2array(actuator_data.velocity.copy()))
             actuator_dict["ctrl"].append(numpy_utils.numpy2array(actuator_data.ctrl.copy()))
+            # `ctrl` is the excitation; `act` is the activation state (muscles, filtered motors).
+            if mj_model.actuator(idx).actnum[0] > 0:
+                act_adr = int(mj_model.actuator(idx).actadr[0])
+                actuator_dict.setdefault("act", []).append([float(mj_data.act[act_adr])])
         for idx in range(mj_model.njnt):
             joint_name = mj_model.joint(idx).name
             joint_data = mj_data.joint(joint_name)

@@ -122,7 +122,7 @@ class EnvironmentHandler:
                     terrain=config.env_params.terrain,
                 )
                 .validate()
-                .compose()
+                .compose(planar_root=config.env_params.planar_root)
             )
             EnvironmentHandler._validate_action_layout(model_path, config)
         elif not model_path:
@@ -153,12 +153,15 @@ class EnvironmentHandler:
                 config.env_params.num_envs = 1
                 config.ppo_params.n_steps = config.ppo_params.batch_size
             else:
-                env = SubprocVecEnv(
-                    [
-                        lambda: (gym.make(config.env_params.env_id, **gym_make_args)).unwrapped
-                        for _ in range(config.env_params.num_envs)
-                    ]
-                )
+                base_seed = config.env_params.seed
+
+                def make_env(rank: int):
+                    # Worker `rank` gets the seed plus its rank, so that the parallel episodes
+                    # draw different start frames and target-velocity profiles.
+                    args = dict(gym_make_args, seed=None if base_seed is None else base_seed + rank)
+                    return lambda: (gym.make(config.env_params.env_id, **args)).unwrapped
+
+                env = SubprocVecEnv([make_env(rank) for rank in range(config.env_params.num_envs)])
         except Exception as e:
             new_message = str(e)[:1000]
             e.args = (new_message,)
@@ -242,6 +245,7 @@ class EnvironmentHandler:
                 log_rollout_freq=config.logger_params.logging_frequency,
                 evaluate_freq=config.logger_params.evaluate_frequency,
                 log_handler=train_log_handler,
+                env_params=config.env_params,
                 original_reward_weights=config.env_params.reward_keys_and_weights,
                 auto_reward_adjust_params=config.auto_reward_adjust_params,
             )
@@ -250,6 +254,7 @@ class EnvironmentHandler:
                 log_rollout_freq=config.logger_params.logging_frequency,
                 evaluate_freq=config.logger_params.evaluate_frequency,
                 log_handler=train_log_handler,
+                env_params=config.env_params,
             )
 
         return custom_callback

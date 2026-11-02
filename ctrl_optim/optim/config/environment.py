@@ -98,6 +98,8 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "reflex_mode": args.reflex_mode,
         "optimize_stiffness": args.optimize_stiffness,
         "ankle_range": args.ankle_range,
+        "ankle_range_side": args.ankle_range_side,
+        "optimize_impedance": args.optimize_impedance,
     }
 
     return env_dict
@@ -121,8 +123,6 @@ def get_optimization_type(args: argparse.Namespace) -> str:
         return "Classic"
     elif args.kinematics:
         return "Kine"
-    elif args.combined:
-        return "Combined"
     elif args.velocity:
         return "Velocity"
     elif args.velocity_grf:
@@ -155,7 +155,6 @@ def get_optimization_suffix(optim_type: str) -> str:
         "Eff_Knee": "Eff_Kne",
         "Classic": "Class",
         "Kine": "Kine",
-        "Combined": "Comb",
         "Velocity": "Vel",
         "Vel_grf": "Vel_grf",
         "Kine_grf": "Kine_grf",

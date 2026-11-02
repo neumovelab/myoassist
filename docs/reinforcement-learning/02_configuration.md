@@ -39,7 +39,8 @@ Configuration files are located in `rl_train/train/train_configs/`:
 - `imitation_tutorial_22_separated_net_full_obs.json` - Same setup with full exo observation.
 - `imitation_tutorial_22_separated_net_exo_off*.json` - Same setup with the exo held at a constant command (exo off).
 - `test.json` - Minimal config for the quick training test (see [Reinforcement Learning](index.md#2-quick-training-test)).
-- `device_sweep/` - Eight configs, one per device, for the per-device sweep.
+- `device_sweep/` - Eight configs, one per bilateral exo, for the per-device sweep.
+- `prosthesis/` - Four configs, one per prosthetic device, on amputee models. See the [directory README](https://github.com/neumovelab/myoassist/blob/main/rl_train/train/train_configs/prosthesis/README.md).
 
 ### Configuration Hierarchy
 
@@ -94,6 +95,7 @@ TrainSessionConfigBase
 | `max_target_velocity` | Maximum target velocity | 1.25 |
 | `min_target_velocity_period` | Minimum target velocity period | 2 |
 | `max_target_velocity_period` | Maximum target velocity period | 10 |
+| `velocity_map` | Read the target velocity from a velocity map over a tiled `terrain` instead of drawing it per episode. Takes the keyword arguments of `myoassist_terrains.velocity_map.generate_velocity_map`, at least `start` and `goal` (see [Velocity Maps](https://myoassist.neumove.org/modeling/terrains/velocity-maps/)). Every episode then runs in `MAP` mode: on each control step the target is the map's speed, interpolated bilinearly between the four samples around the pelvis and held at the edge value beyond the outermost samples. The map's direction is not used. | null |
 | `enable_lumbar_joint` | Enable lumbar joint | false |
 | `lumbar_joint_fixed_angle` | Lumbar joint fixed angle | -0.13 |
 | `lumbar_joint_damping_value` | Lumbar joint damping value | 0.05 |
@@ -107,6 +109,13 @@ TrainSessionConfigBase
 | `model_path` | Optional literal MJCF path (escape hatch); leave null to compose from `msk_key`/`device_key` | null |
 | `reference_data_path` | Path to reference motion data (accepts `.npz` or `.json`) | "rl_train/reference_data/short_reference_gait.npz" |
 | `reference_data_keys` | Joint keys for reference data | ["ankle_angle_l", "hip_flexion_l"] |
+| `reward_curriculum` | Maps a reward key to `[start_scale, end_scale]`; its configured weight is multiplied by a scale moving linearly between them across `[reward_curriculum_start, reward_curriculum_end]` of the run. Empty disables it. Used to let imitation bootstrap and then leave, which only makes sense where the reference cannot describe the model. | {} |
+| `reward_curriculum_start` / `_end` | Fractions of `total_timesteps` the ramp spans. | 0.2 / 0.6 |
+| `curriculum_start_velocity` | Target velocity the run starts at, ramping linearly to `min`/`max_target_velocity` over `curriculum_fraction` of the run and held there. 0 disables it, which is what the intact configs do. | 0.0 |
+| `curriculum_fraction` | Fraction of `total_timesteps` the ramp takes. | 0.5 |
+| `scale_reference_playback` | Advance the imitation reference at the target velocity rather than one frame per control step. Off by default. The reference walks at 1.281 m/s, so under a slow target the qpos terms would otherwise demand full-stride angles at full cadence while the forward term asks for a slow walk; no gait satisfies both. | false |
+| `device_ctrl_scale` | Fraction of its own `ctrlrange` the policy may command on the device actuators, applied by narrowing `actuator_ctrlrange` at setup. 1.0 is the model's full authority. Below 1.0 for a device whose joint cannot absorb its own actuator. | 1.0 |
+| `out_of_trajectory_joint_keys` | Joints the episode-ending tracking check watches. Empty -> every key in `qpos_imitation_rewards`, which is what the intact configs do. Set it to decouple "guide this joint" from "end the episode when this joint drifts": an amputee config gives the residual limb a weak posture term without a healthy-gait deviation there killing the episode. | [] |
 | `prev_trained_policy_path` | Path to previous trained policy | null |
 | `hidden_geom_groups` | Geom groups hidden from rendering. Which group holds clutter is an authoring convention of the model, so it is set here. Rendering only. | [] |
 | `joint_limit_sensor_keys` | Joint-limit sensor names feeding `joint_constraint_force_penalty`; empty uses `MyoAssistLegBase.JOINT_LIMIT_SENSOR_NAMES` | [] |
@@ -117,7 +126,6 @@ TrainSessionConfigBase
 |-----------|-------------|---------|
 | `qpos_imitation_rewards` | Joint position imitation rewards | {"pelvis_ty": 0.1, "hip_flexion_l": 0.2} |
 | `qvel_imitation_rewards` | Joint velocity imitation rewards | {"pelvis_ty": 0.1, "hip_flexion_l": 0.2} |
-| `end_effector_imitation_reward` | End effector imitation reward | 0.0 |
 | `forward_reward` | Forward movement reward | 1.0 |
 | `muscle_activation_penalty` | Muscle activation penalty, squared | 0.1 |
 | `exo_activation_penalty` | Device effort penalty, in the same units as `muscle_activation_penalty`. The muscle mean is over 22 actuators and the device mean over 2, so the per-actuator price is `muscle_activation_penalty`/22 against `exo_activation_penalty`/2. | 0.0 |
@@ -182,7 +190,7 @@ These parameters are provided as a list of dictionaries, where each dictionary r
 | `min_target_velocity` | Minimum target velocity | 1.25 |
 | `max_target_velocity` | Maximum target velocity | 1.25 |
 | `target_velocity_period` | Target velocity period | 2 |
-| `velocity_mode` | Velocity mode (UNIFORM, SINUSOIDAL, STEP) | "UNIFORM" |
+| `velocity_mode` | Velocity mode (UNIFORM, SINUSOIDAL, STEP, or MAP, which needs `velocity_map`) | "UNIFORM" |
 | `cam_type` | Camera type | "follow" |
 | `cam_distance` | Camera distance | 2.5 |
 | `visualize_activation` | Visualize muscle activation | true |

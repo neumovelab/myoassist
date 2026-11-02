@@ -35,7 +35,7 @@ python run_optim.py tutorial
 
 ### Available Configurations
 
-The `optim/training_configs/` directory contains configuration files for different optimization scenarios. Every configuration has a Windows `.bat` file. Six also have a Unix `.sh` file: `tutorial`, `debug`, `amp_kfoot`, `kfoot_stiffness`, `reflex_bilat`, and `anatomics_rom`. The other five (`baseline`, `exo_4param`, `exo_4param_kine`, `exo_npoint`, and `exo_npoint_cont`) are `.bat`-only, so they do not run on Unix. `run_optim.py` selects the file type for your OS. Some example configurations are below.
+The `optim/training_configs/` directory contains configuration files for different optimization scenarios. Every configuration has a Windows `.bat` file. Nine also have a Unix `.sh` file: `tutorial`, `debug`, `amp_kfoot`, `kfoot_stiffness`, `osl_a_impedance`, `osl_ka_impedance`, `neuankle_impedance`, `reflex_bilat`, and `anatomics_rom`. The other five (`baseline`, `exo_4param`, `exo_4param_kine`, `exo_npoint`, and `exo_npoint_cont`) are `.bat`-only, so they do not run on Unix. `run_optim.py` selects the file type for your OS. Some example configurations are below.
 
 | Configuration         | Description                                                                                             |
 |-----------------------|---------------------------------------------------------------------------------------------------------|
@@ -49,6 +49,9 @@ The `optim/training_configs/` directory contains configuration files for differe
 | `reflex_bilat`        | Bilateral reflex on the 3D 26-muscle model, with independent per-leg blocks.                             |
 | `amp_kfoot`           | Amputee reflex on the passive K-Foot prosthesis (see [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md)).  |
 | `kfoot_stiffness`     | Amputee reflex plus prosthetic ankle stiffness optimization.                                             |
+| `osl_a_impedance`     | Amputee reflex plus the impedance controller of the powered Open-Source Leg ankle.                       |
+| `osl_ka_impedance`    | Amputee reflex plus the impedance controller of the powered Open-Source Leg knee and ankle.              |
+| `neuankle_impedance`  | Amputee reflex plus the impedance controller of the powered NEUankle.                                    |
 | `anatomics_rom`       | Ankle range-of-motion study with the Anatomics exoskeleton.                                              |
 
 ### Listing Available Configurations
@@ -65,7 +68,7 @@ This will display a list of all available configuration files in the `optim/trai
 
 The configuration files in `optim/training_configs/` hold the command-line arguments for the `train.py` script. `run_optim.py` runs the file from `ctrl_optim/optim/`. The `.bat` and `.sh` files hold the same arguments, with different line-continuation syntax.
 
-The shipped `tutorial` configuration is a continued run. It loads prepared parameters with `--param_path ../results/optim_results/tutorial_prep`.
+The shipped `tutorial` configuration starts from the default initial parameters. It uses 32 candidates per generation on 32 processes; on a smaller computer, decrease `--popsize` and `--threads`. Its result is in `results/optim_results/tutorial_v2`.
 
 **Example `tutorial.bat`:**
 ```batch
@@ -85,12 +88,11 @@ python train.py ^
     -eff ^
     --ExoOn 1 ^
     --use_4param_spline ^
-    --max_torque 100.0 ^
-    --popsize 8 ^
-    --maxiter 50 ^
-    --threads 8 ^
+    --max_torque 50.0 ^
+    --popsize 32 ^
+    --maxiter 1500 ^
+    --threads 32 ^
     --sigma_gain 10 ^
-    --param_path ../results/optim_results/tutorial_prep ^
     --save_path tutorial
 ```
 
@@ -112,12 +114,11 @@ exec "$PYTHON_CMD" -m ctrl_optim.optim.train \
     -eff \
     --ExoOn 1 \
     --use_4param_spline \
-    --max_torque 100.0 \
-    --popsize 8 \
-    --maxiter 50 \
-    --threads 8 \
+    --max_torque 50.0 \
+    --popsize 32 \
+    --maxiter 1500 \
+    --threads 32 \
     --sigma_gain 10 \
-    --param_path ../results/optim_results/tutorial_prep \
     --save_path tutorial
 ```
 
@@ -163,11 +164,11 @@ Every shipped configuration sets these.
 
 ### Amputee and Prosthetic Devices
 
-To optimize on an amputee model, pair a prosthetic device with `--reflex_mode amp`. To also tune a passive prosthetic ankle, add `--optimize_stiffness`. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md) for both.
+To optimize on an amputee model, pair a prosthetic device with `--reflex_mode amp`. To also tune a passive prosthetic ankle, add `--optimize_stiffness`. To drive a powered prosthesis with the four-phase impedance controller and tune its gains, add `--optimize_impedance`. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md) for all three.
 
 ### Ankle Range of Motion
 
-`--ankle_range MIN MAX` limits the ankle travel, in radians. `MIN` is the plantarflexion limit (negative). `MAX` is the dorsiflexion limit (positive). The framework clamps both ankles to this range on every step. Use it as a swept study variable, for example with the Anatomics exoskeleton.
+`--ankle_range MIN MAX` limits the ankle travel, in radians. `MIN` is the plantarflexion limit (negative). `MAX` is the dorsiflexion limit (positive). On every step, the framework clamps the ankle that `--ankle_range_side` selects to this range: `r` (the default), `l`, or `both`. The clamp needs no device. The Anatomics configuration clamps the right ankle, which carries the device. Use it as a swept study variable, for example with the Anatomics exoskeleton.
 
 ### Exoskeleton Configuration
 - `--ExoOn`: set to `1` to enable the exoskeleton, or `0` to disable it.

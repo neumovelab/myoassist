@@ -163,7 +163,7 @@ Totals without a device tail:
 | Symmetric | 77 | 97 |
 | Bilateral or amputee | 128 | 160 |
 
-Device tails add to the total. An exoskeleton spline adds 4 parameters (4-parameter spline) or 2n (n-point spline). Prosthetic ankle stiffness (`--optimize_stiffness`) adds 2.
+Device tails add to the total. An exoskeleton spline adds 4 parameters (4-parameter spline) or 2n (n-point spline). Prosthetic ankle stiffness (`--optimize_stiffness`) adds 2. The powered-prosthesis impedance controller (`--optimize_impedance`) adds 12 per powered joint: 12 for a powered ankle, 24 for a powered knee and ankle.
 
 Parameter categories:
 - **Target angles**: <code>theta_tgt</code>, <code>knee_tgt</code>, <code>ankle_tgt</code>, <code>mtp_tgt</code>

@@ -29,7 +29,7 @@ from ctrl_optim.ctrl.param_layout import (
 )
 
 # Global set by train.py (``bounds_mod.input_args = input_args``); supplies the
-# exo / bilateral / stiffness configuration used to size the device tails.
+# exo / bilateral / stiffness / impedance configuration used to size the device tails.
 input_args = None
 
 # --- per-parameter bound primitives -----------------------------------------
@@ -37,7 +37,7 @@ _FREE = [-np.inf, np.inf]
 _NONNEG = [0.0, np.inf]
 _ACT_BOUND = [1.0, 50.0]  # initial-activation scale
 _VEL_BOUND = [-29.0, 6.0]  # vel_pelvis_tx
-_DEVICE_BOUND = [0.0, 1.0]  # normalized exo-spline / stiffness params
+_DEVICE_BOUND = [0.0, 1.0]  # normalized exo-spline / stiffness / impedance params
 
 # The only reflex keys allowed to go negative; every other reflex gain/threshold
 # is constrained non-negative.
@@ -62,8 +62,21 @@ def _spline_count() -> int:
     return int(input_args.n_points) * 2
 
 
+def _impedance_count() -> int:
+    """Impedance parameter count implied by the module-global ``input_args``.
+
+    The count depends on the powered joints of the composed model (12 per joint),
+    so this composes the env once (cached) when the option is set.
+    """
+    if input_args is None or not getattr(input_args, "optimize_impedance", False):
+        return 0
+    from ctrl_optim.ctrl.prosthetic.impedance_ctrl import n_params_for_env
+
+    return n_params_for_env(input_args.msk, input_args.device)
+
+
 def _build_bound_vect(layout: ParamLayout) -> List[List[float]]:
-    """Assemble the ordered [reflex (x legs) | pose | spline | stiffness] bounds."""
+    """Assemble the ordered [reflex (x legs) | pose | spline | stiffness | impedance] bounds."""
     # Lazy import so this module stays importable without the (heavy) env stack,
     # and so it always reads the controller's *current* key lists (single source
     # of truth -- no duplicated tables to drift).
@@ -90,7 +103,7 @@ def _build_bound_vect(layout: ParamLayout) -> List[List[float]]:
         bound_vect.extend(_reflex_bound(k) for k in reflex_keys)
     bound_vect.extend(_pose_joint_bound(k) for k in pose_joint_keys)
     bound_vect.extend(list(_ACT_BOUND) for _ in range(n_act))
-    bound_vect.extend(list(_DEVICE_BOUND) for _ in range(layout.spline + layout.stiffness))
+    bound_vect.extend(list(_DEVICE_BOUND) for _ in range(layout.spline + layout.stiffness + layout.impedance))
 
     if len(bound_vect) != layout.total:
         raise AssertionError(f"generated {len(bound_vect)} bounds but layout.total is {layout.total}")
@@ -104,12 +117,13 @@ def get_bounds(
     exo_spline: Optional[int] = None,
     bilateral: Optional[bool] = None,
     stiffness: Optional[int] = None,
+    impedance: Optional[int] = None,
 ) -> List[List[float]]:
     """Return ``[bound_start, bound_end]`` for the given model and control mode.
 
-    The device tails (exo spline, bilateral doubling, stiffness) are taken from
-    the module-global ``input_args`` unless overridden explicitly (the overrides
-    exist mainly for tests).
+    The device tails (exo spline, bilateral doubling, stiffness, impedance) are
+    taken from the module-global ``input_args`` unless overridden explicitly (the
+    overrides exist mainly for tests).
     """
     if musc_model not in VALID_MUSC_MODELS:
         raise ValueError(f"No bounds defined for muscle model: {musc_model!r}")
@@ -119,8 +133,9 @@ def get_bounds(
     spline = _spline_count() if exo_spline is None else exo_spline
     bil = (getattr(input_args, "reflex_mode", None) in ("bilat", "amp")) if bilateral is None else bilateral
     stiff = (2 if getattr(input_args, "optimize_stiffness", False) else 0) if stiffness is None else stiffness
+    imp = _impedance_count() if impedance is None else impedance
 
-    layout = ParamLayout(control_mode, bilateral=bil, spline=spline, stiffness=stiff)
+    layout = ParamLayout(control_mode, bilateral=bil, spline=spline, stiffness=stiff, impedance=imp)
     bound_vect = _build_bound_vect(layout)
     bound_start = [b[0] for b in bound_vect]
     bound_end = [b[1] for b in bound_vect]

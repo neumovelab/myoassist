@@ -132,6 +132,7 @@ class EnvSpec:
         self,
         export_path: Optional[Union[str, Path]] = None,
         cache_dir: Optional[Union[str, Path]] = None,
+        planar_root: bool = False,
     ) -> str:
         """Compose this spec into a loadable MJCF string.
 
@@ -141,7 +142,8 @@ class EnvSpec:
         ``cache_dir`` opts in to the merged-model cache; leaving it unset still picks up
         ``MYOASSIST_CACHE_DIR`` from the environment, which is the zero-plumbing way to
         enable it for a whole RL or CO run.  See
-        :func:`myoassist_utils.compose.compose_env_model`.
+        :func:`myoassist_utils.compose.compose_env_model`, which also documents
+        ``planar_root``.
         """
         from myoassist_utils.compose import compose_env_model
 
@@ -150,5 +152,6 @@ class EnvSpec:
             self.device,
             terrain=self.terrain,
             export_path=export_path,
+            planar_root=planar_root,
             cache_dir=cache_dir,
         )

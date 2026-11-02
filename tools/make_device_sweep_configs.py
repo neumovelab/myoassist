@@ -69,7 +69,8 @@ ASSISTED_JOINT = {
 #   OpenSourceLeg_KA_L1      unilateral knee+ankle prosthesis, 15 muscles, nq 30.
 #
 # The three unilateral models need their own action layout and cannot use the mirror penalty or
-# the per-side shared network; they are a separate study, not a row in this sweep.
+# the per-side shared network, so they are not a row in this sweep. They have their own generator:
+# tools/make_prosthesis_configs.py, which also covers the passive KFoot_L1.
 
 
 def _mirror_name(name: str) -> str:

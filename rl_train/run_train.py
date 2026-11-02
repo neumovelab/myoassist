@@ -61,6 +61,21 @@ def ppo_evaluate_with_rendering(config):
 
     EnvironmentHandler.updateconfig_from_model_policy(config, model)
 
+    # Evaluate mode skips the per-episode randomiser, so the speed schedule has to be set here,
+    # the same way gait_evaluate sets it. Otherwise the preview keeps the random mode, phase and
+    # period the constructor drew.
+    from rl_train.envs.myoassist_leg_base import MyoAssistLegBase
+
+    evaluate_param = config.evaluate_param_list[0]
+    env.unwrapped.set_target_velocity_mode_manually(
+        mode=MyoAssistLegBase.VelocityMode[evaluate_param["velocity_mode"]],
+        starting_phase=0,
+        initial_target_velocity=(evaluate_param["min_target_velocity"] + evaluate_param["max_target_velocity"]) / 2,
+        min_target_velocity=evaluate_param["min_target_velocity"],
+        max_target_velocity=evaluate_param["max_target_velocity"],
+        target_velocity_period=evaluate_param["target_velocity_period"],
+    )
+
     obs, info = env.reset()
     for _ in range(config.evaluate_param_list[0]["num_timesteps"]):
         action, _states = model.predict(obs, deterministic=True)

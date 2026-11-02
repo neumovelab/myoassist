@@ -1,0 +1,5 @@
+{
+    "results_dir": "ctrl_optim/results/optim_results/tutorial_v2",
+    "param_file": "ctrl_optim/results/optim_results/tutorial_v2/tutorial_params.txt",
+    "camera_speed": 1.48
+}

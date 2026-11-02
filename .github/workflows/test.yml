@@ -2,11 +2,12 @@ name: tests
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, revision]
   pull_request:
     # `dev` is where day-to-day work lands, and feature branches reach these checks through
     # their PR into it; gating on main alone let a branch accumulate weeks of unchecked work.
-    branches: [main, dev]
+    # `revision` holds the fixes for the MyoAssist 1.0 paper revision until it merges to main.
+    branches: [main, dev, revision]
 
 jobs:
   # Lint runs standalone (ruff only, no heavy deps) so the style/lint gate is enforced

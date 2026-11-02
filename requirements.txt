@@ -26,13 +26,13 @@ gitpython
 # `uv pip install -e <local_clone>` so local edits are picked up without reinstalling.
 
 myosuite==2.8.4
-myo-sim>=0.2.1
+# myo-sim 0.2.1 adds a spurious 12.87-kg chest mass (fixed in 0.2.2).
+myo-sim>=0.2.3
 assist-sim>=1.0.0
 myoassist-terrains>=1.0.0
 
 # RL
-stable-baselines3
-stable-baselines3[extra]
+stable-baselines3[extra]>=2.7,<3
 # imageio
 mediapy
 # for mac issue

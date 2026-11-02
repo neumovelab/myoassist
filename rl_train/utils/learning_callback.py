@@ -16,12 +16,23 @@ def _analyze_process(log_dir):
 
 
 class BaseCustomLearningCallback(BaseCallback):
-    def __init__(self, *, log_rollout_freq: int, evaluate_freq: int, log_handler: train_log_handler.TrainLogHandler, verbose=1):
+    def __init__(
+        self,
+        *,
+        log_rollout_freq: int,
+        evaluate_freq: int,
+        log_handler: train_log_handler.TrainLogHandler,
+        env_params=None,
+        verbose=1,
+    ):
         super().__init__(verbose)
         self.log_rollout_freq = log_rollout_freq
         self.evaluate_freq = evaluate_freq
         self.train_log_handler: train_log_handler.TrainLogHandler = log_handler
         self.log_count = 0
+        self._env_params = env_params
+        self._curriculum_last = None
+        self._reward_curriculum_last = None
 
         # Move the analyze_process function to class level
         # self.analyze_process = functools.partial(_analyze_process)
@@ -77,7 +88,69 @@ class BaseCustomLearningCallback(BaseCallback):
 
         return True
 
+    def _update_velocity_curriculum(self) -> None:
+        """Raise the target-velocity band as training progresses.
+
+        Linear from `curriculum_start_velocity` to the config's min/max over
+        `curriculum_fraction` of the run, then held. Pushed to the workers through
+        `env_method`, so it reaches a SubprocVecEnv as well as a DummyVecEnv, and applied at a
+        rollout boundary so no episode is scored against two different demands.
+
+        Inert unless a config sets `curriculum_start_velocity`, which no intact config does.
+        """
+        p = self._env_params
+        if p is None or not getattr(p, "curriculum_start_velocity", 0.0):
+            return
+        total = self.locals.get("total_timesteps") or 0
+        if total <= 0:
+            return
+        frac = min(1.0, self.num_timesteps / (total * max(1e-9, p.curriculum_fraction)))
+        start = p.curriculum_start_velocity
+        lo = start + frac * (p.min_target_velocity - start)
+        hi = start + frac * (p.max_target_velocity - start)
+        # Only talk to the workers when the value has actually moved; env_method is a round trip
+        # to every subprocess and this runs on every rollout.
+        if self._curriculum_last is not None and abs(lo - self._curriculum_last[0]) < 1e-4:
+            return
+        self._curriculum_last = (lo, hi)
+        self.training_env.env_method("set_target_velocity_range", lo, hi)
+        if self.verbose:
+            print(f"velocity curriculum: target now [{lo:.2f}, {hi:.2f}] m/s at {self.num_timesteps}/{total} steps")
+
+    def _update_reward_curriculum(self) -> None:
+        """Move the reward weights along their scheduled scales.
+
+        Each key ramps linearly between `reward_curriculum_start` and `reward_curriculum_end` of
+        the run and is held flat outside that window. Pushed to the workers at a rollout
+        boundary, so a rollout is never collected under two different reward functions -- which
+        would put trajectories scored by one objective into an update for another.
+
+        Inert unless a config populates `reward_curriculum`.
+        """
+        p = self._env_params
+        schedule = getattr(p, "reward_curriculum", None) if p is not None else None
+        if not schedule:
+            return
+        total = self.locals.get("total_timesteps") or 0
+        if total <= 0:
+            return
+        lo, hi = p.reward_curriculum_start, p.reward_curriculum_end
+        progress = self.num_timesteps / total
+        frac = 0.0 if progress <= lo else 1.0 if progress >= hi else (progress - lo) / max(1e-9, hi - lo)
+        scales = {k: v[0] + frac * (v[1] - v[0]) for k, v in schedule.items()}
+        if self._reward_curriculum_last is not None and all(
+            abs(scales[k] - self._reward_curriculum_last[k]) < 1e-3 for k in scales
+        ):
+            return
+        self._reward_curriculum_last = scales
+        self.training_env.env_method("set_reward_weight_scales", scales)
+        if self.verbose:
+            pretty = "  ".join(f"{k.replace('_rewards', '').replace('_reward', '')}x{v:.2f}" for k, v in scales.items())
+            print(f"reward curriculum @ {self.num_timesteps}/{total}: {pretty}")
+
     def _on_rollout_start(self) -> None:
+        self._update_velocity_curriculum()
+        self._update_reward_curriculum()
         super()._on_rollout_start()
 
     def _on_rollout_end(self, write_log: bool = True) -> TrainCheckpointData | None:

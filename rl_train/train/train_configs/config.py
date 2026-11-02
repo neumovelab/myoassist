@@ -47,8 +47,37 @@ class TrainSessionConfigBase:
 
         min_target_velocity: float = 0.5
         max_target_velocity: float = 3.0
+
+        # Speed curriculum. 0 disables it, which is what every existing config does. Set it and
+        # the target velocity ramps linearly from this value up to min/max_target_velocity over
+        # `curriculum_fraction` of the run, then holds. The amputee models only ever produced
+        # sustained stepping at 0.2-0.35 m/s while being asked for 1.25 from the first step.
+        curriculum_start_velocity: float = 0.0
+        curriculum_fraction: float = 0.5
+
+        # Reward annealing. Maps a reward key to [start_scale, end_scale]; the key's configured
+        # weight is multiplied by a scale that moves linearly between them across
+        # [reward_curriculum_start, reward_curriculum_end] of the run, held flat outside. Empty
+        # disables it, which is what every existing config does.
+        #
+        # The intended use is to let imitation bootstrap and then get out of the way. On an
+        # amputee the reference cannot describe the affected side, so imitation is a scaffold
+        # rather than the objective: it teaches a posture to stand in, and what remains once it
+        # is gone is forward progress against effort. Measured on the 30M policies, the effort
+        # term already prices one-legged hopping at 0.237 per metre against 0.110-0.131 for the
+        # policies that use the prosthesis, so that terminal objective can tell them apart --
+        # provided forward does not outweigh effort, which at 20 against 10 it did.
+        reward_curriculum: dict = field(default_factory=dict)
+        reward_curriculum_start: float = 0.2
+        reward_curriculum_end: float = 0.6
         min_target_velocity_period: float = 3
         max_target_velocity_period: float = 5
+        # Target velocity from a velocity map over a tiled `terrain`. None, which is what every
+        # existing config uses, keeps the random UNIFORM/SINUSOIDAL/STEP episodes. Set it to the
+        # keyword arguments of `myoassist_terrains.velocity_map.generate_velocity_map`, at least
+        # `start` and `goal`, and every episode runs in VelocityMode.MAP: on each control step the
+        # target is the map's speed interpolated bilinearly at the pelvis (see TargetVelocityMap).
+        velocity_map: dict = None
 
         custom_max_episode_steps: int = 500
         model_path: str = None
@@ -84,6 +113,17 @@ class TrainSessionConfigBase:
         msk_key: str = None
         device_key: str = None
         terrain: str = None
+        # Compose a 3D freejoint MSK (myolegs26, myolegs, myofullbody) with the six named pelvis
+        # DOFs (pelvis_tx/ty/tz/tilt/list/rotation) in the myolegs22 frame instead of the
+        # freejoint. The env reads the root through those names, so this is what lets it run a
+        # 3D model at all. Still a full 6-DOF root; a no-op on myolegs22.
+        planar_root: bool = False
+
+        # Fraction of its own ctrlrange the policy may command on the device actuators, applied
+        # by narrowing `actuator_ctrlrange` at setup. 1.0 is the model's full authority and is
+        # what every intact config uses. Below 1.0 for a device whose joint cannot absorb its own
+        # actuator: see MyoAssistLegBase._setup.
+        device_ctrl_scale: float = 1.0
 
     env_params: EnvParams = field(default_factory=EnvParams)
 

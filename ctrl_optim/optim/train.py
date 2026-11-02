@@ -38,6 +38,11 @@ def main():
     # backfill input_args.musc_model so the bounds + control-mode logic below works.
     resolve_env_spec(input_args)
 
+    # The exo and stiffness tails below are seeded by index from the end of the
+    # vector, so they cannot share it with the impedance tail.  No device has both.
+    if input_args.optimize_impedance and (input_args.ExoOn or input_args.optimize_stiffness):
+        raise ValueError("--optimize_impedance cannot be combined with --ExoOn 1 or --optimize_stiffness")
+
     import optim_utils.bounds as bounds_mod
 
     bounds_mod.input_args = input_args
@@ -239,6 +244,19 @@ def main():
                 torque_values = calculate_npoint_torques(input_args.n_points)
                 params_0[-(input_args.n_points * 2) : -input_args.n_points] = torque_values  # Torque points
                 params_0[-(input_args.n_points) :] = 0.5  # Time points remain at 0.5
+
+    # Powered-prosthesis impedance tail: start at the initDefaults gains.  A loaded
+    # vector without the tail (an amp run on the same model) gets the defaults
+    # appended; a loaded vector with the tail keeps its own values.
+    if input_args.optimize_impedance and params_0 is not None:
+        from ctrl_optim.ctrl.prosthetic.impedance_ctrl import default_params_for_env
+
+        impedance_0 = default_params_for_env(input_args.msk, input_args.device)
+        if input_args.param_path is None:
+            params_0[-len(impedance_0) :] = impedance_0
+        elif len(params_0) == param_num - len(impedance_0):
+            params_0 = np.concatenate([params_0, impedance_0])
+            print(f"Appended {len(impedance_0)} default impedance parameters to the loaded set.")
 
     if input_args.optimize_stiffness and params_0 is not None:
         params_0[-2:] = 0.5  # start the pf/df prosthetic-ankle stiffness at mid-range, not the ceiling

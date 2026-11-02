@@ -3,14 +3,15 @@
 The reflex controller (:class:`ctrl.reflex.reflex_ctrl.MyoLocoCtrl`) is a single
 class driven by 13 muscle *groups*, so the parameter layout depends only on the
 control mode (``"2D"`` / ``"3D"``) and the optional tails (bilateral doubling of
-the reflex block, an exo spline block, a device-stiffness block).  It does NOT
+the reflex block, an exo spline block, a device-stiffness block, a prosthesis
+impedance block).  It does NOT
 depend on the muscle model: 22 / 26 / 80-muscle models all map their muscles onto
 the same groups, and the muscle model only decides which real muscles exist (and
 whether 3D is possible -- the 22-muscle model has no hip ab/adductors, so it is
 2D only).
 
-Everything that needs to know where the reflex / pose / spline / stiffness
-blocks sit derives it from here, so the counts are defined once instead of being
+Everything that needs to know where the reflex / pose / spline / stiffness /
+impedance blocks sit derives it from here, so the counts are defined once instead of being
 re-derived in ``train.py``, ``reflex_interface.py`` and ``bounds.py`` (the old
 D6 defect, where a mismatch silently became ``np.ones(N)``).
 
@@ -25,7 +26,7 @@ mode    reflex  pose (joints+vel / group act)   base total
 
 The full vector is laid out as::
 
-    [ reflex (x2 if bilateral) | pose | exo spline | device stiffness ]
+    [ reflex (x2 if bilateral) | pose | exo spline | device stiffness | impedance ]
 
 The reflex block is per-leg; under bilateral control it is ``[r_leg | l_leg]``.
 The pose block and the device tails are never doubled.
@@ -72,12 +73,16 @@ class ParamLayout:
         4-param spline, or ``2 * n_points`` for the n-point spline).
     stiffness : int
         Device-stiffness parameter count (0, or 2 for the pf/df ankle pair).
+    impedance : int
+        Powered-prosthesis impedance parameter count (0, or 12 per powered joint:
+        12 for a powered ankle, 24 for a powered knee and ankle).
     """
 
     control_mode: str
     bilateral: bool = False
     spline: int = 0
     stiffness: int = 0
+    impedance: int = 0
 
     def __post_init__(self) -> None:
         if self.control_mode not in REFLEX_N:
@@ -103,7 +108,7 @@ class ParamLayout:
 
     @property
     def total(self) -> int:
-        return self.base + self.spline + self.stiffness
+        return self.base + self.spline + self.stiffness + self.impedance
 
     # -- slices into a full parameter vector ----------------------------------
     def slice_reflex(self) -> slice:
@@ -132,3 +137,7 @@ class ParamLayout:
     def slice_stiffness(self) -> slice:
         start = self.base + self.spline
         return slice(start, start + self.stiffness)
+
+    def slice_impedance(self) -> slice:
+        start = self.base + self.spline + self.stiffness
+        return slice(start, start + self.impedance)
