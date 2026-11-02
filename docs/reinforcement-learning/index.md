@@ -204,7 +204,7 @@ This folder contains various plots and videos that visualize your agent's perfor
   rl_train/results/train_session_[date-time]/analyze_results_[NN]/
   ```
 - **What's inside:**  
-  - `composite.png` (and `.svg`), `replay.mp4`, and `gait_evaluated_data.json`
+  - `composite.png` (and `.svg`, `.pdf`), `replay.mp4`, and `gait_evaluated_data.json`
   - See [Evaluation](https://myoassist.neumove.org/evaluation/) for the full description of these outputs.
 
 
