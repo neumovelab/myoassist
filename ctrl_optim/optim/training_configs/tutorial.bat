@@ -12,7 +12,7 @@ python train.py ^
     --trunk_err_type ref_diff ^
     --tgt_sym_th 0.1 ^
     --tgt_grf_th 1.5 ^
-    -eff ^
+    -kine ^
     --ExoOn 1 ^
     --use_4param_spline ^
     --max_torque 50.0 ^

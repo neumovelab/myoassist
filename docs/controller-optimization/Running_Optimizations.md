@@ -68,7 +68,7 @@ This will display a list of all available configuration files in the `optim/trai
 
 The configuration files in `optim/training_configs/` hold the command-line arguments for the `train.py` script. `run_optim.py` runs the file from `ctrl_optim/optim/`. The `.bat` and `.sh` files hold the same arguments, with different line-continuation syntax.
 
-The shipped `tutorial` configuration starts from the default initial parameters. It uses 32 candidates per generation on 32 processes; on a smaller computer, decrease `--popsize` and `--threads`. Its result is in `results/optim_results/tutorial_v2`.
+The shipped `tutorial` configuration starts from the default initial parameters. It uses 32 candidates per generation on 32 processes; on a smaller computer, decrease `--popsize` and `--threads`. Its result is in `results/optim_results/tutorial_example`.
 
 **Example `tutorial.bat`:**
 ```batch
@@ -85,7 +85,7 @@ python train.py ^
     --trunk_err_type ref_diff ^
     --tgt_sym_th 0.1 ^
     --tgt_grf_th 1.5 ^
-    -eff ^
+    -kine ^
     --ExoOn 1 ^
     --use_4param_spline ^
     --max_torque 50.0 ^
@@ -111,7 +111,7 @@ exec "$PYTHON_CMD" -m ctrl_optim.optim.train \
     --trunk_err_type ref_diff \
     --tgt_sym_th 0.1 \
     --tgt_grf_th 1.5 \
-    -eff \
+    -kine \
     --ExoOn 1 \
     --use_4param_spline \
     --max_torque 50.0 \
