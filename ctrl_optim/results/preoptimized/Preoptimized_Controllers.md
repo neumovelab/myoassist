@@ -2,8 +2,10 @@
 
 This folder contains partially-optimized controllers for the tutorial model (2D, 22-muscle). These controllers are available for a range of walking speeds and slopes. They are intended to be used as initial guesses for further optimization (via `--param_path`) or to continue optimization from a saved state (via `--pickle_path`). **NOTE:** These results are ***not*** polished, and ***should not*** be used as a point of comparison or final result. They are intended as a jumpstart to further optimization.
 
+**Model drift.** These controllers were optimized on earlier versions of the `myo-sim` musculoskeletal models. The models have changed since then, so the controllers will likely not walk out of the box. Use them as the starting point of a seeded optimization (`--param_path`), not as finished controllers. For a controller that walks on the current models, see the tutorial example in `results/optim_results/tutorial_example/`.
+
 ## Usage
-- **--param_path**: Use the `_Best.txt` or `_BestLast.txt` files as initial parameter guesses for new optimization runs.
+- **--param_path**: Give one of these folders to start a new optimization from its `_BestLast.txt` parameters.
 - **--pickle_path**: Use the directory containing a `.pkl` file to continue optimization from the saved optimizer state.
 
 ## Available Preoptimized Controllers
