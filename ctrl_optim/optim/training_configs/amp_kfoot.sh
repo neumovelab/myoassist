@@ -10,7 +10,7 @@ exec "$PYTHON_CMD" -m ctrl_optim.optim.train \
     --reflex_mode amp \
     --tgt_vel 1.25 \
     --trunk_err_type ref_diff \
-    --tgt_sym_th 0.1 \
+    --tgt_sym_th 0.125 \
     --tgt_grf_th 1.5 \
     -kine \
     --popsize 32 \

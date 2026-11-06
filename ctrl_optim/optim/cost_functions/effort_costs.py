@@ -1,53 +1,60 @@
 """
 Effort cost functions.
 
-This module contains functions for calculating metabolic and effort costs
-during gait optimization.
+This module contains the muscle-effort, EMG-tracking, and joint-limit cost terms of
+the gait optimization.
+
+The cumulative terms (effort, joint-limit reliance, and the GRF limit in
+evaluate_cost) are time integrals over the evaluation window divided by the
+distance traveled in the window, so they measure the accumulated penalty per meter.
+The integrals use the control period dt, so their values do not depend on it.
 """
 
 import numpy as np
 from typing import Dict, List, Optional
+
+from .kinematic_costs import resample_strides
+
+GRAVITY = 9.81  # m/s^2
 
 
 def calculate_effort_cost(
     muscle_activations: np.ndarray,
     step_indices: np.ndarray,
     distance_traveled: float,
-    mass: float,
+    dt: float,
     muscle_indices: Optional[List[int]] = None,
 ) -> float:
     """
-    Calculate metabolic effort cost normalized by distance and mass.
+    Muscle effort: the time integral of the squared activations, summed over the
+    muscles and divided by the distance traveled and the number of muscles.
 
-    The cost is based on the sum of squared muscle activations over the
-    evaluation period, divided by the distance traveled and the model's mass.
-    Matches original implementation exactly.
+        C_E = sum_m int_T a_m(t)^2 dt / (D * n_m)      (s/m)
+
+    C_E equals the mean squared activation divided by the mean speed, so C_E = 1
+    means that every muscle is fully active at 1 m/s.
 
     Args:
-        muscle_activations (np.ndarray): Muscle activation values over time
-                                        Shape: [timesteps, num_muscles]
-        step_indices (np.ndarray): Indices marking the start and end of evaluation period
-        distance_traveled (float): Total distance traveled in meters
-        mass (float): Mass of the model in kg
-        muscle_indices (List[int], optional): Indices of muscles to include in calculation
-                                             If None, all muscles are included
+        muscle_activations (np.ndarray): Muscle activations, [timesteps, num_muscles]
+        step_indices (np.ndarray): Heel-strike indices; the window runs from the first to the last
+        distance_traveled (float): Distance traveled in the window (m)
+        dt (float): Control period (s), the time between rows of muscle_activations
+        muscle_indices (List[int], optional): Muscles to include; None includes all
 
     Returns:
-        float: Calculated effort cost
+        float: Effort cost (s/m)
     """
     start_idx = step_indices[0]
-    end_idx = step_indices[-1] + 1
+    end_idx = step_indices[-1]
 
     if muscle_indices is not None:
         activations = muscle_activations[start_idx:end_idx, muscle_indices]
     else:
         activations = muscle_activations[start_idx:end_idx, :]
 
-    # Match original implementation exactly:
-    # effort_cost = np.sum(np.square(unpacked_act[index_vector[0]:index_vector[-1]+1, musc_idx])) / (cost_mass*np.linalg.norm(steps_dist))
-    squared_activations = np.sum(np.square(activations))
-    effort_cost = squared_activations / (mass * np.linalg.norm([distance_traveled]))
-    return effort_cost
+    n_muscles = activations.shape[1]
+    integral = dt * np.sum(np.square(activations))
+    return float(integral / (abs(distance_traveled) * n_muscles))
 
 
 def calculate_emg_profile_cost(
@@ -56,119 +63,92 @@ def calculate_emg_profile_cost(
     muscles_dict: Dict[str, Dict[str, List[int]]],
     eval_ctrl_mode: str,
     step_indices: np.ndarray,
-    n_strides: int,
 ) -> float:
     """
-    Calculate cost based on matching EMG profiles to reference data.
+    EMG tracking: the squared difference between the activation of each muscle and
+    the reference EMG of its group, after each stride is resampled to 100 samples.
+    The difference is averaged over the samples, the strides, and the muscles of each
+    group (both legs), then over the groups. The value is dimensionless; the gait
+    duration does not change it.
 
     Args:
-        muscle_activations (np.ndarray): Muscle activation values over time
-                                        Shape: [timesteps, num_muscles]
-        ref_emg (np.ndarray): Reference EMG data
-                             Shape: [100, num_ref_muscles]
-        muscles_dict (Dict): Dictionary mapping muscle names to indices for both legs
+        muscle_activations (np.ndarray): Muscle activations, [timesteps, num_muscles]
+        ref_emg (np.ndarray): Reference EMG, [100, 11] (groups in the order of emg_groups)
+        muscles_dict (Dict): Muscle indices of each group, for both legs
         eval_ctrl_mode (str): Control mode ('2D' or '3D')
-        step_indices (np.ndarray): Indices marking stride boundaries
-        n_strides (int): Number of strides to evaluate
+        step_indices (np.ndarray): Heel-strike indices; strides run between every second one
 
     Returns:
-        float: EMG profile matching cost
+        float: EMG tracking cost (dimensionless)
     """
-    # Select muscles based on control mode - exact match with original
+    emg_groups = ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA"]
     if eval_ctrl_mode == "2D":
         musc_fields = ["HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA"]
-    else:  # 3D mode
-        musc_fields = ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA"]
+    else:
+        musc_fields = emg_groups
 
-    # Create muscle name to index mapping for EMG data
-    musc_map = dict(
-        zip(
-            ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA"],
-            range(len(["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA"])),
-        )
-    )
+    interp_act = resample_strides(muscle_activations, step_indices)  # [100, muscles, strides]
+    if interp_act.shape[2] == 0:
+        return 0.0
 
-    # Initialize interpolation matrix
-    interp_emg = np.zeros((100, muscle_activations.shape[1], n_strides))
-
-    # Interpolate each stride to 100 points
-    stride_indices = np.arange(0, len(step_indices) - 2, 2)  # Use every other step index for full strides
-    counter = 0
-
-    for stride_idx in stride_indices:
-        if counter >= n_strides:
-            break
-
-        start_idx = step_indices[stride_idx]
-        end_idx = step_indices[stride_idx + 2]  # Use two steps ahead for full stride
-
-        extract_act = muscle_activations[start_idx:end_idx, :]
-
-        # Interpolate each muscle's activation to 100 points
-        for mus_idx in range(muscle_activations.shape[1]):
-            interp_emg[:, mus_idx, counter] = np.interp(
-                np.linspace(0, extract_act.shape[0], 100), np.arange(0, extract_act.shape[0]), extract_act[:, mus_idx]
-            )
-        counter += 1
-
-    # Calculate EMG profile cost - match original code exactly
-    musc_profile_cost = 0
-
+    group_costs = []
     for musc in musc_fields:
-        if musc in muscles_dict["l_leg"]:  # Only compare muscles that have EMG data
-            # Get indices for this muscle type from both legs
-            musc_indices = []
-            if musc in muscles_dict["l_leg"]:
-                musc_indices.extend(muscles_dict["l_leg"][musc])
-            if musc in muscles_dict["r_leg"]:
-                musc_indices.extend(muscles_dict["r_leg"][musc])
+        if musc not in muscles_dict["l_leg"]:  # only the groups the model has
+            continue
+        musc_indices = list(muscles_dict["l_leg"][musc]) + list(muscles_dict["r_leg"].get(musc, []))
+        ref = ref_emg[:, emg_groups.index(musc)]
+        group_costs.append(np.mean(np.square(interp_act[:, musc_indices, :] - ref[:, None, None])))
 
-            # Compare each muscle's activation to the EMG profile
-            for stride in range(n_strides):
-                for idx in musc_indices:
-                    # Use squared difference between interpolated activation and reference EMG
-                    musc_profile_cost += np.sum(np.square(interp_emg[:, idx, stride] - ref_emg[:, musc_map[musc]])) / n_strides
-
-    return musc_profile_cost
+    return float(np.mean(group_costs)) if group_costs else 0.0
 
 
 def calculate_joint_limit_cost(
-    joint_limit_torques: np.ndarray, step_indices: np.ndarray, joint_groups: Optional[Dict[str, List[int]]] = None
+    joint_limit_torques: np.ndarray,
+    step_indices: np.ndarray,
+    dt: float,
+    distance_traveled: float,
+    mass: float,
+    leg_length: float,
+    joint_groups: Optional[Dict[str, List[int]]] = None,
 ) -> Dict[str, float]:
     """
-    Calculate costs related to joint limit violations.
+    Joint-limit reliance: the time integral of the magnitude of the joint-limit
+    constraint torques, divided by the distance traveled, the number of joints, and
+    the body weight times the leg length.
+
+        P = sum_j int_T |tau_j(t)| dt / (D * n_j * m g L)      (s/m)
 
     Args:
-        joint_limit_torques (np.ndarray): Joint limit torques over time
-                                         Shape: [timesteps, num_joints]
-        step_indices (np.ndarray): Indices marking the start and end of evaluation period
-        joint_groups (Dict[str, List[int]], optional): Dictionary mapping joint groups to indices
-                                                     Default groups: hip, knee, ankle
+        joint_limit_torques (np.ndarray): Joint-limit torques (N m), [timesteps, joints]
+        step_indices (np.ndarray): Heel-strike indices; the window runs from the first to the last
+        dt (float): Control period (s)
+        distance_traveled (float): Distance traveled in the window (m)
+        mass (float): Total mass (kg), device included
+        leg_length (float): Leg length (m), hip to ankle
+        joint_groups (Dict[str, List[int]], optional): Columns of each joint group.
+                                                     Default: hip, knee, ankle, each left then right
 
     Returns:
-        Dict[str, float]: Dictionary of joint limit costs by group
+        Dict[str, float]: P of each group (over its joints) and "total" (over all joints)
     """
     start_idx = step_indices[0]
-    end_idx = step_indices[-1] + 1
-
-    torques = joint_limit_torques[start_idx:end_idx, :]
+    end_idx = step_indices[-1]
+    torques = np.abs(joint_limit_torques[start_idx:end_idx, :])
 
     if joint_groups is None:
         joint_groups = {
-            "hip": [0, 1],  # Left and right hip
-            "knee": [2, 3],  # Left and right knee
-            "ankle": [4, 5],  # Left and right ankle
+            "hip": [0, 1],
+            "knee": [2, 3],
+            "ankle": [4, 5],
         }
 
+    scale = abs(distance_traveled) * mass * GRAVITY * leg_length
+
     costs = {}
-    duration = end_idx - start_idx
-
-    # Calculate costs for each joint group
+    all_indices = []
     for group_name, indices in joint_groups.items():
-        group_torques = torques[:, indices]
-        # Use absolute sum normalized by duration, matching original implementation
-        costs[group_name] = np.sum(np.abs(group_torques)) / duration
+        costs[group_name] = float(dt * np.sum(torques[:, indices]) / (scale * len(indices)))
+        all_indices.extend(indices)
 
-    # Add total cost
-    costs["total"] = sum(costs.values())
+    costs["total"] = float(dt * np.sum(torques[:, all_indices]) / (scale * len(all_indices)))
     return costs

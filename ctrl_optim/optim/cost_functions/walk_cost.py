@@ -42,8 +42,8 @@ def func_Walk_FitCost(
         trunk_err_type (str): Type of trunk error to calculate
         input_tgt_vel (float): Target velocity
         stride_num (int): Number of strides to evaluate
-        tgt_sym (float): Target symmetry threshold
-        tgt_grf (float): Target ground reaction force threshold
+        tgt_sym (float): Symmetry threshold (leg lengths)
+        tgt_grf (float): GRF threshold (body weights)
         env_dict (Dict[str, Any], optional): Environment configuration
         cost_print (bool): Whether to print detailed cost information
 
@@ -122,6 +122,7 @@ def func_Walk_FitCost(
         tgt_sym,
         tgt_grf,
         eval_mode=cost_print,
+        cost_weights=env_dict.get("cost_weights"),
     )
 
     return final_cost

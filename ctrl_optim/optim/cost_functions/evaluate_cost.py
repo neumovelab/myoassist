@@ -6,7 +6,7 @@ of a simulation based on various metrics.
 """
 
 import numpy as np
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Optional, Union, Any
 
 from .kinematic_costs import calculate_kinematic_costs
 from . import effort_costs
@@ -17,6 +17,46 @@ EFFORT_GROUPS = {
     "2D": ["HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "FDL", "EDL"],
     "3D": ["HAB", "HAD", "HFL", "GLU", "HAM", "RF", "VAS", "BFSH", "GAS", "SOL", "TA", "FDL", "EDL"],
 }
+
+# Velocity tolerance of the constraint stage: the velocity error is relative to the target speed.
+VEL_TOL = 0.01
+
+# Terms of the final-stage cost of each optimization type. The final cost is the weighted sum
+# sum_k w_k C_k of these terms, with the weights of --cost_weights (1 by default).
+FINAL_TERMS = {
+    "Effort": ("effort",),
+    "Eff_Knee": ("effort", "joint_limit"),
+    "Vel_grf": ("effort", "grf", "trunk"),
+    "vel_musc": ("effort", "emg"),
+    "vel_musc_grf": ("effort", "trunk", "grf", "emg"),
+    "Classic": ("effort", "trunk", "joint_limit"),
+    "Kine": ("effort", "kinematic", "trunk"),
+    "Kine_grf": ("effort", "kinematic", "trunk", "grf"),
+    "Kine_grf_musc": ("effort", "kinematic", "trunk", "grf", "emg"),
+}
+COST_TERMS = ("effort", "kinematic", "trunk", "grf", "emg", "joint_limit")
+DEFAULT_COST_WEIGHTS = {term: 1.0 for term in COST_TERMS}
+
+
+def resolve_cost_weights(cost_weights: Optional[Dict[str, float]]) -> Dict[str, float]:
+    """Return the weights of all final-stage terms: the defaults (1) updated by cost_weights."""
+    weights = dict(DEFAULT_COST_WEIGHTS)
+    if cost_weights:
+        unknown = set(cost_weights) - set(COST_TERMS)
+        if unknown:
+            raise ValueError(f"unknown cost terms {sorted(unknown)}; expected some of {COST_TERMS}")
+        weights.update({k: float(v) for k, v in cost_weights.items()})
+    return weights
+
+
+def leg_length_from_frame(obj_out: Dict) -> float:
+    """Leg length (m): hip-to-knee plus knee-to-ankle joint distance, mean of both legs."""
+    lengths = []
+    for leg in ("l_leg", "r_leg"):
+        joint = obj_out[leg]["joint"]
+        hip, knee, ankle = (np.asarray(joint[k]) for k in ("hip_pos", "knee_pos", "ankle_pos"))
+        lengths.append(np.linalg.norm(hip - knee) + np.linalg.norm(knee - ankle))
+    return float(np.mean(lengths))
 
 
 def evaluateCost(
@@ -35,6 +75,7 @@ def evaluateCost(
     tgt_sym: float,
     tgt_grf: float,
     eval_mode: bool = False,
+    cost_weights: Optional[Dict[str, float]] = None,
 ) -> Union[float, Dict[str, Any]]:
     """
     Evaluate the cost of a walking simulation.
@@ -44,7 +85,7 @@ def evaluateCost(
 
     Args:
         data_store: List of dictionaries containing simulation data
-        step_size: Time step size of the simulation
+        step_size: Control period (s), the time between frames of data_store
         eval_ctrl_mode: Control mode ('2D' or '3D')
         time_limit: Maximum number of timesteps
         target_slope: Target slope in degrees
@@ -55,9 +96,10 @@ def evaluateCost(
         trunk_err_type: Type of trunk error calculation
         input_tgt_vel: Target velocity
         stride_num: Number of strides to evaluate
-        tgt_sym: Target symmetry threshold
-        tgt_grf: Target ground reaction force threshold
+        tgt_sym: Symmetry threshold, in leg lengths
+        tgt_grf: GRF threshold, in body weights
         eval_mode: If True, return detailed cost breakdown
+        cost_weights: Weights of the final-stage terms (see FINAL_TERMS); missing terms get 1
 
     Returns:
         Union[float, Dict[str, Any]]: Cost value or dictionary of cost components
@@ -75,6 +117,8 @@ def evaluateCost(
     # Extract basic data
     cost_const = data_store[0]["obj_func_out"]["const"]
     cost_mass = data_store[0]["obj_func_out"]["mass"]
+    leg_length = leg_length_from_frame(data_store[0]["obj_func_out"])
+    weights = resolve_cost_weights(cost_weights)
 
     # Initialize arrays
     unpacked_cost = np.zeros((len(data_store), 6))
@@ -167,7 +211,7 @@ def evaluateCost(
 
     # Calculate basic costs
     sym_cost = calculate_symmetry_cost(
-        left_stance_foot, right_stance_foot, stride_num, unpacked_angles, unpacked_grf, data_store, index_vector
+        left_stance_foot, right_stance_foot, stride_num, unpacked_angles, unpacked_grf, data_store, index_vector, leg_length
     )
 
     # If symmetry calculation failed, return early termination cost
@@ -183,11 +227,14 @@ def evaluateCost(
     velocity_cost, steps_dist, steps_duration = calculate_velocity_cost(
         unpacked_euclidDist, unpacked_cost, index_vector, target_slope, input_tgt_vel
     )
+    distance = np.linalg.norm(steps_dist)  # distance traveled in the window (m)
 
-    GRF_cost = calculate_grf_cost(unpacked_grf, index_vector, tgt_grf)
+    GRF_cost = calculate_grf_cost(unpacked_grf, index_vector, tgt_grf, step_size, distance)
 
-    # Joint-limit reliance: mean joint-limit torque over the window, per joint (both legs) and total
-    pain_costs = effort_costs.calculate_joint_limit_cost(unpacked_torque, index_vector)
+    # Joint-limit reliance per distance traveled, per joint group (both legs) and over all joints
+    pain_costs = effort_costs.calculate_joint_limit_cost(
+        unpacked_torque, index_vector, step_size, distance, cost_mass, leg_length
+    )
     pain_cost = pain_costs["total"]
     knee_pain = pain_costs["knee"]
     hip_pain = pain_costs["hip"]
@@ -208,14 +255,14 @@ def evaluateCost(
     effort_cost = effort_costs.calculate_effort_cost(
         muscle_activations=unpacked_act,
         step_indices=index_vector,
-        distance_traveled=np.linalg.norm(steps_dist),
-        mass=cost_mass,
+        distance_traveled=distance,
+        dt=step_size,
         muscle_indices=muscle_indices,
     )
 
     # Calculate EMG profile cost
     musc_profile_cost = effort_costs.calculate_emg_profile_cost(
-        unpacked_act, one_EMG, muscles_dict, eval_ctrl_mode, index_vector, stride_num
+        unpacked_act, one_EMG, muscles_dict, eval_ctrl_mode, index_vector
     )
 
     # Calculate kinematic costs (trunk_err_type selects the trunk term)
@@ -243,57 +290,40 @@ def evaluateCost(
         rot_cost = 0
         pelvis_cost = 0
 
-    # Calculate total cost based on optimization type
-    pass_flag = False
-    if optim_type == "Effort":
-        pass_flag = True
-        total_cost = effort_cost
-    elif optim_type == "Eff_Knee":
-        pass_flag = pain_cost < 0.01
-        total_cost = effort_cost + pain_cost
-    elif optim_type == "Velocity":
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym and pelvis_cost < 20
-        total_cost = (
-            10 * cost_const
-            + (100 * velocity_cost * (velocity_cost > 0.01))
-            + (100 * sym_cost * (sym_cost > tgt_sym))
-            + (pelvis_cost * (pelvis_cost > 20))
-        )
-    elif optim_type in ["Vel_grf", "vel_musc", "vel_musc_grf"]:
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym
-        total_cost = 10 * cost_const + (100 * velocity_cost * (velocity_cost > 0.01)) + (100 * sym_cost * (sym_cost > tgt_sym))
-        if pass_flag:
-            if optim_type == "Vel_grf":
-                total_cost = effort_cost + GRF_cost + trunk_cost
-            elif optim_type == "vel_musc":
-                total_cost = effort_cost + musc_profile_cost
-            elif optim_type == "vel_musc_grf":
-                total_cost = effort_cost + trunk_cost + GRF_cost + musc_profile_cost
-    elif optim_type == "Classic":
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym and pelvis_cost < 20
-        total_cost = (
-            10 * cost_const
-            + (1000 * velocity_cost * (velocity_cost > 0.01))
-            + (100 * sym_cost * (sym_cost > tgt_sym))
-            + (pelvis_cost * (pelvis_cost > 20))
-        )
-        if pass_flag:
-            total_cost = effort_cost + trunk_cost + knee_pain + hip_pain + ankle_pain
-    elif optim_type in ["Kine", "Kine_grf", "Kine_grf_musc"]:
-        pass_flag = velocity_cost < 0.01 and sym_cost < tgt_sym and pelvis_cost < 20
-        total_cost = (
-            10 * cost_const
-            + (100 * velocity_cost * (velocity_cost > 0.01))
-            + (100 * sym_cost * (sym_cost > tgt_sym))
-            + (pelvis_cost * (pelvis_cost > 20))
-        )
-        if pass_flag:
-            if optim_type == "Kine":
-                total_cost = effort_cost + kinematic_cost + trunk_cost
-            elif optim_type == "Kine_grf":
-                total_cost = effort_cost + kinematic_cost + trunk_cost + GRF_cost
-            elif optim_type == "Kine_grf_musc":
-                total_cost = effort_cost + kinematic_cost + trunk_cost + GRF_cost + musc_profile_cost
+    # Final-stage terms and their weighted sum for the optimization type
+    term_values = {
+        "effort": effort_cost,
+        "kinematic": kinematic_cost,
+        "trunk": trunk_cost,
+        "grf": GRF_cost,
+        "emg": musc_profile_cost,
+        "joint_limit": pain_cost,
+    }
+    final_cost = None
+    if optim_type in FINAL_TERMS:
+        final_cost = sum(weights[term] * term_values[term] for term in FINAL_TERMS[optim_type])
+
+    # Constraint stage: velocity (relative to the target speed), symmetry (leg lengths), and,
+    # except in the Vel_grf, vel_musc, and vel_musc_grf modes, pelvis orientation
+    vel_bad = velocity_cost > VEL_TOL
+    sym_bad = sym_cost > tgt_sym
+    pelvis_bad = pelvis_cost > 20
+    w_vel = 1000 if optim_type == "Classic" else 100
+    constraint_cost = 10 * cost_const + w_vel * velocity_cost * vel_bad + 100 * sym_cost * sym_bad
+
+    if optim_type in ("Effort", "Eff_Knee"):
+        total_cost = final_cost
+    elif optim_type in ("Vel_grf", "vel_musc", "vel_musc_grf"):
+        total_cost = final_cost if not (vel_bad or sym_bad) else constraint_cost
+    elif optim_type in ("Velocity", "Classic", "Kine", "Kine_grf", "Kine_grf_musc"):
+        passed = not (vel_bad or sym_bad or pelvis_bad)
+        constraint_cost += pelvis_cost * pelvis_bad
+        if optim_type == "Velocity" or not passed:
+            total_cost = constraint_cost
+        else:
+            total_cost = final_cost
+    else:
+        raise ValueError(f"unknown optim_type {optim_type!r}")
 
     if eval_mode:
         return create_cost_dictionary(
@@ -314,6 +344,9 @@ def evaluateCost(
             add_cost=add_cost if eval_ctrl_mode == "3D" else None,
             rot_cost=rot_cost if eval_ctrl_mode == "3D" else None,
             pelvis_cost=pelvis_cost if eval_ctrl_mode == "3D" else None,
+            leg_length=leg_length,
+            final_cost=final_cost,
+            total_cost=total_cost,
         )
     else:
         return total_cost
@@ -367,9 +400,11 @@ def calculate_early_cost(
 
 
 def calculate_symmetry_cost(
-    left_stance_foot, right_stance_foot, stride_num, unpacked_angles, unpacked_grf, data_store, index_vector
+    left_stance_foot, right_stance_foot, stride_num, unpacked_angles, unpacked_grf, data_store, index_vector, leg_length
 ):
-    """Calculate symmetry cost between left and right legs for the specified stride window"""
+    """Symmetry cost (leg lengths): distances of the left knee and ankle from the mirrored right knee
+    and ankle (relative to the pelvis) at matched heel strikes, summed, divided by the number of
+    strides and by the leg length."""
     # Get the evaluation window from index_vector
     start_idx = index_vector[0]
     end_idx = index_vector[-1]
@@ -412,14 +447,17 @@ def calculate_symmetry_cost(
         axis=1,
     )
 
-    # Total symmetry cost (normalized by number of strides)
-    sym_cost = np.sum(knee_diff + ank_diff) / stride_num
+    # Total symmetry cost (normalized by number of strides and leg length)
+    sym_cost = np.sum(knee_diff + ank_diff) / (stride_num * leg_length)
 
     return sym_cost
 
 
 def calculate_velocity_cost(unpacked_euclidDist, unpacked_cost, index_vector, target_slope, input_tgt_vel):
-    """Calculate velocity matching cost"""
+    """Velocity cost (dimensionless): norm of the mean horizontal velocity error in the window,
+    divided by the target speed."""
+    if input_tgt_vel <= 0:
+        raise ValueError(f"the target velocity must be positive, got {input_tgt_vel}")
     if len(index_vector) < 2:
         return None, np.zeros(2), 0
 
@@ -450,125 +488,25 @@ def calculate_velocity_cost(unpacked_euclidDist, unpacked_cost, index_vector, ta
 
     # Calculate velocity cost
     v_tgt = np.array([input_tgt_vel, 0])  # Target velocity (forward only)
-    velocity_cost = np.linalg.norm(steps_vel - v_tgt)
+    velocity_cost = np.linalg.norm(steps_vel - v_tgt) / input_tgt_vel
 
     return velocity_cost, steps_dist, steps_duration
 
 
-def calculate_grf_cost(unpacked_grf, index_vector, tgt_grf):
-    """Calculate ground reaction force cost"""
+def calculate_grf_cost(unpacked_grf, index_vector, tgt_grf, dt, distance_traveled):
+    """GRF limit (s/m): time integral of the excess of the total vertical GRF (both feet, in body
+    weights) over the threshold tgt_grf, divided by the distance traveled in the window."""
     if len(index_vector) < 2:
         return None
 
-    # --- Legacy stride window (last `stride_num` strides) ---
     l_idx_start = index_vector[0]
     l_idx_end = index_vector[-1]
 
-    # Calculate total GRF by summing left and right forces
+    # Total GRF (body weights), left plus right
     total_GRF = np.sum(unpacked_grf[l_idx_start:l_idx_end, :], axis=1)
 
-    # Calculate cost for GRF exceeding target threshold
-    GRF_cost = np.sum(total_GRF[total_GRF > tgt_grf]) / (l_idx_end - l_idx_start)
-
-    return GRF_cost
-
-
-def calculate_joint_pain(unpacked_angles, index_vector, left_idx, right_idx):
-    """Calculate joint pain cost for a pair of joints."""
-    left_pain = np.sum(np.abs(unpacked_angles[index_vector[0] : index_vector[-1], left_idx]))
-    right_pain = np.sum(np.abs(unpacked_angles[index_vector[0] : index_vector[-1], right_idx]))
-    return left_pain + right_pain
-
-
-def calculate_effort_and_emg_cost(
-    data_store,
-    step_index,
-    left_stance_foot,
-    stride_num,
-    unpacked_act,
-    muscles_dict,
-    cost_mass,
-    steps_dist,
-    one_EMG,
-    eval_ctrl_mode,
-    index_vector,
-):
-    """Calculate effort cost and EMG profile matching cost"""
-    if len(left_stance_foot) < stride_num:
-        return None, None
-
-    # Get muscle indices based on control mode
-    filter_musc = EFFORT_GROUPS["2D" if eval_ctrl_mode == "2D" else "3D"]
-
-    # Extract muscle indices from both legs
-    muscle_indices = []
-    for musc in filter_musc:
-        if musc in muscles_dict["l_leg"]:
-            muscle_indices.extend(muscles_dict["l_leg"][musc])
-        if musc in muscles_dict["r_leg"]:
-            muscle_indices.extend(muscles_dict["r_leg"][musc])
-    muscle_indices = sorted(list(set(muscle_indices)))  # Remove duplicates and sort
-
-    # Calculate effort cost
-    effort_cost = effort_costs.calculate_effort_cost(
-        muscle_activations=unpacked_act,
-        step_indices=index_vector,
-        distance_traveled=steps_dist[0],  # Use forward distance only
-        mass=cost_mass,
-        muscle_indices=muscle_indices,
-    )
-
-    # Calculate EMG profile cost
-    if one_EMG is not None and one_EMG.size > 0:
-        musc_profile_cost = effort_costs.calculate_emg_profile_cost(
-            muscle_activations=unpacked_act,
-            ref_emg=one_EMG,
-            muscles_dict=muscles_dict,
-            eval_ctrl_mode=eval_ctrl_mode,
-            step_indices=index_vector,
-            n_strides=stride_num,
-        )
-    else:
-        musc_profile_cost = 0
-
-    return effort_cost, musc_profile_cost
-
-
-def calculate_final_cost(
-    pass_flag,
-    pass_cost,
-    optim_type,
-    effort_cost,
-    kinematic_cost,
-    trunk_cost,
-    GRF_cost,
-    musc_profile_cost,
-    pain_cost,
-):
-    """Calculate final cost based on optimization type"""
-    if not pass_flag:
-        return pass_cost
-
-    total_cost = pass_cost
-
-    if optim_type == "Vel_grf":
-        total_cost = effort_cost + GRF_cost + trunk_cost
-    elif optim_type == "Classic":
-        total_cost = effort_cost + trunk_cost + pain_cost
-    elif optim_type == "Kine":
-        total_cost = effort_cost + kinematic_cost + trunk_cost
-    elif optim_type == "Kine_grf":
-        total_cost = effort_cost + kinematic_cost + trunk_cost + GRF_cost
-    elif optim_type == "Kine_grf_musc":
-        total_cost = effort_cost + kinematic_cost + trunk_cost + GRF_cost + musc_profile_cost
-    elif optim_type == "vel_musc":
-        total_cost = effort_cost + musc_profile_cost
-    elif optim_type == "vel_musc_grf":
-        total_cost = effort_cost + trunk_cost + GRF_cost + musc_profile_cost
-    else:
-        total_cost = effort_cost
-
-    return total_cost
+    excess = np.clip(total_GRF - tgt_grf, 0.0, None)
+    return float(dt * np.sum(excess) / abs(distance_traveled))
 
 
 def create_cost_dictionary(
@@ -589,46 +527,39 @@ def create_cost_dictionary(
     add_cost=None,
     rot_cost=None,
     pelvis_cost=None,
+    leg_length=None,
+    final_cost=None,
+    total_cost=None,
 ):
-    """Create detailed cost dictionary for evaluation mode"""
+    """Create detailed cost dictionary for evaluation mode (units in the comments)"""
+    out = {
+        "Total_Cost": total_cost,  # value returned to the optimizer
+        "Final_Cost": final_cost,  # weighted final-stage sum, whether or not the constraints pass
+        "Effort_Cost": effort_cost,  # s/m
+        "Symmetry_Cost": sym_cost,  # leg lengths
+        "Velocity_Cost": velocity_cost,  # fraction of the target speed
+        "GRF_Cost": GRF_cost,  # s/m
+        "JointPain_Cost": pain_cost,  # s/m, mean over all joints
+        "HipPain_Cost": hip_pain,
+        "KneePain_Cost": knee_pain,
+        "AnklePain_Cost": ankle_pain,
+        "Kinematic_Cost": kinematic_cost,  # rad
+        "Trunk_Cost": trunk_cost,
+        "EMG_Cost": musc_profile_cost,
+    }
     if eval_ctrl_mode == "3D":
-        return {
-            "Effort_Cost": effort_cost,
-            "Symmetry_Cost": sym_cost,
-            "Velocity_Cost": velocity_cost,
-            "GRF_Cost": GRF_cost,
-            "JointPain_Cost": pain_cost,
-            "HipPain_Cost": hip_pain,
-            "KneePain_Cost": knee_pain,
-            "AnklePain_Cost": ankle_pain,
-            "Kinematic_Cost": kinematic_cost + trunk_cost,
-            "Hip Rotation Cost": rot_cost,
-            "Hip Adduction Cost": add_cost,
-            "Comb_Eff_Vel_Pain_Scruff": effort_cost + 1000 * velocity_cost + trunk_cost + pain_cost,
-            "Comb_Kine_Vel_Pain_Scruff": kinematic_cost + 1000 * velocity_cost + trunk_cost + pain_cost,
+        out["Hip Rotation Cost"] = rot_cost
+        out["Hip Adduction Cost"] = add_cost
+    out.update(
+        {
             "Actual_velocity": steps_dist / steps_duration,
             "Actual_dist": steps_dist,
             "Actual_time": steps_duration,
             "Pelvis_Cost": pelvis_cost,
+            "Leg_length": leg_length,
         }
-    else:
-        return {
-            "Effort_Cost": effort_cost,
-            "Symmetry_Cost": sym_cost,
-            "Velocity_Cost": velocity_cost,
-            "GRF_Cost": GRF_cost,
-            "JointPain_Cost": pain_cost,
-            "HipPain_Cost": hip_pain,
-            "KneePain_Cost": knee_pain,
-            "AnklePain_Cost": ankle_pain,
-            "Kinematic_Cost": kinematic_cost + trunk_cost,
-            "Comb_Eff_Vel_Pain_Scruff": effort_cost + 1000 * velocity_cost + trunk_cost + pain_cost,
-            "Comb_Kine_Vel_Pain_Scruff": kinematic_cost + 1000 * velocity_cost + trunk_cost + pain_cost,
-            "Actual_velocity": steps_dist / steps_duration,
-            "Actual_dist": steps_dist,
-            "Actual_time": steps_duration,
-            "Pelvis_Cost": pelvis_cost,
-        }
+    )
+    return out
 
 
 def calculate_scruff_cost(
