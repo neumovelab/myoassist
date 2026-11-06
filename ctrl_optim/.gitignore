@@ -121,3 +121,5 @@ myoassist_reflex/__pycache__/train.cpython-311.pyc
 
 # CMA-ES output files #
 outcmaes/
+# The shipped CO tutorial example keeps its fitness history for the report's CMA-ES panel.
+!results/optim_results/tutorial_example/outcmaes/

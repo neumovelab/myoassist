@@ -45,9 +45,10 @@ def calculate_kinematic_costs(
     Calculate kinematic costs by comparing simulated and reference joint angles.
     This version uses event-based stride segmentation to match the original framework.
 
-    The kinematic cost is the absolute error from the reference, averaged over strides
-    and summed over the 100 samples of the gait cycle and the hip, knee, and ankle of
-    both legs. The trunk cost is set by trunk_err_type (see calculate_trunk_cost).
+    The kinematic cost is the absolute error from the reference (rad), averaged over the
+    strides, the 100 samples of the gait cycle, and the hip, knee, and ankle of both legs.
+    It compares profiles normalized to the gait cycle, so the gait duration does not
+    change it. The trunk cost is set by trunk_err_type (see calculate_trunk_cost).
 
     Args:
         unpacked_angles (np.ndarray): Joint angles from simulation
@@ -68,10 +69,8 @@ def calculate_kinematic_costs(
     if actual_n_strides == 0:
         return 0.0, 0.0  # No full strides to evaluate
 
-    # Absolute error from the reference, averaged over strides
-    abs_err = np.abs(interp_mat - one_step[:, :, None]) / actual_n_strides
-    summed = np.sum(abs_err, axis=2)  # Sum across strides
-    kinematic_cost = np.sum(summed[:, 1:])  # Sum all joints except trunk
+    # Absolute error from the reference, averaged over samples, joints (all but the trunk), and strides
+    kinematic_cost = float(np.mean(np.abs(interp_mat[:, 1:, :] - one_step[:, 1:, None])))
 
     trunk_vel_mat = None if trunk_vel is None else resample_strides(trunk_vel[:, None], index_vector)[:, 0, :]
     trunk_cost = calculate_trunk_cost(interp_mat[:, 0, :], one_step[:, 0], trunk_err_type, trunk_vel=trunk_vel_mat)
@@ -87,8 +86,8 @@ def calculate_trunk_cost(
     trunk_vel: Optional[np.ndarray] = None,
 ) -> float:
     """
-    Calculate the trunk cost for the selected error type. Every type is summed over
-    the 100 samples of the gait cycle and averaged over strides.
+    Calculate the trunk cost for the selected error type. Every type is averaged over
+    the 100 samples of the gait cycle and over the strides.
 
     Args:
         trunk_strides (np.ndarray): Trunk pitch (rad) per stride, [100, n_strides]
@@ -105,17 +104,16 @@ def calculate_trunk_cost(
     Returns:
         float: Calculated trunk cost
     """
-    n_strides = trunk_strides.shape[1]
     if trunk_err_type is None or trunk_err_type == "ref_diff":
-        return float(np.sum(np.abs(trunk_strides - trunk_ref[:, None])) / n_strides)
+        return float(np.mean(np.abs(trunk_strides - trunk_ref[:, None])))
     if trunk_err_type == "tgt_diff":
-        return float(np.sum(np.square(trunk_strides - const_theta_tgt)) / n_strides)
+        return float(np.mean(np.square(trunk_strides - const_theta_tgt)))
     if trunk_err_type == "zero_diff":
-        return float(np.sum(np.square(trunk_strides)) / n_strides)
+        return float(np.mean(np.square(trunk_strides)))
     if trunk_err_type == "vel_square":
         if trunk_vel is None:
             raise ValueError("trunk_err_type 'vel_square' needs the trunk pitch rate")
-        return float(np.sum(np.square(trunk_vel)) / n_strides)
+        return float(np.mean(np.square(trunk_vel)))
     if trunk_err_type == "no_trunk":
         return 0.0
     raise ValueError(f"unknown trunk_err_type {trunk_err_type!r}; expected one of {TRUNK_ERR_TYPES}")

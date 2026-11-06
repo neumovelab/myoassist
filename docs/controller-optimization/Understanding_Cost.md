@@ -78,48 +78,59 @@ Values for these thresholds and targets are set through the config files and in 
 If these constraints are not met, the cost is calculated as:
 
 **Example constraint penalties:**
-- Velocity penalty: <code>100 × velocity_cost × (velocity_cost > 0.01)</code>
-- Symmetry penalty: <code>100 × sym_cost × (sym_cost > tgt_sym)</code>
+- Velocity penalty: <code>100 × velocity_cost × (velocity_cost > 0.01)</code> (the velocity error is relative to the target speed, so 0.01 is 1%)
+- Symmetry penalty: <code>100 × sym_cost × (sym_cost > tgt_sym)</code> (the symmetry error is in leg lengths)
 
 ### Stage 3: Final Performance Cost (Cost < 1.0E3)
 
-If a controller produces a valid walk that passes all constraints, it is evaluated with a final performance cost. This final cost is a weighted sum of several metrics, determined by the chosen optimization type (e.g., `-eff`, `-kine`, `-vel`). Different final cost functions will produce different results.
+If a controller produces a valid walk that passes all constraints, it is evaluated with a final performance cost. This final cost is a weighted sum of several terms, determined by the chosen optimization type (e.g., `-eff`, `-kine`, `-vel`). Different final cost functions will produce different results.
 
-This cost is on a much lower scale (typically in the hundreds, but varies by cost function), signaling to the optimizer that it has found a "good" region of the search space and should now focus on fine-tuning the performance.
+| Optimization type | Final-stage terms |
+|---|---|
+| Effort (`-eff`) | effort |
+| Eff_Knee | effort + joint_limit |
+| Vel_grf; vel_musc; vel_musc_grf | effort + grf + trunk; effort + emg; effort + trunk + grf + emg |
+| Classic | effort + trunk + joint_limit |
+| Kine (`-kine`); Kine_grf; Kine_grf_musc | effort + kinematic + trunk; + grf; + grf + emg |
+
+Each term is multiplied by its weight from `--cost_weights` (1 by default). Each term is normalized so that its value has a physical meaning (see below), so the final cost is typically below 1 and well below the constraint stage.
+
+> **Saved results and earlier cost definitions.** The provided parameter sets in `ctrl_optim/results/` (the tutorial example and the preoptimized controllers) were optimized before the cost terms were normalized as described below. The parameters replay unchanged, because the cost does not affect the simulation, but their saved `*_Cost.txt` files and optimization-progress histories use the earlier cost scale. Run the evaluation mode (`--optim_mode evaluate`) to get their cost breakdown in the current units.
 
 ## Cost Components Explained
 
-The final performance cost is assembled from various components, each quantifying a specific aspect of the gait.
+All terms use the evaluation window of the last `--num_strides` strides. The cumulative terms (effort, GRF, joint limits) are time integrals over the window divided by the distance traveled in the window, so they measure the accumulated penalty per meter and do not depend on the control period. The profile terms (kinematics, EMG) compare gait-cycle-normalized profiles, so they do not penalize differences in gait duration. The constraint terms (velocity, symmetry) are dimensionless deviations from the desired gait.
 
-### Effort Cost (Cost of Transport)
+### Effort Cost
 
-Measures the metabolic energy efficiency of the gait. It is calculated as the sum of squared muscle activations over the evaluation period, normalized by the model's mass and the distance traveled.
+The time integral of the squared muscle activations, summed over the muscles, divided by the distance traveled `D` and the number of muscles `n_m`:
+
+<code>C_E = Σ_m ∫ a_m(t)² dt / (D · n_m)</code> (s/m)
+
+This equals the mean squared activation divided by the mean speed: a value of 1 means that every muscle is fully active at 1 m/s. The muscles are those of the groups the reflex controller drives, on both legs.
 
 ### Kinematics Cost
 
-Measures how closely the model's joint angles match a set of reference kinematics. The controller's gait cycle for each joint is interpolated to 100 points and compared to the reference data. The reference data provided is normalized joint angles for a single gait cycle. 
-
-The per-stride joint angles are interpolated to 100 points and compared to reference. The absolute error is averaged over the detected strides. The trunk term is computed separately and added with weight 1 in final costs that include kinematics.
+The per-stride joint angles (hip, knee, and ankle of both legs) are resampled to 100 points of the gait cycle and compared with the reference. The cost is the absolute error in radians, averaged over the samples, the joints, and the strides. The trunk term is computed separately (`--trunk_err_type`) and averaged the same way.
 
 ### Velocity Cost
 
-Measures the difference between the average stride velocity and the target. The forward and lateral components are considered (on slopes, forward is computed in the x–z plane).
-
+The norm of the difference between the mean horizontal velocity in the window and the target velocity, divided by the target speed. The forward and lateral components are considered (on slopes, forward is computed in the x–z plane).
 
 ### Ground Reaction Force (GRF) Cost
 
-Penalizes GRF exceeding an upper threshold. We sum the exceedance of the total vertical GRF (left+right) over the evaluation window and normalize by duration.
+The time integral of the excess of the total vertical GRF (left plus right, in body weights) over the threshold `--tgt_grf_th`, divided by the distance traveled (s/m).
 
 ### Joint Limit Cost (Pain Cost)
 
-Penalizes the controller for relying on joint-limit torques, which represent the passive ligaments and structures of the joints rather than active muscle control.
+Penalizes the controller for relying on joint-limit torques, which represent the passive ligaments and structures of the joints rather than active muscle control. The cost is the time integral of the magnitude of the joint-limit torques of the hip, knee, and ankle of both legs, divided by the distance traveled, the number of joints, and the body weight times the leg length (`m g L`), in s/m. The breakdown also reports each joint pair.
 
 ### EMG Profile Cost
 
-Similar to the kinematics cost, this measures the difference between the model's muscle activation patterns and reference EMG data from human subjects.
+The squared difference between each muscle's activation and the reference EMG of its group, after each stride is resampled to 100 points. It is averaged over the samples, the strides, and the muscles of each group, then over the groups.
 
 ### Symmetry Cost
 
-Computed at detected left/right stance events using Euclidean differences of knee and ankle positions relative to the pelvis, averaged over the requested number of strides.
+Computed at detected left/right stance events using Euclidean differences of knee and ankle positions relative to the pelvis, averaged over the requested number of strides and divided by the leg length (hip to knee plus knee to ankle).
 
 An amputee gait is asymmetric by nature, because the prosthetic leg does not move like the intact leg. The symmetry cost and the Stage 2 symmetry constraint still apply, so read their values with that in mind. Raise `--tgt_sym_th` if the constraint is too strict for an amputee run. See [Amputee and Prosthetic Control](Amputee_Prosthetic_Control.md).

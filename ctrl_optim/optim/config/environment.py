@@ -60,6 +60,17 @@ def resolve_env_spec(args: argparse.Namespace) -> EnvSpec:
     return spec
 
 
+def parse_cost_weights(items) -> Dict[str, float]:
+    """Parse --cost_weights 'TERM=W' items into a dict; unknown terms are rejected by the cost."""
+    weights = {}
+    for item in items or []:
+        term, sep, value = item.partition("=")
+        if not sep:
+            raise ValueError(f"--cost_weights expects TERM=W items, got {item!r}")
+        weights[term.strip()] = float(value)
+    return weights
+
+
 def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
     """
     Create a dictionary of environment settings from command line arguments.
@@ -100,6 +111,7 @@ def create_environment_dict(args: argparse.Namespace) -> Dict[str, Any]:
         "ankle_range": args.ankle_range,
         "ankle_range_side": args.ankle_range_side,
         "optimize_impedance": args.optimize_impedance,
+        "cost_weights": parse_cost_weights(getattr(args, "cost_weights", None)),
     }
 
     return env_dict

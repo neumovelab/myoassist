@@ -67,7 +67,7 @@ def main():
     LOAD_FROM_FILE = True
     notebook_dir = os.getcwd()
     PARAMS_FILE_PATH = os.path.join(
-        notebook_dir, "results", "optim_results", "tutorial_example", "myorfl_Kine_2D_1_25_2025Aug11_1439_None_BestLast.txt"
+        notebook_dir, "results", "optim_results", "tutorial_example", "myorfl_Kine_2D_1_25_2026Oct30_1455_None_BestLast.txt"
     )
 
     if LOAD_FROM_FILE:

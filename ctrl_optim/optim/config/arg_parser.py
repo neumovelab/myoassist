@@ -112,8 +112,18 @@ def initParser() -> argparse.Namespace:
         "squared trunk pitch (zero_diff; tgt_diff from a target, 0 by default), squared pitch rate "
         "(vel_square), or none (no_trunk)",
     )
-    optim_group.add_argument("--tgt_sym_th", type=float, help="(float) Threshold difference for symmetry")
-    optim_group.add_argument("--tgt_grf_th", type=float, help="(float) Threshold for normalized GRF")
+    optim_group.add_argument(
+        "--tgt_sym_th", type=float, help="(float) Symmetry threshold, in leg lengths (0.125 is about 0.1 m)"
+    )
+    optim_group.add_argument("--tgt_grf_th", type=float, help="(float) GRF threshold, in body weights")
+    optim_group.add_argument(
+        "--cost_weights",
+        nargs="+",
+        default=None,
+        metavar="TERM=W",
+        help="Weights of the final-stage cost terms, for example 'effort=1 kinematic=2'. Terms: effort, "
+        "kinematic, trunk, grf, emg, joint_limit. A term that is not given has weight 1.",
+    )
     optim_group.add_argument("--optim_params", type=float, nargs="+", help="(float) List of target velocities or slopes")
 
     # Cost function types (mutually exclusive)

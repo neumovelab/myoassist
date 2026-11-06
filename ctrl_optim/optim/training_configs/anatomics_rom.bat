@@ -11,7 +11,7 @@ python train.py ^
     --ankle_range_side r ^
     --tgt_vel 1.25 ^
     --trunk_err_type ref_diff ^
-    --tgt_sym_th 0.1 ^
+    --tgt_sym_th 0.125 ^
     --tgt_grf_th 1.5 ^
     -kine ^
     --popsize 32 ^

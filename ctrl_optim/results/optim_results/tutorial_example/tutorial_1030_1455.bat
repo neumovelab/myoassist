@@ -12,13 +12,12 @@ python train.py ^
     --trunk_err_type ref_diff ^
     --tgt_sym_th 0.1 ^
     --tgt_grf_th 1.5 ^
-    -eff ^
+    -kine ^
     --ExoOn 1 ^
     --use_4param_spline ^
-    --max_torque 100.0 ^
-    --popsize 8 ^
-    --maxiter 50 ^
-    --threads 8 ^
+    --max_torque 50.0 ^
+    --popsize 32 ^
+    --maxiter 1500 ^
+    --threads 32 ^
     --sigma_gain 10 ^
-    --param_path ../results/optim_results/tutorial_prep ^
     --save_path tutorial

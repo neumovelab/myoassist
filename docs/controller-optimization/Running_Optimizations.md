@@ -68,7 +68,7 @@ This will display a list of all available configuration files in the `optim/trai
 
 The configuration files in `optim/training_configs/` hold the command-line arguments for the `train.py` script. `run_optim.py` runs the file from `ctrl_optim/optim/`. The `.bat` and `.sh` files hold the same arguments, with different line-continuation syntax.
 
-The shipped `tutorial` configuration starts from the default initial parameters. It uses 32 candidates per generation on 32 processes; on a smaller computer, decrease `--popsize` and `--threads`. Its result is in `results/optim_results/tutorial_v2`.
+The shipped `tutorial` configuration starts from the default initial parameters. It uses 32 candidates per generation on 32 processes; on a smaller computer, decrease `--popsize` and `--threads`. Its result is in `results/optim_results/tutorial_example`.
 
 **Example `tutorial.bat`:**
 ```batch
@@ -83,9 +83,9 @@ python train.py ^
     --reflex_mode uni ^
     --tgt_vel 1.25 ^
     --trunk_err_type ref_diff ^
-    --tgt_sym_th 0.1 ^
+    --tgt_sym_th 0.125 ^
     --tgt_grf_th 1.5 ^
-    -eff ^
+    -kine ^
     --ExoOn 1 ^
     --use_4param_spline ^
     --max_torque 50.0 ^
@@ -109,9 +109,9 @@ exec "$PYTHON_CMD" -m ctrl_optim.optim.train \
     --reflex_mode uni \
     --tgt_vel 1.25 \
     --trunk_err_type ref_diff \
-    --tgt_sym_th 0.1 \
+    --tgt_sym_th 0.125 \
     --tgt_grf_th 1.5 \
-    -eff \
+    -kine \
     --ExoOn 1 \
     --use_4param_spline \
     --max_torque 50.0 \
@@ -180,8 +180,9 @@ To optimize on an amputee model, pair a prosthetic device with `--reflex_mode am
 ### Optimization Target
 - `-eff`, `-vel`, `-kine`, etc.: These flags set the primary objective of the cost function. They are mutually exclusive. Choose the one that best fits your goal, for example minimizing effort, matching a target velocity, or tracking reference kinematics. For more information see (**[Understanding Cost](Understanding_Cost.md)**).
 - `--tgt_vel`: the target walking velocity, in m/s.
-- `--tgt_sym_th`: the symmetry threshold used in the cost.
-- `--tgt_grf_th`: the normalized ground-reaction-force threshold used in the cost.
+- `--tgt_sym_th`: the symmetry threshold of the constraint stage, in leg lengths (0.125 is about 0.1 m).
+- `--tgt_grf_th`: the ground-reaction-force threshold of the GRF cost, in body weights.
+- `--cost_weights` (optional): weights of the final-stage cost terms, for example `--cost_weights effort=1 kinematic=2`. The terms are `effort`, `kinematic`, `trunk`, `grf`, `emg`, and `joint_limit`. A term that is not given has weight 1. See [Understanding Cost Functions](Understanding_Cost.md).
 
 ### Optimizer Settings
 - `--popsize`: The population size for the CMA-ES optimizer (number of solutions per generation).

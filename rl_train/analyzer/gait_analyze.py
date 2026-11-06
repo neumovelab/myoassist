@@ -109,7 +109,8 @@ class GaitAnalyzer:
                 (result_strike_to_toe_off[idx][0], result_strike_to_toe_off[idx][1], result_strike_to_toe_off[idx + 1][0])
             )
         result_strike_to_strike = result_strike_to_strike[1:]
-        fallback = self._hip_flexion_segments(primary_char)
+        # Drop the first (start-up) stride like the sensor path above, so the counts compare like for like
+        fallback = self._hip_flexion_segments(primary_char)[1:]
         # Trust the sensors only when they agree with the hip-flexion stride count. Both observed
         # failure modes are count errors: no segments at all when a sole carries the load, and
         # roughly double when device and human geoms both contact -- OpenExo_L1 reports 12 strikes
