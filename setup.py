@@ -50,7 +50,7 @@ ctrl_optim_files = package_files("ctrl_optim")
 if __name__ == "__main__":
     setup(
         name="MyoAssist",
-        version="1.0.0",
+        version="1.1.0",
         author="MyoAssist Authors - Seungmoon Song, Calder Robbins, Hyoungseo Son(Northeastern University)",
         author_email="s.song@northeastern.edu",
         license="Apache 2.0",

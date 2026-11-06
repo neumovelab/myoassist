@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from tools.tests.conftest import build_env, shipped_configs, take_a_few_ppo_steps, ut_exo_misplaced_on_myolegs22
+from tools.tests.conftest import build_env, shipped_configs, take_a_few_ppo_steps
 
 # qpos(8) | qvel(9) | act(22 muscles) | sensor(4) | target_velocity(1)
 EXPECTED_OBS = 44
@@ -19,12 +19,7 @@ EXPECTED_OBS = 44
 EXPECTED_ACT = 24
 
 
-def _configs_with_known_failures():
-    broken = ut_exo_misplaced_on_myolegs22()
-    return [pytest.param(p, marks=broken) if "UTAnkleExo_L2" in p.name else p for p in shipped_configs()]
-
-
-@pytest.mark.parametrize("config_path", _configs_with_known_failures(), ids=lambda p: p.stem.replace("imitation_22_", ""))
+@pytest.mark.parametrize("config_path", shipped_configs(), ids=lambda p: p.stem.replace("imitation_22_", ""))
 def test_shipped_config_trains(config_path):
     config, env = build_env(config_path)
     try:

@@ -16,7 +16,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from tools.tests.conftest import REPO_ROOT, ut_exo_misplaced_on_myolegs22
+from tools.tests.conftest import REPO_ROOT
 
 TRAIN_CONFIGS = REPO_ROOT / "rl_train/train/train_configs"
 SPEED_CONTROL_CONFIG = TRAIN_CONFIGS / "imitation_tutorial_22_separated_net_speed_control.json"
@@ -29,8 +29,7 @@ def _shipped_configs() -> list:
         + sorted(TRAIN_CONFIGS.glob("imitation_tutorial_22_*.json"))
     )
     assert paths, f"no shipped configs under {TRAIN_CONFIGS}"
-    broken = ut_exo_misplaced_on_myolegs22()
-    return [pytest.param(p, marks=broken) if "UTAnkleExo_L2" in p.name else p for p in paths]
+    return paths
 
 
 def _make_env(path: pathlib.Path, *, is_evaluate_mode: bool):
